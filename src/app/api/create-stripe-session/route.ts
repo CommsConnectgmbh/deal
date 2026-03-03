@@ -1,0 +1,84 @@
+import { NextRequest, NextResponse } from 'next/server'
+import Stripe from 'stripe'
+import { createClient } from '@supabase/supabase-js'
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+
+const PRODUCTS: Record<string, { name: string; amount: number; coins?: number; description: string }> = {
+  coin_pack_small: {
+    name: 'DealBuddy – 500 Buddy Coins',
+    amount: 499,
+    coins: 500,
+    description: '500 Buddy Coins für die DealBuddy App'
+  },
+  coin_pack_large: {
+    name: 'DealBuddy – 1.500 Buddy Coins',
+    amount: 999,
+    coins: 1500,
+    description: '1.500 Buddy Coins für die DealBuddy App'
+  },
+  premium_pass: {
+    name: 'DealBuddy – Premium Battle Pass Season 1',
+    amount: 999,
+    description: 'Premium Battle Pass für Season 1 – The Founders Era'
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const { product_type, user_id } = await req.json()
+
+    if (!product_type || !user_id) {
+      return NextResponse.json({ error: 'Missing product_type or user_id' }, { status: 400 })
+    }
+
+    const product = PRODUCTS[product_type]
+    if (!product) {
+      return NextResponse.json({ error: 'Invalid product_type' }, { status: 400 })
+    }
+
+    const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://app.deal-buddy.app'
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: [{
+        price_data: {
+          currency: 'eur',
+          product_data: {
+            name: product.name,
+            description: product.description
+          },
+          unit_amount: product.amount
+        },
+        quantity: 1
+      }],
+      metadata: {
+        user_id,
+        product_type,
+        coins: product.coins ? String(product.coins) : '0'
+      },
+      success_url: `${origin}/app/shop?success=1&product=${product_type}`,
+      cancel_url: `${origin}/app/shop?cancelled=1`
+    })
+
+    // Store pending transaction in Supabase (using service role)
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    await supabase.from('stripe_transactions').insert({
+      user_id,
+      session_id: session.id,
+      status: 'pending',
+      product_type,
+      amount_cents: product.amount,
+      coins_awarded: product.coins || 0
+    })
+
+    return NextResponse.json({ url: session.url })
+  } catch (error: any) {
+    console.error('Stripe session error:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
