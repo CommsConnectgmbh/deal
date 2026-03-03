@@ -19,6 +19,9 @@ interface Profile {
   primary_archetype: string
   active_frame: string
   active_badge?: string
+  active_title?: string
+  active_card?: string
+  active_victory_animation?: string
   is_founder: boolean
   battle_pass_premium: boolean
   battle_pass_level: number

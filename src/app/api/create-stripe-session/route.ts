@@ -5,22 +5,39 @@ import { createClient } from '@supabase/supabase-js'
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
 const PRODUCTS: Record<string, { name: string; amount: number; coins?: number; description: string }> = {
-  coin_pack_small: {
+  coin_pack_xs: {
     name: 'DealBuddy – 500 Buddy Coins',
-    amount: 499,
+    amount: 299,
     coins: 500,
     description: '500 Buddy Coins für die DealBuddy App'
   },
-  coin_pack_large: {
-    name: 'DealBuddy – 1.500 Buddy Coins',
+  coin_pack_sm: {
+    name: 'DealBuddy – 2.000 Buddy Coins',
     amount: 999,
-    coins: 1500,
-    description: '1.500 Buddy Coins für die DealBuddy App'
+    coins: 2000,
+    description: '2.000 Buddy Coins für die DealBuddy App'
+  },
+  coin_pack_md: {
+    name: 'DealBuddy – 4.500 Buddy Coins',
+    amount: 1999,
+    coins: 4500,
+    description: '4.500 Buddy Coins für die DealBuddy App'
+  },
+  coin_pack_lg: {
+    name: 'DealBuddy – 12.000 Buddy Coins',
+    amount: 4999,
+    coins: 12000,
+    description: '12.000 Buddy Coins für die DealBuddy App'
   },
   premium_pass: {
     name: 'DealBuddy – Premium Battle Pass Season 1',
     amount: 999,
     description: 'Premium Battle Pass für Season 1 – The Founders Era'
+  },
+  legendary_box: {
+    name: 'DealBuddy – Legendary Mystery Box',
+    amount: 499,
+    description: 'Legendary Mystery Box – garantierter epischer oder legendärer Reward'
   }
 }
 

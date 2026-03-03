@@ -248,6 +248,24 @@
     "xpProgress": "XP Progress",
     "allClaimed": "All available rewards claimed!"
   },
+  "avatar": {
+    "title": "Avatar",
+    "editAvatar": "Edit Avatar",
+    "myAvatar": "My Avatar",
+    "slots": {
+      "body": "Body",
+      "hair": "Hair",
+      "outfit": "Outfit",
+      "accessory": "Accessory"
+    },
+    "equipped": "Equipped",
+    "buy": "Buy",
+    "equip": "Equip",
+    "locked": "Locked",
+    "owned": "Owned",
+    "buyFor": "Buy for",
+    "notEnoughCoins": "Not enough coins"
+  },
   "shop": {
     "title": "Shop",
     "coins": "Buddy Coins",
@@ -255,6 +273,7 @@
     "frames": "Frames",
     "cards": "Deal Cards",
     "badges": "Badges",
+    "titles": "Titles",
     "buy": "Buy",
     "owned": "Owned",
     "equip": "Equip",
@@ -268,6 +287,15 @@
       "epic": "Epic",
       "legendary": "Legendary"
     },
+    "sections": {
+      "featured": "Featured",
+      "avatar": "Avatar",
+      "stylePacks": "Style Packs",
+      "mysteryBoxes": "Mystery Boxes",
+      "cosmetics": "Cosmetics",
+      "coins": "Coins",
+      "premium": "Premium"
+    },
     "coinPacks": "Buy Buddy Coins",
     "coinPackSmall": "Starter Pack",
     "coinPackSmallCoins": "500 Coins",
@@ -275,6 +303,12 @@
     "coinPackLarge": "Pro Pack",
     "coinPackLargeCoins": "1,500 Coins",
     "coinPackLargePrice": "€9.99",
+    "coinPackXs": "Mini Pack",
+    "coinPackSm": "Starter Pack",
+    "coinPackMd": "Value Pack",
+    "coinPackLg": "Mega Pack",
+    "bestValue": "Best Value",
+    "mostPopular": "Most Popular",
     "buyCoins": "Buy Coins",
     "notEnoughCoins": "Not enough Buddy Coins",
     "notEnoughCoinsText": "Buy more coins to purchase this item",
@@ -286,7 +320,21 @@
     "confirmPurchaseCoins": "Buddy Coins?",
     "processing": "Processing...",
     "redirecting": "Redirecting to Stripe...",
-    "stripeNote": "Secure payment via Stripe"
+    "stripeNote": "Secure payment via Stripe",
+    "rewardBox": {
+      "open": "Open Box",
+      "opening": "Opening...",
+      "odds": "Odds",
+      "youGot": "You got:",
+      "openAnother": "Open another",
+      "guaranteed": "Guaranteed epic or legendary reward"
+    },
+    "stylePack": {
+      "buy": "Buy Pack",
+      "contents": "Contents",
+      "owned": "Owned",
+      "items": "items included"
+    }
   },
   "discover": {
     "title": "Discover",

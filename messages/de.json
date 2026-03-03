@@ -248,6 +248,24 @@
     "xpProgress": "XP-Fortschritt",
     "allClaimed": "Alle verfügbaren Rewards abgeholt!"
   },
+  "avatar": {
+    "title": "Avatar",
+    "editAvatar": "Avatar bearbeiten",
+    "myAvatar": "Mein Avatar",
+    "slots": {
+      "body": "Körper",
+      "hair": "Haare",
+      "outfit": "Outfit",
+      "accessory": "Accessoire"
+    },
+    "equipped": "Ausgerüstet",
+    "buy": "Kaufen",
+    "equip": "Ausrüsten",
+    "locked": "Gesperrt",
+    "owned": "Besessen",
+    "buyFor": "Kaufen für",
+    "notEnoughCoins": "Nicht genug Coins"
+  },
   "shop": {
     "title": "Shop",
     "coins": "Buddy Coins",
@@ -255,6 +273,7 @@
     "frames": "Frames",
     "cards": "Deal-Cards",
     "badges": "Badges",
+    "titles": "Titel",
     "buy": "Kaufen",
     "owned": "Besessen",
     "equip": "Ausrüsten",
@@ -268,6 +287,15 @@
       "epic": "Epic",
       "legendary": "Legendary"
     },
+    "sections": {
+      "featured": "Featured",
+      "avatar": "Avatar",
+      "stylePacks": "Style Packs",
+      "mysteryBoxes": "Mystery Boxes",
+      "cosmetics": "Kosmetik",
+      "coins": "Coins",
+      "premium": "Premium"
+    },
     "coinPacks": "Buddy Coins kaufen",
     "coinPackSmall": "Starter Pack",
     "coinPackSmallCoins": "500 Coins",
@@ -275,6 +303,12 @@
     "coinPackLarge": "Pro Pack",
     "coinPackLargeCoins": "1.500 Coins",
     "coinPackLargePrice": "9,99 €",
+    "coinPackXs": "Mini Pack",
+    "coinPackSm": "Starter Pack",
+    "coinPackMd": "Value Pack",
+    "coinPackLg": "Mega Pack",
+    "bestValue": "Bestes Angebot",
+    "mostPopular": "Beliebt",
     "buyCoins": "Coins kaufen",
     "notEnoughCoins": "Nicht genug Buddy Coins",
     "notEnoughCoinsText": "Kaufe mehr Coins um diesen Gegenstand zu erwerben",
@@ -286,7 +320,21 @@
     "confirmPurchaseCoins": "Buddy Coins kaufen?",
     "processing": "Wird verarbeitet...",
     "redirecting": "Weiterleitung zu Stripe...",
-    "stripeNote": "Sichere Zahlung über Stripe"
+    "stripeNote": "Sichere Zahlung über Stripe",
+    "rewardBox": {
+      "open": "Box öffnen",
+      "opening": "Öffnet...",
+      "odds": "Wahrscheinlichkeiten",
+      "youGot": "Du hast erhalten:",
+      "openAnother": "Nochmal öffnen",
+      "guaranteed": "Garantiert episch oder legendary"
+    },
+    "stylePack": {
+      "buy": "Pack kaufen",
+      "contents": "Inhalt",
+      "owned": "Besessen",
+      "items": "Items enthalten"
+    }
   },
   "discover": {
     "title": "Entdecken",

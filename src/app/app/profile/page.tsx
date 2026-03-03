@@ -1,8 +1,11 @@
 'use client'
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLang } from '@/contexts/LanguageContext'
 import Image from 'next/image'
+import AvatarDisplay, { AvatarConfig } from '@/components/AvatarDisplay'
+import { supabase } from '@/lib/supabase'
 
 const ARCHETYPES: Record<string, { icon: string; color: string }> = {
   closer:    { icon: '🤝', color: '#FFB800' },
@@ -16,7 +19,16 @@ export default function ProfilePage() {
   const { profile, signOut } = useAuth()
   const { t, lang, setLang } = useLang()
   const router = useRouter()
+  const [avatarConfig, setAvatarConfig] = useState<AvatarConfig | null>(null)
   const archetype = profile?.primary_archetype || 'founder'
+
+  useEffect(() => {
+    if (profile) {
+      supabase.from('avatar_config').select('*').eq('user_id', profile.id).single().then(({ data }) => {
+        if (data) setAvatarConfig({ body: data.body, hair: data.hair, outfit: data.outfit, accessory: data.accessory })
+      })
+    }
+  }, [profile])
   const archetypeData = ARCHETYPES[archetype] || ARCHETYPES.founder
   const level = profile?.level ?? 1
   const xp = profile?.xp ?? 0
@@ -39,14 +51,20 @@ export default function ProfilePage() {
         </div>
       </div>
       <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'0 20px 28px' }}>
-        <div style={{ position:'relative', marginBottom:16 }}>
-          <div style={{ width:90, height:90, borderRadius:'50%', background:'linear-gradient(135deg, #CC8800, #FFB800, #FFE566)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 3px #FFB800, 0 0 24px rgba(255,184,0,0.4)' }}>
-            <span className='font-display' style={{ fontSize:28, color:'#000', fontWeight:700 }}>{initials}</span>
-          </div>
-          <div style={{ position:'absolute', bottom:-4, right:-4, width:28, height:28, borderRadius:'50%', background:'#111', border:'2px solid #060606', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14 }}>
-            {archetypeData.icon}
-          </div>
+        <div style={{ position:'relative', marginBottom:8 }}>
+          <AvatarDisplay
+            config={avatarConfig}
+            archetype={archetype}
+            size={96}
+            initials={initials}
+          />
         </div>
+        <button
+          onClick={() => router.push('/app/avatar')}
+          style={{ marginBottom:12, padding:'4px 14px', borderRadius:16, background:'rgba(255,184,0,0.08)', border:'1px solid rgba(255,184,0,0.2)', color:'rgba(255,184,0,0.7)', fontFamily:'Cinzel, serif', fontSize:9, letterSpacing:1, cursor:'pointer' }}
+        >
+          {t('avatar.editAvatar').toUpperCase()} ✏️
+        </button>
         <h2 className='font-display' style={{ fontSize:20, color:'#f0ece4', marginBottom:4 }}>{profile?.display_name || profile?.username}</h2>
         <p style={{ fontSize:13, color:'rgba(240,236,228,0.4)', marginBottom:8 }}>@{profile?.username}</p>
         <div style={{ padding:'4px 14px', borderRadius:20, background:`${archetypeData.color}18`, border:`1px solid ${archetypeData.color}44` }}>

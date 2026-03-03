@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLang } from '@/contexts/LanguageContext'
+import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -28,6 +29,27 @@ export default function RegisterPage() {
     setError(''); setLoading(true)
     try {
       await signUp(email, password, username)
+
+      // Grant founder items to new users (all S1 registrants are founders)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const founderItems = [
+          { cosmetic_id: 'founder_carbon', source: 'founder_grant' },
+          { cosmetic_id: 'season1_founder', source: 'founder_grant' },
+          { cosmetic_id: 'title_founder', source: 'founder_grant' },
+        ]
+        await supabase.from('user_inventory').upsert(
+          founderItems.map(item => ({ user_id: user.id, ...item })),
+          { onConflict: 'user_id,cosmetic_id' }
+        )
+        // Set founder cosmetics as active
+        await supabase.from('profiles').update({
+          active_frame: 'founder_carbon',
+          active_badge: 'season1_founder',
+          is_founder: true
+        }).eq('id', user.id)
+      }
+
       router.replace('/app/home')
     } catch (e: unknown) {
       const err = e as Error
