@@ -6,12 +6,22 @@
 
 -- ─── 1. Avatar System: neue Slots + Items ─────────────────────────────────────
 
--- Erweitere den slot-Constraint um neue Slot-Typen
+-- Schritt 1a: Constraint entfernen (vorher!)
 ALTER TABLE avatar_items DROP CONSTRAINT IF EXISTS avatar_items_slot_check;
+
+-- Schritt 1b: Alte Slot-Werte auf neue Namen migrieren
+-- 'outfit' → 'top'  (V3 hatte outfit als Slot)
+UPDATE avatar_items SET slot = 'top'    WHERE slot = 'outfit';
+-- 'frame','badge','title','card_skin','xp' → gehören zur cosmetics Tabelle, nicht avatar_items
+-- Zur Sicherheit: alles was nicht zu den neuen Slots gehört entfernen
+DELETE FROM avatar_items
+  WHERE slot NOT IN ('body','hair','headwear','top','bottom','shoes','accessory','background','skin_tone');
+
+-- Schritt 1c: Neuen Constraint setzen (nur noch valide Werte vorhanden)
 ALTER TABLE avatar_items ADD CONSTRAINT avatar_items_slot_check
   CHECK (slot IN ('body','hair','headwear','top','bottom','shoes','accessory','background','skin_tone'));
 
--- Erweitere avatar_config um neue Slots
+-- Schritt 1d: Erweitere avatar_config um neue Slots
 ALTER TABLE avatar_config
   ADD COLUMN IF NOT EXISTS skin_tone  TEXT DEFAULT 'medium',
   ADD COLUMN IF NOT EXISTS headwear   TEXT DEFAULT NULL,
@@ -19,9 +29,6 @@ ALTER TABLE avatar_config
   ADD COLUMN IF NOT EXISTS bottom     TEXT DEFAULT 'bottom_slim',
   ADD COLUMN IF NOT EXISTS shoes      TEXT DEFAULT 'shoes_sneaker',
   ADD COLUMN IF NOT EXISTS background TEXT DEFAULT 'bg_dark';
-
--- Alte Spalten umbenennen (Kompatibilität)
--- outfit → top, hair bleibt, accessory bleibt
 
 -- ─── 2. Neue Avatar Items seeden ──────────────────────────────────────────────
 
