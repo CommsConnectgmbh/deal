@@ -484,37 +484,70 @@ export default function ShopPage() {
       )}
 
       {/* Confirm Purchase Modal */}
-      {confirmItem && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-end', zIndex: 200 }} onClick={() => setConfirmItem(null)}>
-          <div style={{ width: '100%', maxWidth: 430, margin: '0 auto', background: '#111', borderRadius: '20px 20px 0 0', border: '1px solid rgba(255,184,0,0.15)', padding: '24px 20px 48px' }} onClick={e => e.stopPropagation()}>
-            <div style={{ textAlign: 'center', fontSize: 48, marginBottom: 12 }}>{confirmItem.icon || confirmItem.icon_emoji}</div>
-            <h3 className='font-display' style={{ fontSize: 18, color: '#FFB800', textAlign: 'center', marginBottom: 8 }}>
-              {t('shop.confirmPurchase')}
-            </h3>
-            <p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(240,236,228,0.6)', marginBottom: 20 }}>
-              {t('shop.confirmPurchaseText')} <strong style={{ color: '#FFB800', display: 'inline-flex', alignItems: 'center', gap: 3 }}>{confirmItem.coin_price} <CoinIcon size={14} /></strong> {t('shop.confirmPurchaseCoins')}
-            </p>
-            {coins < confirmItem.coin_price && (
-              <div style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 10, padding: 12, marginBottom: 16, textAlign: 'center' }}>
-                <p style={{ color: '#f87171', fontSize: 13 }}>{t('shop.notEnoughCoins')}</p>
-              </div>
-            )}
-            <button
-              onClick={() => {
-                if (confirmItem.type === 'style_pack') buyStylePack(confirmItem)
-                else buyWithCoins(confirmItem)
-              }}
-              disabled={buying !== null || coins < confirmItem.coin_price}
-              style={{ width: '100%', padding: 16, borderRadius: 12, border: 'none', cursor: coins >= confirmItem.coin_price ? 'pointer' : 'default', background: coins >= confirmItem.coin_price ? 'linear-gradient(135deg, #CC8800, #FFB800)' : 'rgba(255,184,0,0.1)', color: coins >= confirmItem.coin_price ? '#000' : 'rgba(255,184,0,0.4)', fontFamily: 'Cinzel, serif', fontSize: 12, fontWeight: 700, letterSpacing: 2, marginBottom: 10 }}
-            >
-              {buying ? t('shop.processing') : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>{t('shop.buy').toUpperCase()} · {confirmItem.coin_price} <CoinIcon size={14} /></span>}
-            </button>
-            <button onClick={() => setConfirmItem(null)} style={{ width: '100%', padding: 14, borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(240,236,228,0.5)', fontFamily: 'Cinzel, serif', fontSize: 11, cursor: 'pointer' }}>
-              {lang === 'de' ? 'ABBRECHEN' : 'CANCEL'}
-            </button>
+      {confirmItem && (() => {
+        const notEnough = coins < confirmItem.coin_price
+        const missing   = confirmItem.coin_price - coins
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-end', zIndex: 200 }} onClick={() => setConfirmItem(null)}>
+            <div style={{ width: '100%', maxWidth: 430, margin: '0 auto', background: '#111', borderRadius: '20px 20px 0 0', border: `1px solid ${notEnough ? 'rgba(248,113,113,0.2)' : 'rgba(255,184,0,0.15)'}`, padding: '24px 20px 48px' }} onClick={e => e.stopPropagation()}>
+              <div style={{ textAlign: 'center', fontSize: 48, marginBottom: 12 }}>{confirmItem.icon || confirmItem.icon_emoji}</div>
+              <h3 className='font-display' style={{ fontSize: 18, color: notEnough ? '#f87171' : '#FFB800', textAlign: 'center', marginBottom: 8 }}>
+                {notEnough ? (lang === 'de' ? 'Nicht genug Coins' : 'Not Enough Coins') : t('shop.confirmPurchase')}
+              </h3>
+
+              {notEnough ? (
+                <>
+                  {/* Coins comparison */}
+                  <div style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)', borderRadius: 12, padding: '16px', marginBottom: 20 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <span style={{ fontSize: 12, color: 'rgba(240,236,228,0.5)', fontFamily: 'Cinzel, serif' }}>{lang === 'de' ? 'DEINE COINS' : 'YOUR COINS'}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 16, color: '#f87171', fontFamily: 'Cinzel, serif', fontWeight: 700 }}><CoinIcon size={15} /> {coins.toLocaleString()}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <span style={{ fontSize: 12, color: 'rgba(240,236,228,0.5)', fontFamily: 'Cinzel, serif' }}>{lang === 'de' ? 'PREIS' : 'PRICE'}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 16, color: '#FFB800', fontFamily: 'Cinzel, serif', fontWeight: 700 }}><CoinIcon size={15} /> {confirmItem.coin_price.toLocaleString()}</span>
+                    </div>
+                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 12, color: 'rgba(240,236,228,0.5)', fontFamily: 'Cinzel, serif' }}>{lang === 'de' ? 'ES FEHLEN' : 'MISSING'}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 18, color: '#f87171', fontFamily: 'Cinzel, serif', fontWeight: 700 }}><CoinIcon size={16} /> {missing.toLocaleString()}</span>
+                    </div>
+                  </div>
+                  {/* CTA: buy coins */}
+                  <button
+                    onClick={() => { setConfirmItem(null); setSection('coins') }}
+                    style={{ width: '100%', padding: 16, borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #CC8800, #FFB800)', color: '#000', fontFamily: 'Cinzel, serif', fontSize: 12, fontWeight: 700, letterSpacing: 2, marginBottom: 10 }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                      <CoinIcon size={15} />
+                      {lang === 'de' ? 'COINS KAUFEN' : 'BUY COINS'}
+                    </span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(240,236,228,0.6)', marginBottom: 20 }}>
+                    {t('shop.confirmPurchaseText')} <strong style={{ color: '#FFB800', display: 'inline-flex', alignItems: 'center', gap: 3 }}>{confirmItem.coin_price} <CoinIcon size={14} /></strong> {t('shop.confirmPurchaseCoins')}
+                  </p>
+                  <button
+                    onClick={() => {
+                      if (confirmItem.type === 'style_pack') buyStylePack(confirmItem)
+                      else buyWithCoins(confirmItem)
+                    }}
+                    disabled={buying !== null}
+                    style={{ width: '100%', padding: 16, borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #CC8800, #FFB800)', color: '#000', fontFamily: 'Cinzel, serif', fontSize: 12, fontWeight: 700, letterSpacing: 2, marginBottom: 10 }}
+                  >
+                    {buying ? t('shop.processing') : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>{t('shop.buy').toUpperCase()} · {confirmItem.coin_price} <CoinIcon size={14} /></span>}
+                  </button>
+                </>
+              )}
+
+              <button onClick={() => setConfirmItem(null)} style={{ width: '100%', padding: 14, borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(240,236,228,0.5)', fontFamily: 'Cinzel, serif', fontSize: 11, cursor: 'pointer' }}>
+                {lang === 'de' ? 'ABBRECHEN' : 'CANCEL'}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
     </div>
   )
