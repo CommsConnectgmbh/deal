@@ -12,7 +12,7 @@ const RARITY_COLORS = {
   legendary: '#FFB800',
 }
 
-type ShopSection = 'featured' | 'avatar' | 'stylePacks' | 'mysteryBoxes' | 'cosmetics' | 'coins' | 'premium'
+type ShopSection = 'featured' | 'avatar' | 'stylePacks' | 'cosmetics' | 'coins' | 'premium'
 
 const STATIC_FRAMES = [
   { id:'founder_carbon', name:'Founder Carbon', rarity:'legendary', coin_price:0, is_purchasable:false, icon:'🖤', desc:'Nur Season 1 Gründer', type:'frame' as const },
@@ -94,14 +94,11 @@ export default function ShopPage() {
   const [avatarConfig, setAvatarConfig] = useState<Record<string, string>>({})
   const [avatarItems, setAvatarItems] = useState<AvatarItem[]>([])
   const [stylePacks, setStylePacks] = useState<StylePack[]>([])
-  const [rewardBoxes, setRewardBoxes] = useState<RewardBox[]>([])
   const [toast, setToast] = useState<string | null>(null)
   const [confirmItem, setConfirmItem] = useState<any | null>(null)
-  const [boxResult, setBoxResult] = useState<any | null>(null)
   const [buying, setBuying] = useState<string | null>(null)
   const [stripeLoading, setStripeLoading] = useState<string | null>(null)
   const [avatarSlotFilter, setAvatarSlotFilter] = useState<string>('all')
-  const [packOdds, setPackOdds] = useState<string | null>(null)
 
   const coins = profile?.coins ?? 0
 
@@ -130,7 +127,6 @@ export default function ShopPage() {
     }
     if (sec === 'premium') setSection('premium')
     if (sec === 'coins') setSection('coins')
-    if (sec === 'mysteryBoxes') setSection('mysteryBoxes')
   }, [searchParams])
 
   const fetchInventory = async () => {
@@ -165,17 +161,10 @@ export default function ShopPage() {
   }
 
   const fetchShopData = async () => {
-    const [packsRes, boxesRes] = await Promise.all([
-      supabase.from('style_packs').select('*, style_pack_items(item_id)').eq('active', true),
-      supabase.from('reward_boxes').select('*, reward_box_loot_table(reward_type,reward_value,weight)'),
-    ])
+    const packsRes = await supabase.from('style_packs').select('*, style_pack_items(item_id)').eq('active', true)
     setStylePacks((packsRes.data || []).map((p: any) => ({
       ...p,
       items: (p.style_pack_items || []).map((i: any) => i.item_id)
-    })))
-    setRewardBoxes((boxesRes.data || []).map((b: any) => ({
-      ...b,
-      loot: b.reward_box_loot_table || []
     })))
   }
 
@@ -236,23 +225,6 @@ export default function ShopPage() {
     setStripeLoading(null)
   }
 
-  const openBox = async (box: any) => {
-    if (!profile) return
-    setBuying(box.id)
-    setConfirmItem(null)
-    try {
-      const res = await supabase.functions.invoke('open-reward-box', { body: { box_id: box.id } })
-      if (res.error) throw new Error(res.error.message)
-      await refreshProfile()
-      await fetchAvatarData()
-      await fetchInventory()
-      setBoxResult(res.data)
-    } catch (e: any) {
-      showToast(e.message || 'Error opening box')
-    }
-    setBuying(null)
-  }
-
   const buyStylePack = async (pack: any) => {
     if (!profile) return
     setBuying(pack.id)
@@ -284,7 +256,6 @@ export default function ShopPage() {
     { key: 'featured',     label: t('shop.sections.featured'),     emoji: '⭐' },
     { key: 'avatar',       label: t('shop.sections.avatar'),       emoji: '🧑' },
     { key: 'stylePacks',   label: t('shop.sections.stylePacks'),   emoji: '🎁' },
-    { key: 'mysteryBoxes', label: t('shop.sections.mysteryBoxes'), emoji: '📦' },
     { key: 'cosmetics',    label: t('shop.sections.cosmetics'),    emoji: '✨' },
     { key: 'coins',        label: t('shop.sections.coins'),        emoji: '🪙' },
     { key: 'premium',      label: t('shop.sections.premium'),      emoji: '👑' },
@@ -355,15 +326,6 @@ export default function ShopPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
             {FEATURED_ITEMS.map(item => renderItem(item))}
           </div>
-          <div style={{ background: 'linear-gradient(135deg, rgba(167,139,250,0.1), rgba(96,165,250,0.05))', borderRadius: 14, border: '1px solid rgba(167,139,250,0.2)', padding: 16 }}>
-            <p className='font-display' style={{ fontSize: 11, color: '#a78bfa', marginBottom: 6, letterSpacing: 2 }}>📦 MYSTERY BOXES</p>
-            <p style={{ fontSize: 12, color: 'rgba(240,236,228,0.5)', marginBottom: 12, lineHeight: 1.5 }}>
-              {lang === 'de' ? 'Öffne Mystery Boxes für zufällige Cosmetics, Coins & mehr!' : 'Open Mystery Boxes for random cosmetics, coins & more!'}
-            </p>
-            <button onClick={() => setSection('mysteryBoxes')} style={{ padding: '10px 20px', borderRadius: 10, border: '1px solid rgba(167,139,250,0.3)', background: 'rgba(167,139,250,0.1)', color: '#a78bfa', fontFamily: 'Cinzel, serif', fontSize: 10, cursor: 'pointer', letterSpacing: 1 }}>
-              {lang === 'de' ? 'BOXES ANSEHEN →' : 'VIEW BOXES →'}
-            </button>
-          </div>
         </div>
       )}
 
@@ -428,66 +390,6 @@ export default function ShopPage() {
                     {buying === pack.id ? '...' : `🎁 ${t('shop.stylePack.buy').toUpperCase()} · 🪙 ${pack.price_coins}`}
                   </button>
                 )}
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {/* ── MYSTERY BOXES ── */}
-      {section === 'mysteryBoxes' && (
-        <div style={{ padding: '0 16px' }}>
-          <p className='font-display' style={{ fontSize: 9, letterSpacing: 3, color: 'rgba(240,236,228,0.4)', marginBottom: 16 }}>📦 {t('shop.sections.mysteryBoxes').toUpperCase()}</p>
-          {rewardBoxes.length === 0 ? (
-            <p style={{ color: 'rgba(240,236,228,0.3)', textAlign: 'center', fontFamily: 'Cinzel, serif', fontSize: 11 }}>Loading...</p>
-          ) : rewardBoxes.map(box => {
-            const rc = RARITY_COLORS[box.rarity as keyof typeof RARITY_COLORS] || '#9ca3af'
-            const totalWeight = (box.loot || []).reduce((s, l) => s + l.weight, 0)
-            return (
-              <div key={box.id} style={{ background: '#111', borderRadius: 14, border: `1px solid ${rc}33`, padding: 16, marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <span style={{ fontSize: 36, filter: `drop-shadow(0 0 10px ${rc})` }}>{box.icon_emoji}</span>
-                    <div>
-                      <p className='font-display' style={{ fontSize: 13, color: '#f0ece4', marginBottom: 4 }}>{box.name}</p>
-                      <div style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 8, background: `${rc}18`, border: `1px solid ${rc}44` }}>
-                        <span className='font-display' style={{ fontSize: 7, color: rc }}>{box.rarity?.toUpperCase()}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <p className='font-display' style={{ fontSize: 16, color: '#FFB800' }}>🪙 {box.price_coins}</p>
-                    {box.price_cents && <p style={{ fontSize: 10, color: 'rgba(240,236,228,0.4)' }}>or {(box.price_cents / 100).toFixed(2)}€</p>}
-                  </div>
-                </div>
-                <p style={{ fontSize: 12, color: 'rgba(240,236,228,0.5)', marginBottom: 12, lineHeight: 1.5 }}>{box.description}</p>
-                <button onClick={() => setPackOdds(packOdds === box.id ? null : box.id)} style={{ background: 'transparent', border: 'none', color: 'rgba(240,236,228,0.4)', fontFamily: 'Cinzel, serif', fontSize: 9, cursor: 'pointer', marginBottom: 8, letterSpacing: 1 }}>
-                  {packOdds === box.id ? '▲' : '▼'} {t('shop.rewardBox.odds').toUpperCase()}
-                </button>
-                {packOdds === box.id && (
-                  <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 10, marginBottom: 12 }}>
-                    {(box.loot || []).map((l, i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: i < (box.loot || []).length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                        <span style={{ fontSize: 11, color: 'rgba(240,236,228,0.5)' }}>{l.reward_type === 'coins' ? `🪙 ${l.reward_value}` : l.reward_value.replace(/_/g, ' ')}</span>
-                        <span style={{ fontSize: 11, color: 'rgba(240,236,228,0.35)', fontFamily: 'Cinzel, serif' }}>{totalWeight > 0 ? ((l.weight / totalWeight) * 100).toFixed(1) : 0}%</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={() => setConfirmItem({ ...box, type: 'reward_box', coin_price: box.price_coins, icon: box.icon_emoji })}
-                    disabled={buying === box.id}
-                    style={{ flex: 1, padding: '12px', borderRadius: 10, border: `1px solid ${rc}44`, background: `${rc}18`, color: rc, fontFamily: 'Cinzel, serif', fontSize: 10, cursor: coins >= box.price_coins ? 'pointer' : 'default', opacity: coins >= box.price_coins ? 1 : 0.6, letterSpacing: 1 }}
-                  >
-                    {buying === box.id ? t('shop.rewardBox.opening') : `${t('shop.rewardBox.open')} · 🪙 ${box.price_coins}`}
-                  </button>
-                  {box.price_cents && (
-                    <button onClick={() => buyWithStripe('legendary_box')} disabled={!!stripeLoading} style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid rgba(255,184,0,0.3)', background: 'rgba(255,184,0,0.1)', color: '#FFB800', fontFamily: 'Cinzel, serif', fontSize: 10, cursor: 'pointer' }}>
-                      {stripeLoading === 'legendary_box' ? '...' : `${(box.price_cents / 100).toFixed(2)}€`}
-                    </button>
-                  )}
-                </div>
               </div>
             )
           })}
@@ -581,15 +483,15 @@ export default function ShopPage() {
       )}
 
       {/* Confirm Purchase Modal */}
-      {confirmItem && !boxResult && (
+      {confirmItem && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-end', zIndex: 200 }} onClick={() => setConfirmItem(null)}>
           <div style={{ width: '100%', maxWidth: 430, margin: '0 auto', background: '#111', borderRadius: '20px 20px 0 0', border: '1px solid rgba(255,184,0,0.15)', padding: '24px 20px 48px' }} onClick={e => e.stopPropagation()}>
             <div style={{ textAlign: 'center', fontSize: 48, marginBottom: 12 }}>{confirmItem.icon || confirmItem.icon_emoji}</div>
             <h3 className='font-display' style={{ fontSize: 18, color: '#FFB800', textAlign: 'center', marginBottom: 8 }}>
-              {confirmItem.type === 'reward_box' ? (lang === 'de' ? 'Box öffnen?' : 'Open box?') : t('shop.confirmPurchase')}
+              {t('shop.confirmPurchase')}
             </h3>
             <p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(240,236,228,0.6)', marginBottom: 20 }}>
-              {t('shop.confirmPurchaseText')} <strong style={{ color: '#FFB800' }}>{confirmItem.coin_price} 🪙</strong> {confirmItem.type !== 'reward_box' && t('shop.confirmPurchaseCoins')}
+              {t('shop.confirmPurchaseText')} <strong style={{ color: '#FFB800' }}>{confirmItem.coin_price} 🪙</strong> {t('shop.confirmPurchaseCoins')}
             </p>
             {coins < confirmItem.coin_price && (
               <div style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 10, padding: 12, marginBottom: 16, textAlign: 'center' }}>
@@ -598,8 +500,7 @@ export default function ShopPage() {
             )}
             <button
               onClick={() => {
-                if (confirmItem.type === 'reward_box') openBox(confirmItem)
-                else if (confirmItem.type === 'style_pack') buyStylePack(confirmItem)
+                if (confirmItem.type === 'style_pack') buyStylePack(confirmItem)
                 else buyWithCoins(confirmItem)
               }}
               disabled={buying !== null || coins < confirmItem.coin_price}
@@ -614,25 +515,6 @@ export default function ShopPage() {
         </div>
       )}
 
-      {/* Box Result Modal */}
-      {boxResult && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 250, padding: 20 }}>
-          <div style={{ background: '#111', borderRadius: 20, border: '1px solid rgba(255,184,0,0.3)', padding: 32, textAlign: 'center', maxWidth: 340, width: '100%', boxShadow: '0 0 60px rgba(255,184,0,0.2)' }}>
-            <div style={{ fontSize: 64, marginBottom: 16, filter: 'drop-shadow(0 0 20px #FFB800)' }}>{boxResult.item_emoji}</div>
-            <p className='font-display' style={{ fontSize: 10, letterSpacing: 3, color: 'rgba(240,236,228,0.4)', marginBottom: 8 }}>{t('shop.rewardBox.youGot').toUpperCase()}</p>
-            <p className='font-display' style={{ fontSize: 22, color: '#FFB800', marginBottom: 8 }}>{boxResult.item_name}</p>
-            <p style={{ fontSize: 13, color: 'rgba(240,236,228,0.5)', marginBottom: 24 }}>
-              {boxResult.reward_type === 'coins' && (lang === 'de' ? `${boxResult.qty} Coins erhalten!` : `${boxResult.qty} coins credited!`)}
-              {boxResult.reward_type === 'cosmetic' && (lang === 'de' ? 'Zu deinem Inventar hinzugefügt' : 'Added to your inventory')}
-              {boxResult.reward_type === 'avatar_item' && (lang === 'de' ? 'Avatar Item freigeschaltet' : 'Avatar item unlocked')}
-              {boxResult.reward_type === 'battle_pass_xp' && `${boxResult.qty} Battle Pass XP`}
-            </p>
-            <button onClick={() => setBoxResult(null)} style={{ width: '100%', padding: 16, borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #CC8800, #FFB800)', color: '#000', fontFamily: 'Cinzel, serif', fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>
-              {lang === 'de' ? 'WEITER' : 'CONTINUE'}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

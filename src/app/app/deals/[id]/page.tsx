@@ -9,6 +9,13 @@ const inputStyle: React.CSSProperties = {
   width:'100%', padding:'14px 16px', background:'#1a1a1a', border:'1px solid rgba(255,184,0,0.15)', borderRadius:10, color:'#f0ece4', fontSize:16, fontFamily:'Crimson Text, serif', outline:'none', marginBottom:4
 }
 
+const REACTIONS = [
+  { type: 'fire',    emoji: '🔥', label: 'Feuer' },
+  { type: 'funny',   emoji: '😂', label: 'Lustig' },
+  { type: 'shocked', emoji: '😮', label: 'Wow' },
+  { type: 'savage',  emoji: '🤯', label: 'Savage' },
+]
+
 export default function DealDetailPage() {
   const { id } = useParams()
   const { profile } = useAuth()
@@ -20,10 +27,50 @@ export default function DealDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [proposeOpen, setProposeOpen] = useState(false)
   const [resolveOpen, setResolveOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [xpToast, setXpToast] = useState<{ xp: number; coins: number } | null>(null)
+  const [loading, setLoading]   = useState(false)
+  const [xpToast, setXpToast]   = useState<{ xp: number; coins: number } | null>(null)
+  const [reactCounts, setReactCounts] = useState<Record<string, number>>({})
+  const [myReaction, setMyReaction]   = useState<string | null>(null)
 
   useEffect(() => { fetchDeal() }, [id])
+  useEffect(() => { if (profile) fetchReactions() }, [id, profile?.id])
+
+  const fetchReactions = async () => {
+    if (!profile) return
+    const { data } = await supabase
+      .from('deal_reactions')
+      .select('reaction, user_id')
+      .eq('deal_id', id as string)
+    if (!data) return
+    const counts: Record<string, number> = {}
+    let mine: string | null = null
+    for (const r of data) {
+      counts[r.reaction] = (counts[r.reaction] || 0) + 1
+      if (r.user_id === profile.id) mine = r.reaction
+    }
+    setReactCounts(counts)
+    setMyReaction(mine)
+  }
+
+  const toggleReaction = async (reaction: string) => {
+    if (!profile) return
+    if (myReaction === reaction) {
+      await supabase.from('deal_reactions').delete()
+        .eq('deal_id', id as string).eq('user_id', profile.id)
+      setMyReaction(null)
+      setReactCounts(prev => ({ ...prev, [reaction]: Math.max(0, (prev[reaction] || 0) - 1) }))
+    } else {
+      await supabase.from('deal_reactions').upsert(
+        { deal_id: id as string, user_id: profile.id, reaction },
+        { onConflict: 'deal_id,user_id' }
+      )
+      if (myReaction) {
+        setReactCounts(prev => ({ ...prev, [myReaction!]: Math.max(0, (prev[myReaction!] || 0) - 1) }))
+      }
+      setMyReaction(reaction)
+      setReactCounts(prev => ({ ...prev, [reaction]: (prev[reaction] || 0) + 1 }))
+    }
+  }
 
   const fetchDeal = async () => {
     const { data } = await supabase.from('bets')
@@ -383,6 +430,27 @@ export default function DealDetailPage() {
             </button>
           </div>
         )}
+      </div>
+
+      {/* ── Reactions ── */}
+      <div style={{ margin: '12px 16px 0', background: '#111', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', padding: '14px 16px' }}>
+        <p style={{ fontFamily: 'Cinzel, serif', fontSize: 9, letterSpacing: 2, color: 'rgba(240,236,228,0.4)', marginBottom: 12 }}>REAKTIONEN</p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {REACTIONS.map(r => {
+            const count    = reactCounts[r.type] || 0
+            const isActive = myReaction === r.type
+            return (
+              <button
+                key={r.type}
+                onClick={() => toggleReaction(r.type)}
+                style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, padding: '10px 4px', borderRadius: 10, border: isActive ? '1px solid rgba(255,184,0,0.4)' : '1px solid rgba(255,255,255,0.06)', background: isActive ? 'rgba(255,184,0,0.1)' : 'rgba(255,255,255,0.02)', cursor: 'pointer', transition: 'all 0.15s' }}
+              >
+                <span style={{ fontSize: 22 }}>{r.emoji}</span>
+                <span style={{ fontSize: 11, color: isActive ? '#FFB800' : 'rgba(240,236,228,0.4)', fontFamily: 'Cinzel, serif' }}>{count}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* Propose Winner Modal */}

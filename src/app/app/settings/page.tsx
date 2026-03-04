@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLang } from '@/contexts/LanguageContext'
@@ -28,8 +28,23 @@ export default function SettingsPage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
   const [deletingAccount, setDeletingAccount] = useState(false)
-  const [resetSent, setResetSent] = useState(false)
+  const [resetSent, setResetSent]       = useState(false)
   const [sendingReset, setSendingReset] = useState(false)
+  const [pushEnabled, setPushEnabled]   = useState(false)
+  const [pushLoading, setPushLoading]   = useState(false)
+
+  useEffect(() => {
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {})
+    }
+    // Check if user already has push subscription in DB
+    if (profile) {
+      supabase.from('push_subscriptions')
+        .select('id').eq('user_id', profile.id).limit(1)
+        .then(({ data }) => setPushEnabled(!!(data && data.length > 0)))
+    }
+  }, [profile?.id])
 
   const saveProfile = async () => {
     if (!displayName.trim()) return
@@ -52,6 +67,37 @@ export default function SettingsPage() {
     })
     setResetSent(true)
     setSendingReset(false)
+  }
+
+  const togglePush = async (enable: boolean) => {
+    if (!profile || pushLoading) return
+    setPushLoading(true)
+    try {
+      if (enable) {
+        if (!('Notification' in window)) {
+          alert('Dieser Browser unterstützt keine Push-Benachrichtigungen.')
+          setPushLoading(false); return
+        }
+        const permission = await Notification.requestPermission()
+        if (permission !== 'granted') { setPushLoading(false); return }
+        // Register SW
+        if ('serviceWorker' in navigator) {
+          await navigator.serviceWorker.register('/sw.js')
+        }
+        // Save subscription record to DB
+        await supabase.from('push_subscriptions').delete().eq('user_id', profile.id)
+        await supabase.from('push_subscriptions').insert({
+          user_id: profile.id,
+          endpoint: 'web-' + profile.id,
+          subscription_json: { permission: 'granted', ua: navigator.userAgent.slice(0, 100) },
+        })
+        setPushEnabled(true)
+      } else {
+        await supabase.from('push_subscriptions').delete().eq('user_id', profile.id)
+        setPushEnabled(false)
+      }
+    } catch (e) { console.error('Push toggle:', e) }
+    setPushLoading(false)
   }
 
   const deleteAccount = async () => {
@@ -188,6 +234,22 @@ export default function SettingsPage() {
             >
               {sendingReset ? t('auth.sending') : t('settings.sendPasswordReset').toUpperCase()}
             </button>
+          )}
+        </div>
+
+        {/* Push Notifications */}
+        <p style={sectionTitle}>BENACHRICHTIGUNGEN</p>
+        <div style={card}>
+          <ToggleRow
+            label="Push Benachrichtigungen"
+            sub="Erhalte Benachrichtigungen für neue Herausforderungen & Deal-Updates"
+            checked={pushEnabled}
+            onChange={togglePush}
+          />
+          {pushLoading && (
+            <p style={{ fontSize: 11, color: 'rgba(240,236,228,0.4)', marginTop: 10, textAlign: 'center', fontFamily: 'Cinzel, serif', letterSpacing: 1 }}>
+              WIRD EINGERICHTET...
+            </p>
           )}
         </div>
 
