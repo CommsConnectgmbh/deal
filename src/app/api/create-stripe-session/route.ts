@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+// Force dynamic rendering so env vars are available at runtime, not build time
+export const dynamic = 'force-dynamic'
 
 const PRODUCTS: Record<string, { name: string; amount: number; coins?: number; description: string }> = {
   coin_pack_xs: {
@@ -42,6 +43,9 @@ const PRODUCTS: Record<string, { name: string; amount: number; coins?: number; d
 }
 
 export async function POST(req: NextRequest) {
+  // Initialize Stripe lazily at runtime so STRIPE_SECRET_KEY is available
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+
   try {
     const { product_type, user_id } = await req.json()
 

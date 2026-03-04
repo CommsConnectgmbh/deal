@@ -74,10 +74,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signUp = async (email: string, password: string, username: string) => {
-    const { data, error } = await supabase.auth.signUp({ email, password })
+    // Pass username in metadata so the handle_new_user trigger picks it up immediately
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { username } },
+    })
     if (error) throw error
+    // Ensure display_name is set (trigger already sets username, but update is idempotent)
     if (data.user) {
-      await supabase.from('profiles').update({ username, display_name: username }).eq('id', data.user.id)
+      await supabase
+        .from('profiles')
+        .update({ display_name: username })
+        .eq('id', data.user.id)
     }
   }
 

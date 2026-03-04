@@ -1,154 +1,279 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useLang } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 
 const STATUS_COLORS: Record<string, string> = {
   open: '#60a5fa', pending: '#FFB800', active: '#4ade80',
-  completed: 'rgba(240,236,228,0.3)', cancelled: '#f87171', frozen: '#a78bfa'
+  pending_confirmation: '#a78bfa',
+  completed: 'rgba(240,236,228,0.3)', cancelled: '#f87171',
 }
-function getGreeting(t: (k: string) => string) {
-  const h2 = new Date().getHours()
-  if (h2 < 12) return t('home.greeting_morning')
-  if (h2 < 18) return t('home.greeting_day')
-  return t('home.greeting_evening')
+
+const STATUS_LABEL: Record<string, string> = {
+  open: 'Offen', pending: 'Ausstehend', active: 'Aktiv',
+  pending_confirmation: 'Bestätigung', completed: 'Abgeschlossen',
+  cancelled: 'Abgebrochen', disputed: 'Streit',
 }
-function xpForLevel(level: number) { return level * 100 }
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 1) return 'gerade eben'
+  if (m < 60) return `vor ${m} Min.`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `vor ${h} Std.`
+  const d = Math.floor(h / 24)
+  return `vor ${d} Tag${d !== 1 ? 'en' : ''}`
+}
+
+function xpForLevel(level: number) {
+  return Math.floor(250 * Math.pow(level, 1.35))
+}
+
+interface FeedItem {
+  id: string
+  type: 'deal_invite' | 'deal_update' | 'deal_completed' | 'community'
+  title: string
+  subtitle: string
+  status?: string
+  dealId?: string
+  time: string
+  actor?: string
+  isPending?: boolean
+}
+
 export default function HomePage() {
   const { profile } = useAuth()
-  const { t } = useLang()
-  const [deals, setDeals] = useState<any[]>([])
-  const [pending, setPending] = useState<any[]>([])
+  const [myDeals, setMyDeals] = useState<any[]>([])
+  const [feedItems, setFeedItems] = useState<FeedItem[]>([])
+  const [communityDeals, setCommunityDeals] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
   useEffect(() => {
     if (!profile) return
-    supabase.from('bets')
-      .select('*, creator:creator_id(username, display_name), opponent:opponent_id(username, display_name)')
-      .or(`creator_id.eq.${profile.id},opponent_id.eq.${profile.id}`)
-      .order('created_at', { ascending: false })
-      .limit(4)
-      .then(({ data }) => {
-        setDeals(data || [])
-        setPending((data || []).filter((d: any) => d.status === 'pending' && d.opponent_id === profile.id))
-      })
+    loadData()
   }, [profile])
-  const netBalance = 0
-  const isPositive = netBalance >= 0
-  const activeDealCount = deals.filter(d => d.status === 'active').length
+
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      const [myRes, communityRes] = await Promise.all([
+        supabase
+          .from('bets')
+          .select('*, creator:creator_id(username, display_name), opponent:opponent_id(username, display_name)')
+          .or(`creator_id.eq.${profile!.id},opponent_id.eq.${profile!.id}`)
+          .order('created_at', { ascending: false })
+          .limit(10),
+        supabase
+          .from('bets')
+          .select('*, creator:creator_id(username, display_name), opponent:opponent_id(username, display_name)')
+          .eq('status', 'open')
+          .order('created_at', { ascending: false })
+          .limit(5),
+      ])
+
+      const deals = myRes.data || []
+      setMyDeals(deals)
+      setCommunityDeals(communityRes.data || [])
+
+      // Build feed from my deals
+      const feed: FeedItem[] = []
+      for (const d of deals) {
+        const isMine = d.creator_id === profile!.id
+        const other = isMine ? d.opponent?.username || '?' : d.creator?.username || '?'
+
+        if (d.status === 'pending' && !isMine) {
+          feed.push({
+            id: d.id + '_invite',
+            type: 'deal_invite',
+            title: d.title,
+            subtitle: `@${d.creator?.username} hat dich herausgefordert`,
+            status: 'pending',
+            dealId: d.id,
+            time: d.created_at,
+            actor: d.creator?.username,
+            isPending: true,
+          })
+        } else if (d.status === 'completed') {
+          const won = d.winner_id === profile!.id
+          feed.push({
+            id: d.id + '_done',
+            type: 'deal_completed',
+            title: won ? `Gewonnen gegen @${other}` : `Verloren gegen @${other}`,
+            subtitle: d.title,
+            status: 'completed',
+            dealId: d.id,
+            time: d.confirmed_at || d.updated_at || d.created_at,
+            actor: other,
+          })
+        } else if (d.status === 'active' || d.status === 'pending_confirmation') {
+          feed.push({
+            id: d.id + '_active',
+            type: 'deal_update',
+            title: d.title,
+            subtitle: `vs @${other}`,
+            status: d.status,
+            dealId: d.id,
+            time: d.accepted_at || d.created_at,
+            actor: other,
+          })
+        }
+      }
+      // Sort by time, newest first
+      feed.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+      setFeedItems(feed)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const level = profile?.level ?? 1
   const xp = profile?.xp ?? 0
   const xpNeeded = xpForLevel(level)
   const xpProgress = Math.min((xp % xpNeeded) / xpNeeded * 100, 100)
-  const initials = (profile?.display_name || profile?.username || 'U').slice(0, 2).toUpperCase()
+
+  const pendingInvites = feedItems.filter(f => f.isPending)
+  const otherFeed = feedItems.filter(f => !f.isPending)
+
   return (
-    <div style={{ minHeight:'100dvh', background:'#060606', paddingTop:60 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'0 20px 16px' }}>
-        <div>
-          <p className='font-display' style={{ fontSize:18, color:'#f0ece4' }}>
-            {getGreeting(t)}, <span style={{ color:'#FFB800' }}>{profile?.display_name?.split(' ')[0] || profile?.username}</span>
-          </p>
-          <p style={{ fontSize:12, color:'rgba(240,236,228,0.4)', marginTop:2 }}>
-            {new Date().toLocaleDateString('de-DE', { weekday:'long', day:'numeric', month:'long' })}
-          </p>
+    <div style={{ minHeight: '100dvh', background: '#060606' }}>
+
+      {/* ── Stats Row ── */}
+      <div style={{ padding: '16px 16px 0' }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          {[
+            { label: 'LEVEL', value: profile?.level ?? 1, color: '#FFB800' },
+            { label: 'SIEGE', value: profile?.wins ?? 0, color: '#4ade80' },
+            { label: 'DEALS', value: profile?.deals_total ?? 0, color: '#60a5fa' },
+            { label: 'COINS', value: profile?.coins ?? 0, color: '#FFB800' },
+          ].map(s => (
+            <div key={s.label} style={{ flex: 1, background: '#111', borderRadius: 10, border: '1px solid rgba(255,184,0,0.07)', padding: '10px 6px', textAlign: 'center' }}>
+              <p className="font-display" style={{ fontSize: 7, letterSpacing: 1, color: 'rgba(240,236,228,0.4)', marginBottom: 4 }}>{s.label}</p>
+              <p className="font-display" style={{ fontSize: 16, color: s.color }}>{s.value}</p>
+            </div>
+          ))}
         </div>
-        <div style={{ width:44, height:44, borderRadius:'50%', background:'linear-gradient(135deg, #CC8800, #FFB800)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <span className='font-display' style={{ fontSize:14, color:'#000', fontWeight:700 }}>{initials}</span>
-        </div>
-      </div>
-      <div style={{ margin:'0 16px 20px', borderRadius:16, overflow:'hidden', background: isPositive ? 'linear-gradient(135deg, rgba(255,184,0,0.1), rgba(255,184,0,0.03))' : 'linear-gradient(135deg, rgba(248,113,113,0.08), rgba(248,113,113,0.02))', border:`1px solid ${isPositive ? 'rgba(255,184,0,0.2)' : 'rgba(248,113,113,0.2)'}`, padding:'28px 24px', textAlign:'center' }}>
-        <p className='font-display' style={{ fontSize:9, letterSpacing:4, color:'rgba(240,236,228,0.4)', marginBottom:8 }}>
-          {t('home.balance').toUpperCase()}
-        </p>
-        <p className='font-display' style={{ fontSize:48, color: isPositive ? '#FFB800' : '#f87171', letterSpacing:-1, lineHeight:1 }}>
-          {isPositive ? '+' : '-'}€{Math.abs(netBalance).toFixed(2)}
-        </p>
-        <p style={{ fontSize:12, color:'rgba(240,236,228,0.4)', marginTop:8, letterSpacing:1 }}>
-          {activeDealCount > 0 ? `${activeDealCount} ${t("home.activeDeals")}` : t("home.noDeals")}
-        </p>
-      </div>
-      <div style={{ display:'flex', gap:8, margin:'0 16px 20px' }}>
-        {[
-          { label: t('home.level'), value: String(profile?.level ?? 1) },
-          { label: t('home.wins'), value: String(profile?.wins ?? 0) },
-          { label: t('home.xpToday'), value: String(profile?.xp ?? 0) },
-        ].map(stat => (
-          <div key={stat.label} style={{ flex:1, background:'#111', borderRadius:12, border:'1px solid rgba(255,184,0,0.08)', padding:'12px 8px', textAlign:'center' }}>
-            <p className='font-display' style={{ fontSize:9, letterSpacing:1, color:'rgba(240,236,228,0.4)', marginBottom:4 }}>{stat.label.toUpperCase()}</p>
-            <p className='font-display' style={{ fontSize:20, color:'#FFB800' }}>{stat.value}</p>
+
+        {/* XP Bar */}
+        <div style={{ marginBottom: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+            <span className="font-display" style={{ fontSize: 7, letterSpacing: 2, color: 'rgba(240,236,228,0.3)' }}>XP · LEVEL {level}</span>
+            <span className="font-display" style={{ fontSize: 7, color: 'rgba(240,236,228,0.3)' }}>{xp % xpNeeded}/{xpNeeded}</span>
           </div>
-        ))}
-      </div>
-      <div style={{ margin:'0 16px 24px' }}>
-        <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
-          <span className='font-display' style={{ fontSize:8, letterSpacing:2, color:'rgba(240,236,228,0.3)' }}>XP</span>
-          <span className='font-display' style={{ fontSize:8, color:'rgba(240,236,228,0.3)' }}>{xp % xpForLevel(level)}/{xpForLevel(level)}</span>
-        </div>
-        <div style={{ height:3, background:'rgba(255,255,255,0.06)', borderRadius:2, overflow:'hidden' }}>
-          <div style={{ height:'100%', width:`${xpProgress}%`, background:'linear-gradient(90deg, #CC8800, #FFB800)', borderRadius:2, transition:'width 0.5s ease' }}/>
+          <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${xpProgress}%`, background: 'linear-gradient(90deg, #CC8800, #FFB800)', borderRadius: 2, transition: 'width 0.5s ease' }}/>
+          </div>
         </div>
       </div>
-      <div style={{ padding:'0 16px 24px' }}>
-        <Link href='/app/deals' style={{ display:'block', textDecoration:'none' }}>
-          <button style={{ width:'100%', padding:'18px', borderRadius:14, border:'none', cursor:'pointer', background:'linear-gradient(135deg, #CC8800, #FFB800, #FFE566)', color:'#000', fontFamily:'Cinzel, serif', fontSize:13, fontWeight:700, letterSpacing:3, display:'flex', alignItems:'center', justifyContent:'center', gap:10 }}>
-            <span>🤝</span> {t('home.newDeal').toUpperCase()}
-          </button>
-        </Link>
-      </div>
-      {pending.length > 0 && (
-        <div style={{ padding:'0 16px 24px' }}>
-          <p className='font-display' style={{ fontSize:9, letterSpacing:3, color:'rgba(240,236,228,0.4)', marginBottom:12 }}>{t('home.openRequests').toUpperCase()}</p>
-          {pending.slice(0,2).map((d: any) => (
-            <Link key={d.id} href={`/app/deals/${d.id}`} style={{ textDecoration:'none' }}>
-              <div style={{ background:'rgba(255,184,0,0.05)', border:'1px solid rgba(255,184,0,0.2)', borderRadius:12, padding:'14px 16px', marginBottom:8, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <div>
-                  <p style={{ color:'#f0ece4', fontSize:14, fontWeight:600 }}>{d.title}</p>
-                  <p style={{ color:'rgba(240,236,228,0.5)', fontSize:12, marginTop:2 }}>@{d.creator?.username} {t('home.challenged')}</p>
+
+      {/* ── Pending Invites (pinned) ── */}
+      {pendingInvites.length > 0 && (
+        <div style={{ padding: '16px 16px 0' }}>
+          <p className="font-display" style={{ fontSize: 8, letterSpacing: 3, color: '#FFB800', marginBottom: 10 }}>
+            HERAUSFORDERUNGEN · {pendingInvites.length}
+          </p>
+          {pendingInvites.map(item => (
+            <Link key={item.id} href={`/app/deals/${item.dealId}`} style={{ textDecoration: 'none' }}>
+              <div style={{ background: 'rgba(255,184,0,0.06)', border: '1px solid rgba(255,184,0,0.25)', borderRadius: 14, padding: '16px', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', animation: 'pulse 2s infinite' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontSize: 16 }}>🤝</span>
+                    <p style={{ color: '#f0ece4', fontSize: 14, fontWeight: 600 }}>{item.title}</p>
+                  </div>
+                  <p style={{ color: 'rgba(240,236,228,0.5)', fontSize: 12 }}>{item.subtitle} · {timeAgo(item.time)}</p>
                 </div>
-                <span style={{ color:'#FFB800', fontSize:20 }}>→</span>
+                <div style={{ background: '#FFB800', borderRadius: 8, padding: '8px 14px', marginLeft: 12 }}>
+                  <span style={{ color: '#000', fontSize: 12, fontFamily: 'Cinzel, serif', fontWeight: 700 }}>ANSEHEN</span>
+                </div>
               </div>
             </Link>
           ))}
+          <style>{'@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.85} }'}</style>
         </div>
       )}
-      {deals.length > 0 ? (
-        <div style={{ padding:'0 16px 32px' }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
-            <p className='font-display' style={{ fontSize:9, letterSpacing:3, color:'rgba(240,236,228,0.4)' }}>{t('home.myDeals').toUpperCase()}</p>
-            <Link href='/app/deals' style={{ fontSize:12, color:'#FFB800', textDecoration:'none' }}>{t('home.seeAll')}</Link>
+
+      {/* ── Feed ── */}
+      <div style={{ padding: '16px 16px 0' }}>
+        <p className="font-display" style={{ fontSize: 8, letterSpacing: 3, color: 'rgba(240,236,228,0.4)', marginBottom: 10 }}>
+          MEIN FEED
+        </p>
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 40 }}>
+            <div style={{ width: 28, height: 28, border: '2px solid transparent', borderTopColor: '#FFB800', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }}/>
+            <style>{'@keyframes spin { to { transform: rotate(360deg); } }'}</style>
           </div>
-          <div style={{ borderRadius:12, border:'1px solid rgba(255,255,255,0.05)', overflow:'hidden' }}>
-            {deals.map((d: any, i) => {
-              const sc = STATUS_COLORS[d.status] || STATUS_COLORS.open
+        ) : otherFeed.length === 0 && pendingInvites.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 24px' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🤝</div>
+            <p className="font-display" style={{ fontSize: 16, color: '#f0ece4', marginBottom: 8 }}>Noch keine Deals</p>
+            <p style={{ color: 'rgba(240,236,228,0.4)', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
+              Fordere einen Freund heraus und starte deinen ersten Deal.
+            </p>
+            <Link href="/app/deals?new=1" style={{ textDecoration: 'none' }}>
+              <button style={{ padding: '14px 32px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #CC8800, #FFB800)', color: '#000', fontFamily: 'Cinzel, serif', fontSize: 11, fontWeight: 700, letterSpacing: 3 }}>
+                DEAL ERSTELLEN
+              </button>
+            </Link>
+          </div>
+        ) : (
+          <div>
+            {otherFeed.map(item => {
+              const sc = STATUS_COLORS[item.status || ''] || 'rgba(240,236,228,0.3)'
+              const icon = item.type === 'deal_completed'
+                ? (item.title.startsWith('Gewonnen') ? '🏆' : '😔')
+                : item.type === 'deal_update' ? '⚡' : '🤝'
+
               return (
-                <Link key={d.id} href={`/app/deals/${d.id}`} style={{ textDecoration:'none' }}>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 16px', background:'#111', borderBottom: i < deals.length-1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:12, flex:1 }}>
-                      <div style={{ width:6, height:6, borderRadius:'50%', background:sc, flexShrink:0 }}/>
-                      <div>
-                        <p style={{ color:'#f0ece4', fontSize:14 }}>{d.title}</p>
-                        <p style={{ color:'rgba(240,236,228,0.4)', fontSize:12, marginTop:2 }}>vs @{d.opponent?.username || '?'} · {d.stake || d.creator_amount || '—'}</p>
-                      </div>
+                <Link key={item.id} href={`/app/deals/${item.dealId}`} style={{ textDecoration: 'none' }}>
+                  <div style={{ background: '#111', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: '14px 16px', marginBottom: 8, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>
+                      {icon}
                     </div>
-                    <span className='font-display' style={{ fontSize:8, letterSpacing:1, color:sc }}>
-                      {d.status?.toUpperCase()}
-                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ color: '#f0ece4', fontSize: 14, fontWeight: 600, lineHeight: 1.3, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {item.title}
+                      </p>
+                      <p style={{ color: 'rgba(240,236,228,0.5)', fontSize: 12 }}>{item.subtitle}</p>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+                      <span style={{ fontSize: 10, color: sc, fontFamily: 'Cinzel, serif', letterSpacing: 0.5 }}>
+                        {STATUS_LABEL[item.status || ''] || item.status}
+                      </span>
+                      <span style={{ fontSize: 10, color: 'rgba(240,236,228,0.3)' }}>{timeAgo(item.time)}</span>
+                    </div>
                   </div>
                 </Link>
               )
             })}
           </div>
-        </div>
-      ) : (
-        <div style={{ textAlign:'center', padding:'32px 32px 64px' }}>
-          <div style={{ fontSize:56, marginBottom:16 }}>🤝</div>
-          <h3 className='font-display' style={{ fontSize:20, color:'#f0ece4', marginBottom:8 }}>{t('home.noDeals')}</h3>
-          <p style={{ color:'rgba(240,236,228,0.4)', fontSize:15, lineHeight:1.6, whiteSpace:'pre-line', marginBottom:28 }}>{t('home.noDealsText')}</p>
-          <Link href='/app/deals' style={{ textDecoration:'none' }}>
-            <button style={{ padding:'16px 40px', borderRadius:12, border:'none', cursor:'pointer', background:'linear-gradient(135deg, #CC8800, #FFB800)', color:'#000', fontFamily:'Cinzel, serif', fontSize:11, fontWeight:700, letterSpacing:3 }}>
-              {t('home.startNow').toUpperCase()}
-            </button>
-          </Link>
+        )}
+      </div>
+
+      {/* ── Community Deals ── */}
+      {communityDeals.length > 0 && (
+        <div style={{ padding: '16px 16px 32px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <p className="font-display" style={{ fontSize: 8, letterSpacing: 3, color: 'rgba(240,236,228,0.4)' }}>COMMUNITY DEALS</p>
+            <Link href="/app/deals" style={{ fontSize: 12, color: '#FFB800', textDecoration: 'none' }}>Alle →</Link>
+          </div>
+          <div style={{ borderRadius: 14, border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+            {communityDeals.map((d: any, i) => (
+              <Link key={d.id} href={`/app/deals/${d.id}`} style={{ textDecoration: 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', background: '#111', borderBottom: i < communityDeals.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#60a5fa', flexShrink: 0 }}/>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ color: '#f0ece4', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</p>
+                      <p style={{ color: 'rgba(240,236,228,0.4)', fontSize: 11, marginTop: 2 }}>@{d.creator?.username}</p>
+                    </div>
+                  </div>
+                  <span style={{ color: '#60a5fa', fontSize: 11, fontFamily: 'Cinzel, serif', marginLeft: 8 }}>JOIN</span>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
     </div>
