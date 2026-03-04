@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLang } from '@/contexts/LanguageContext'
@@ -253,12 +253,12 @@ export default function ShopPage() {
     return false
   }
 
-  const SECTIONS: { key: ShopSection; label: string; emoji: string }[] = [
+  const SECTIONS: { key: ShopSection; label: string; emoji?: string; icon?: React.ReactNode }[] = [
     { key: 'featured',     label: t('shop.sections.featured'),     emoji: '⭐' },
     { key: 'avatar',       label: t('shop.sections.avatar'),       emoji: '🧑' },
     { key: 'stylePacks',   label: t('shop.sections.stylePacks'),   emoji: '🎁' },
     { key: 'cosmetics',    label: t('shop.sections.cosmetics'),    emoji: '✨' },
-    { key: 'coins',        label: t('shop.sections.coins'),        emoji: '🪙' },
+    { key: 'coins',        label: t('shop.sections.coins'),        icon: <CoinIcon size={13} /> },
     { key: 'premium',      label: t('shop.sections.premium'),      emoji: '👑' },
   ]
 
@@ -314,7 +314,7 @@ export default function ShopPage() {
         <div style={{ display: 'flex', gap: 8, padding: '0 16px 12px', minWidth: 'max-content' }}>
           {SECTIONS.map(s => (
             <button key={s.key} onClick={() => setSection(s.key)} style={{ padding: '8px 14px', borderRadius: 20, border: section === s.key ? '1px solid rgba(255,184,0,0.5)' : '1px solid rgba(255,255,255,0.08)', background: section === s.key ? 'rgba(255,184,0,0.15)' : '#111', color: section === s.key ? '#FFB800' : 'rgba(240,236,228,0.5)', fontFamily: 'Cinzel, serif', fontSize: 10, letterSpacing: 0.5, cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', gap: 6, alignItems: 'center' }}>
-              <span>{s.emoji}</span><span>{s.label}</span>
+              {s.icon ?? <span>{s.emoji}</span>}<span>{s.label}</span>
             </button>
           ))}
         </div>
@@ -427,16 +427,16 @@ export default function ShopPage() {
             { type: 'coin_pack_md', coins: 4500,  price: '19,99€', label: t('shop.coinPackMd'), badge: t('shop.bestValue') },
             { type: 'coin_pack_lg', coins: 12000, price: '49,99€', label: t('shop.coinPackLg'), badge: null },
           ].map(pack => (
-            <div key={pack.type} style={{ background: '#111', borderRadius: 14, border: '1px solid rgba(255,255,255,0.07)', padding: '16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 16, position: 'relative', overflow: 'hidden' }}>
-              {pack.badge && (
-                <div style={{ position: 'absolute', top: 0, right: 0, background: '#FFB800', padding: '3px 10px', borderRadius: '0 14px 0 8px' }}>
-                  <span style={{ fontFamily: 'Cinzel, serif', fontSize: 8, color: '#000', fontWeight: 700 }}>{pack.badge}</span>
+            <div key={pack.type} style={{ background: '#111', borderRadius: 14, border: '1px solid rgba(255,255,255,0.07)', padding: '16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ flexShrink: 0 }}><CoinIcon size={38} /></div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p className='font-display' style={{ fontSize: 14, color: '#FFB800', marginBottom: 4 }}>{pack.coins.toLocaleString()} Coins</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <p style={{ fontSize: 12, color: 'rgba(240,236,228,0.5)' }}>{pack.label}</p>
+                  {pack.badge && (
+                    <span style={{ background: '#FFB800', padding: '2px 7px', borderRadius: 5, fontFamily: 'Cinzel, serif', fontSize: 8, color: '#000', fontWeight: 700, letterSpacing: 0.5 }}>{pack.badge}</span>
+                  )}
                 </div>
-              )}
-              <div style={{ flexShrink: 0 }}><CoinIcon size={36} /></div>
-              <div style={{ flex: 1 }}>
-                <p className='font-display' style={{ fontSize: 14, color: '#FFB800', marginBottom: 2 }}>{pack.coins.toLocaleString()} Coins</p>
-                <p style={{ fontSize: 12, color: 'rgba(240,236,228,0.5)' }}>{pack.label}</p>
               </div>
               <button onClick={() => buyWithStripe(pack.type)} disabled={!!stripeLoading} style={{ flexShrink: 0, padding: '12px 16px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #CC8800, #FFB800)', color: '#000', fontFamily: 'Cinzel, serif', fontSize: 11, fontWeight: 700, letterSpacing: 1 }}>
                 {stripeLoading === pack.type ? '...' : pack.price}
