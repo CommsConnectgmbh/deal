@@ -4,6 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 
 // Force dynamic rendering so env vars are available at runtime, not build time
 export const dynamic = 'force-dynamic'
+// Use Node.js runtime (not edge) for full Node.js API access
+export const runtime = 'nodejs'
 
 const PRODUCTS: Record<string, { name: string; amount: number; coins?: number; description: string }> = {
   coin_pack_xs: {
@@ -43,8 +45,17 @@ const PRODUCTS: Record<string, { name: string; amount: number; coins?: number; d
 }
 
 export async function POST(req: NextRequest) {
-  // Initialize Stripe lazily at runtime so STRIPE_SECRET_KEY is available
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+  const key = process.env.STRIPE_SECRET_KEY
+  if (!key) {
+    console.error('STRIPE_SECRET_KEY is not set')
+    return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 })
+  }
+
+  // Use fetch-based HTTP client – works reliably in Vercel serverless
+  const stripe = new Stripe(key, {
+    httpClient: Stripe.createFetchHttpClient(),
+    maxNetworkRetries: 1,
+  })
 
   try {
     const { product_type, user_id } = await req.json()
@@ -99,7 +110,15 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: session.url })
   } catch (error: any) {
-    console.error('Stripe session error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Stripe session error:', {
+      type: error?.type,
+      code: error?.code,
+      message: error?.message,
+      statusCode: error?.statusCode,
+    })
+    return NextResponse.json({
+      error: error?.message || 'Unknown Stripe error',
+      type: error?.type || 'unknown'
+    }, { status: 500 })
   }
 }
