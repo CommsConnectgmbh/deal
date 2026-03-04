@@ -222,8 +222,17 @@ export default function ShopPage() {
         body: JSON.stringify({ product_type: productType, user_id: profile.id })
       })
       const data = await res.json()
-      if (data.url) window.location.href = data.url
-    } catch (e) { console.error(e) }
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        const msg = data.error || 'Stripe-Fehler – bitte erneut versuchen'
+        showToast('⚠️ ' + msg)
+        console.error('Stripe session error:', data)
+      }
+    } catch (e: any) {
+      showToast('⚠️ Verbindungsfehler – bitte erneut versuchen')
+      console.error('Stripe fetch error:', e)
+    }
     setStripeLoading(null)
   }
 
