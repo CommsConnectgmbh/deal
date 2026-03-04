@@ -1,8 +1,9 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLang } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
+import { useSearchParams } from 'next/navigation'
 import AvatarDisplay from '@/components/AvatarDisplay'
 import DealCard from '@/components/DealCard'
 
@@ -40,9 +41,10 @@ const inputStyle: React.CSSProperties = {
   boxSizing:'border-box',
 }
 
-export default function DealsPage() {
+function DealsContent() {
   const { profile } = useAuth()
   const { t } = useLang()
+  const searchParams = useSearchParams()
 
   const [tab, setTab] = useState<'mine'|'community'>('mine')
   const [deals, setDeals] = useState<any[]>([])
@@ -62,6 +64,13 @@ export default function DealsPage() {
   const [deleteTarget, setDeleteTarget] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [stakeIdx, setStakeIdx] = useState(0)
+
+  // Auto-open create modal when navigating with ?new=1 (FAB button)
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setCreateOpen(true)
+    }
+  }, [])
 
   useEffect(() => {
     const t = setInterval(() => setStakeIdx(i => (i + 1) % STAKE_SUGGESTIONS.length), 3000)
@@ -376,5 +385,13 @@ export default function DealsPage() {
             <button onClick={() => setDeleteTarget(null)} style={{ width:'100%', padding:14, borderRadius:12, border:'1px solid #222', background:'transparent', color:'#666', fontFamily:'Cinzel,serif', fontSize:11, cursor:'pointer' }}>ABBRECHEN</button>
           </div></div>)}
     </div>
+  )
+}
+
+export default function DealsPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight:'100dvh', background:'#060606' }} />}>
+      <DealsContent />
+    </Suspense>
   )
 }

@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import CoinIcon from '@/components/CoinIcon'
 
 const STATUS_COLORS: Record<string, string> = {
   open: '#60a5fa', pending: '#FFB800', active: '#4ade80',
@@ -215,13 +216,20 @@ export default function HomePage() {
             { label: 'LEVEL', value: profile?.level ?? 1, color: '#FFB800' },
             { label: 'SIEGE', value: profile?.wins ?? 0,  color: '#4ade80' },
             { label: 'DEALS', value: profile?.deals_total ?? 0, color: '#60a5fa' },
-            { label: 'COINS', value: profile?.coins ?? 0, color: '#FFB800' },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: '#111', borderRadius: 10, border: '1px solid rgba(255,184,0,0.07)', padding: '10px 6px', textAlign: 'center' }}>
               <p className="font-display" style={{ fontSize: 7, letterSpacing: 1, color: 'rgba(240,236,228,0.4)', marginBottom: 4 }}>{s.label}</p>
               <p className="font-display" style={{ fontSize: 16, color: s.color }}>{s.value}</p>
             </div>
           ))}
+          {/* COINS with coin.png logo */}
+          <div style={{ flex: 1, background: '#111', borderRadius: 10, border: '1px solid rgba(255,184,0,0.07)', padding: '10px 6px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, marginBottom: 4 }}>
+              <CoinIcon size={12} />
+              <p className="font-display" style={{ fontSize: 7, letterSpacing: 1, color: 'rgba(240,236,228,0.4)' }}>COINS</p>
+            </div>
+            <p className="font-display" style={{ fontSize: 16, color: '#FFB800' }}>{profile?.coins ?? 0}</p>
+          </div>
         </div>
 
         {/* XP Bar */}

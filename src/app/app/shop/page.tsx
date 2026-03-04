@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLang } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
+import CoinIcon from '@/components/CoinIcon'
 
 const RARITY_COLORS = {
   common:    '#9ca3af',
@@ -283,7 +284,7 @@ export default function ShopPage() {
         ) : owned ? (
           <button onClick={() => item.type === 'avatar_item' ? router.push('/app/avatar') : equipItem(item)} style={{ width: '100%', padding: '7px', borderRadius: 8, border: '1px solid rgba(74,222,128,0.3)', background: 'rgba(74,222,128,0.08)', color: '#4ade80', fontFamily: 'Cinzel, serif', fontSize: 8, cursor: 'pointer' }}>{t('shop.equip').toUpperCase()}</button>
         ) : canBuy ? (
-          <button onClick={() => setConfirmItem(item)} style={{ width: '100%', padding: '7px', borderRadius: 8, border: `1px solid ${rc}44`, background: `${rc}15`, color: rc, fontFamily: 'Cinzel, serif', fontSize: 8, cursor: coins >= price ? 'pointer' : 'default', opacity: coins >= price ? 1 : 0.6 }}>🪙 {price}</button>
+          <button onClick={() => setConfirmItem(item)} style={{ width: '100%', padding: '7px', borderRadius: 8, border: `1px solid ${rc}44`, background: `${rc}15`, color: rc, fontFamily: 'Cinzel, serif', fontSize: 8, cursor: coins >= price ? 'pointer' : 'default', opacity: coins >= price ? 1 : 0.6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}><CoinIcon size={11} /> {price}</button>
         ) : (
           <div style={{ width: '100%', padding: '7px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(240,236,228,0.25)', fontFamily: 'Cinzel, serif', fontSize: 8, textAlign: 'center' }}>{lang === 'de' ? 'VERDIENT' : 'EARNED'}</div>
         )}
@@ -303,7 +304,7 @@ export default function ShopPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px 12px' }}>
         <h1 className='font-display' style={{ fontSize: 26, color: '#f0ece4' }}>{t('shop.title')}</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#111', borderRadius: 20, padding: '6px 14px', border: '1px solid rgba(255,184,0,0.15)' }}>
-          <span style={{ fontSize: 14 }}>🪙</span>
+          <CoinIcon size={18} />
           <span className='font-display' style={{ fontSize: 14, color: '#FFB800' }}>{coins.toLocaleString()}</span>
         </div>
       </div>
@@ -377,7 +378,7 @@ export default function ShopPage() {
                       <span style={{ color: '#4ade80', fontSize: 10, fontFamily: 'Cinzel, serif' }}>✓ {t('shop.stylePack.owned').toUpperCase()}</span>
                     </div>
                   ) : (
-                    <span className='font-display' style={{ fontSize: 16, color: '#FFB800', fontWeight: 700 }}>🪙 {pack.price_coins}</span>
+                    <span className='font-display' style={{ fontSize: 16, color: '#FFB800', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5 }}><CoinIcon size={16} /> {pack.price_coins}</span>
                   )}
                 </div>
                 <p style={{ fontSize: 12, color: 'rgba(240,236,228,0.5)', marginBottom: 12, lineHeight: 1.5 }}>{pack.description}</p>
@@ -387,7 +388,7 @@ export default function ShopPage() {
                     onClick={() => setConfirmItem({ ...pack, type: 'style_pack', coin_price: pack.price_coins, icon: pack.icon_emoji })}
                     style={{ width: '100%', padding: '12px', borderRadius: 10, border: `1px solid ${rc}44`, background: `${rc}18`, color: rc, fontFamily: 'Cinzel, serif', fontSize: 10, cursor: coins >= pack.price_coins ? 'pointer' : 'default', opacity: coins >= pack.price_coins ? 1 : 0.6, letterSpacing: 1 }}
                   >
-                    {buying === pack.id ? '...' : `🎁 ${t('shop.stylePack.buy').toUpperCase()} · 🪙 ${pack.price_coins}`}
+                    {buying === pack.id ? '...' : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>🎁 {t('shop.stylePack.buy').toUpperCase()} · <CoinIcon size={13} /> {pack.price_coins}</span>}
                   </button>
                 )}
               </div>
@@ -419,7 +420,7 @@ export default function ShopPage() {
       {/* ── COINS ── */}
       {section === 'coins' && (
         <div style={{ padding: '0 16px' }}>
-          <p className='font-display' style={{ fontSize: 9, letterSpacing: 3, color: 'rgba(240,236,228,0.4)', marginBottom: 16 }}>🪙 {t('shop.coinPacks').toUpperCase()}</p>
+          <p className='font-display' style={{ fontSize: 9, letterSpacing: 3, color: 'rgba(240,236,228,0.4)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}><CoinIcon size={11} /> {t('shop.coinPacks').toUpperCase()}</p>
           {[
             { type: 'coin_pack_xs', coins: 500,   price: '2,99€', label: t('shop.coinPackXs'), badge: null },
             { type: 'coin_pack_sm', coins: 2000,  price: '9,99€', label: t('shop.coinPackSm'), badge: t('shop.mostPopular') },
@@ -432,7 +433,7 @@ export default function ShopPage() {
                   <span style={{ fontFamily: 'Cinzel, serif', fontSize: 8, color: '#000', fontWeight: 700 }}>{pack.badge}</span>
                 </div>
               )}
-              <div style={{ fontSize: 36, flexShrink: 0 }}>🪙</div>
+              <div style={{ flexShrink: 0 }}><CoinIcon size={36} /></div>
               <div style={{ flex: 1 }}>
                 <p className='font-display' style={{ fontSize: 14, color: '#FFB800', marginBottom: 2 }}>{pack.coins.toLocaleString()} Coins</p>
                 <p style={{ fontSize: 12, color: 'rgba(240,236,228,0.5)' }}>{pack.label}</p>
@@ -491,7 +492,7 @@ export default function ShopPage() {
               {t('shop.confirmPurchase')}
             </h3>
             <p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(240,236,228,0.6)', marginBottom: 20 }}>
-              {t('shop.confirmPurchaseText')} <strong style={{ color: '#FFB800' }}>{confirmItem.coin_price} 🪙</strong> {t('shop.confirmPurchaseCoins')}
+              {t('shop.confirmPurchaseText')} <strong style={{ color: '#FFB800', display: 'inline-flex', alignItems: 'center', gap: 3 }}>{confirmItem.coin_price} <CoinIcon size={14} /></strong> {t('shop.confirmPurchaseCoins')}
             </p>
             {coins < confirmItem.coin_price && (
               <div style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 10, padding: 12, marginBottom: 16, textAlign: 'center' }}>
@@ -506,7 +507,7 @@ export default function ShopPage() {
               disabled={buying !== null || coins < confirmItem.coin_price}
               style={{ width: '100%', padding: 16, borderRadius: 12, border: 'none', cursor: coins >= confirmItem.coin_price ? 'pointer' : 'default', background: coins >= confirmItem.coin_price ? 'linear-gradient(135deg, #CC8800, #FFB800)' : 'rgba(255,184,0,0.1)', color: coins >= confirmItem.coin_price ? '#000' : 'rgba(255,184,0,0.4)', fontFamily: 'Cinzel, serif', fontSize: 12, fontWeight: 700, letterSpacing: 2, marginBottom: 10 }}
             >
-              {buying ? t('shop.processing') : `${t('shop.buy').toUpperCase()} · ${confirmItem.coin_price} 🪙`}
+              {buying ? t('shop.processing') : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>{t('shop.buy').toUpperCase()} · {confirmItem.coin_price} <CoinIcon size={14} /></span>}
             </button>
             <button onClick={() => setConfirmItem(null)} style={{ width: '100%', padding: 14, borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(240,236,228,0.5)', fontFamily: 'Cinzel, serif', fontSize: 11, cursor: 'pointer' }}>
               {lang === 'de' ? 'ABBRECHEN' : 'CANCEL'}

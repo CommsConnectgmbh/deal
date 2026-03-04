@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import AvatarDisplay, { AvatarConfig, AvatarItemIcon, RARITY_COLORS } from '@/components/AvatarDisplay'
+import CoinIcon from '@/components/CoinIcon'
 
 type AvatarSlot = 'skin_tone' | 'hair' | 'headwear' | 'top' | 'bottom' | 'shoes' | 'accessory' | 'background'
 
@@ -188,8 +189,9 @@ export default function AvatarPage() {
       </div>
 
       {/* Coins */}
-      <div style={{ textAlign:'center', paddingBottom:12, fontSize:14, color:'#888' }}>
-        <span style={{ color:'#FFB800', fontWeight:700 }}>🪙 {(profile?.coins || 0).toLocaleString()}</span> Coins
+      <div style={{ textAlign:'center', paddingBottom:12, fontSize:14, color:'#888', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+        <CoinIcon size={16} />
+        <span style={{ color:'#FFB800', fontWeight:700 }}>{(profile?.coins || 0).toLocaleString()}</span> Coins
       </div>
 
       {/* Slot Tabs */}
@@ -295,7 +297,7 @@ export default function AvatarPage() {
                       fontSize:9, fontWeight:700, cursor:'pointer', fontFamily:'Cinzel,serif',
                     }}
                   >
-                    {isBuying ? '...' : `🪙 ${item.price_coins}`}
+                    {isBuying ? '...' : <span style={{ display:'flex', alignItems:'center', gap:3 }}><CoinIcon size={10} /> {item.price_coins}</span>}
                   </button>
                 )}
 
