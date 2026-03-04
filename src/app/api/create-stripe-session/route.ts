@@ -71,8 +71,11 @@ export async function POST(req: NextRequest) {
 
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://app.deal-buddy.app'
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const session = await (stripe.checkout.sessions.create as any)({
+      // Let Stripe show all payment methods activated in the Dashboard
+      // (Karte, PayPal, Apple Pay, Amazon Pay, Link, etc.)
+      automatic_payment_methods: { enabled: true },
       mode: 'payment',
       line_items: [{
         price_data: {
