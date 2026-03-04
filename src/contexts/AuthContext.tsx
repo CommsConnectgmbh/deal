@@ -28,6 +28,9 @@ interface Profile {
   reputation_score: number
   is_private?: boolean
   deleted_at?: string | null
+  invite_code?: string
+  referred_by?: string | null
+  onboarding_completed?: boolean
 }
 
 interface AuthCtx {

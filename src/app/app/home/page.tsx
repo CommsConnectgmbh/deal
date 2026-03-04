@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 const STATUS_COLORS: Record<string, string> = {
   open: '#60a5fa', pending: '#FFB800', active: '#4ade80',
@@ -45,15 +46,30 @@ interface FeedItem {
 
 export default function HomePage() {
   const { profile } = useAuth()
+  const router = useRouter()
   const [myDeals, setMyDeals] = useState<any[]>([])
   const [feedItems, setFeedItems] = useState<FeedItem[]>([])
   const [communityDeals, setCommunityDeals] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [dailyAvailable, setDailyAvailable] = useState(false)
 
   useEffect(() => {
     if (!profile) return
     loadData()
+    checkDailyReward()
   }, [profile])
+
+  const checkDailyReward = async () => {
+    if (!profile) return
+    const today = new Date().toISOString().slice(0, 10)
+    const { data } = await supabase
+      .from('user_daily_login')
+      .select('last_login_date')
+      .eq('user_id', profile.id)
+      .single()
+    const last = data?.last_login_date
+    setDailyAvailable(!last || last < today)
+  }
 
   const loadData = async () => {
     setLoading(true)
@@ -166,6 +182,22 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* ── Daily Reward Banner ── */}
+      {dailyAvailable && (
+        <div style={{ padding: '16px 16px 0' }}>
+          <button
+            onClick={() => router.push('/app/rewards')}
+            style={{ width: '100%', background: 'rgba(255,184,0,0.07)', border: '1px solid rgba(255,184,0,0.25)', borderRadius: 14, padding: '12px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 24 }}>🎁</span>
+            <div style={{ flex: 1, textAlign: 'left' }}>
+              <p style={{ fontFamily: 'Cinzel, serif', fontSize: 11, color: '#FFB800', fontWeight: 700, letterSpacing: 1 }}>TÄGLICHE BELOHNUNG VERFÜGBAR</p>
+              <p style={{ fontSize: 11, color: '#666', marginTop: 2 }}>Tippe zum Abholen</p>
+            </div>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#FFB800', boxShadow: '0 0 8px #FFB800' }} />
+          </button>
+        </div>
+      )}
 
       {/* ── Pending Invites (pinned) ── */}
       {pendingInvites.length > 0 && (

@@ -2,11 +2,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { useLang } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
 import AvatarDisplay, { AvatarConfig, AvatarItemIcon, RARITY_COLORS } from '@/components/AvatarDisplay'
 
-type AvatarSlot = 'body' | 'hair' | 'outfit' | 'accessory'
+type AvatarSlot = 'skin_tone' | 'hair' | 'headwear' | 'top' | 'bottom' | 'shoes' | 'accessory' | 'background'
 
 interface AvatarItem {
   id: string
@@ -19,26 +18,50 @@ interface AvatarItem {
   is_default: boolean
 }
 
-const SLOT_LABELS: Record<AvatarSlot, { de: string; en: string }> = {
-  body:      { de: 'KÖRPER',     en: 'BODY'    },
-  hair:      { de: 'HAARE',      en: 'HAIR'    },
-  outfit:    { de: 'OUTFIT',     en: 'OUTFIT'  },
-  accessory: { de: 'ACCESSOIRE', en: 'ACC.'    },
+const SLOT_LABELS: Record<AvatarSlot, string> = {
+  skin_tone:  'HAUT',
+  hair:       'HAARE',
+  headwear:   'KOPF',
+  top:        'TOP',
+  bottom:     'HOSE',
+  shoes:      'SCHUHE',
+  accessory:  'ACC.',
+  background: 'BG',
 }
+
+const SLOT_ICONS: Record<AvatarSlot, string> = {
+  skin_tone:  '🏽',
+  hair:       '💈',
+  headwear:   '🧢',
+  top:        '👕',
+  bottom:     '👖',
+  shoes:      '👟',
+  accessory:  '💎',
+  background: '🌑',
+}
+
+const ALL_SLOTS: AvatarSlot[] = ['skin_tone','hair','headwear','top','bottom','shoes','accessory','background']
 
 export default function AvatarPage() {
   const { profile, refreshProfile } = useAuth()
-  const { t, lang } = useLang()
   const router = useRouter()
 
-  const [activeSlot, setActiveSlot] = useState<AvatarSlot>('body')
+  const [activeSlot, setActiveSlot] = useState<AvatarSlot>('skin_tone')
   const [allItems,   setAllItems]   = useState<AvatarItem[]>([])
   const [owned,      setOwned]      = useState<string[]>([])
   const [config,     setConfig]     = useState<AvatarConfig>({
-    body: 'body_default', hair: 'hair_default', outfit: 'outfit_default', accessory: 'acc_none',
+    skin_tone: 'skin_medium',
+    hair: 'hair_short_textured',
+    headwear: null,
+    top: 'top_tshirt',
+    bottom: 'bottom_slim',
+    shoes: 'shoes_sneaker',
+    accessory: 'acc_none',
+    background: 'bg_dark',
   })
-  const [toast,      setToast]      = useState<string | null>(null)
-  const [busy,       setBusy]       = useState<string | null>(null)
+  const [toast,    setToast]    = useState<string | null>(null)
+  const [busy,     setBusy]     = useState<string | null>(null)
+  const [saving,   setSaving]   = useState(false)
 
   const showToast = useCallback((msg: string) => {
     setToast(msg)
@@ -50,288 +73,253 @@ export default function AvatarPage() {
   const fetchData = async () => {
     if (!profile) return
     const [itemsRes, invRes, cfgRes] = await Promise.all([
-      supabase.from('avatar_items').select('*').order('rarity'),
+      supabase.from('avatar_items').select('*').order('slot').order('price_coins'),
       supabase.from('user_avatar_inventory').select('item_id').eq('user_id', profile.id),
       supabase.from('avatar_config').select('*').eq('user_id', profile.id).single(),
     ])
     setAllItems((itemsRes.data || []) as AvatarItem[])
-    setOwned((invRes.data || []).map((r: any) => r.item_id))
+
+    const ownedIds = (invRes.data || []).map((r: any) => r.item_id)
+    // Always mark defaults as owned
+    const defaults = (itemsRes.data || []).filter((i: any) => i.is_default).map((i: any) => i.id)
+    setOwned([...new Set([...ownedIds, ...defaults])])
 
     if (cfgRes.data) {
       setConfig({
-        body:      cfgRes.data.body      || 'body_default',
-        hair:      cfgRes.data.hair      || 'hair_default',
-        outfit:    cfgRes.data.outfit    || 'outfit_default',
-        accessory: cfgRes.data.accessory || 'acc_none',
+        skin_tone:  cfgRes.data.skin_tone  || 'skin_medium',
+        hair:       cfgRes.data.hair       || 'hair_short_textured',
+        headwear:   cfgRes.data.headwear   || null,
+        top:        cfgRes.data.top        || cfgRes.data.outfit || 'top_tshirt',
+        bottom:     cfgRes.data.bottom     || 'bottom_slim',
+        shoes:      cfgRes.data.shoes      || 'shoes_sneaker',
+        accessory:  cfgRes.data.accessory  || 'acc_none',
+        background: cfgRes.data.background || 'bg_dark',
       })
-    } else {
-      const def = { body: 'body_default', hair: 'hair_default', outfit: 'outfit_default', accessory: 'acc_none' }
-      await supabase.from('avatar_config').upsert({ user_id: profile.id, ...def })
-      setConfig(def)
     }
   }
 
-  // ─── Equip: updates state immediately for live preview, then persists ──────
-  const equipItem = async (item: AvatarItem) => {
-    if (!profile) return
-    const next = { ...config, [item.slot]: item.id }
-    setConfig(next) // ← immediate preview update
-    setBusy(item.id)
-    await supabase.from('avatar_config').upsert(
-      { user_id: profile.id, ...next, updated_at: new Date().toISOString() },
-      { onConflict: 'user_id' }
-    )
-    showToast(`✓ ${item.name} ${lang === 'de' ? 'ausgerüstet' : 'equipped'}`)
-    setBusy(null)
-  }
+  const equip = useCallback((slot: AvatarSlot, itemId: string) => {
+    setConfig(prev => ({
+      ...prev,
+      // Toggle headwear off if tapping same item
+      [slot]: (slot === 'headwear' && prev.headwear === itemId) ? null : itemId,
+    }))
+  }, [])
 
-  // ─── Buy ──────────────────────────────────────────────────────────────────
-  const buyItem = async (item: AvatarItem) => {
+  const buy = useCallback(async (item: AvatarItem) => {
     if (!profile) return
-    const coins = profile.coins ?? 0
-    if (coins < item.price_coins) { showToast(lang === 'de' ? 'Nicht genug Coins!' : 'Not enough coins!'); return }
+    if ((profile.coins || 0) < item.price_coins) {
+      showToast('❌ Nicht genug Coins')
+      return
+    }
     setBusy(item.id)
     try {
+      const newCoins = (profile.coins || 0) - item.price_coins
       await Promise.all([
-        supabase.from('profiles').update({ coins: coins - item.price_coins }).eq('id', profile.id),
-        supabase.from('wallet_ledger').insert({
-          user_id: profile.id, delta: -item.price_coins,
-          reason: 'avatar_purchase', reference_id: item.id,
-        }),
-        supabase.from('user_avatar_inventory').upsert(
-          { user_id: profile.id, item_id: item.id },
-          { onConflict: 'user_id,item_id' }
-        ),
+        supabase.from('profiles').update({ coins: newCoins }).eq('id', profile.id),
+        supabase.from('user_avatar_inventory').upsert({ user_id: profile.id, item_id: item.id }, { onConflict: 'user_id,item_id' }),
+        supabase.from('wallet_ledger').insert({ user_id: profile.id, delta: -item.price_coins, reason: 'avatar_purchase', reference_id: item.id }),
       ])
       setOwned(prev => [...prev, item.id])
       await refreshProfile()
-      showToast(`🎉 ${item.name} ${lang === 'de' ? 'erhalten!' : 'unlocked!'}`)
-    } catch (e) { console.error(e) }
-    setBusy(null)
+      showToast(`✅ ${item.name} gekauft!`)
+      equip(item.slot, item.id)
+    } catch (e) {
+      showToast('❌ Fehler beim Kauf')
+    } finally {
+      setBusy(null)
+    }
+  }, [profile, refreshProfile, showToast, equip])
+
+  const save = async () => {
+    if (!profile) return
+    setSaving(true)
+    try {
+      await supabase.from('avatar_config').upsert({
+        user_id:    profile.id,
+        skin_tone:  config.skin_tone,
+        hair:       config.hair,
+        headwear:   config.headwear,
+        top:        config.top,
+        bottom:     config.bottom,
+        shoes:      config.shoes,
+        accessory:  config.accessory,
+        background: config.background,
+        // keep legacy fields synced
+        body:       config.skin_tone,
+        outfit:     config.top,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' })
+      showToast('✅ Avatar gespeichert!')
+    } catch {
+      showToast('❌ Speichern fehlgeschlagen')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const slotItems  = allItems.filter(i => i.slot === activeSlot)
-  const equipped   = config[activeSlot] || ''
-  const coins      = profile?.coins ?? 0
-  const archetype  = profile?.primary_archetype || 'founder'
+  const slotItems = allItems.filter(i => i.slot === activeSlot)
+  // headwear gets a "None" option
+  const displayItems: (AvatarItem | { id: string; name: string; rarity: 'common'; price_coins: 0; slot: 'headwear'; is_default: true; description: string; icon_emoji: string })[] =
+    activeSlot === 'headwear'
+      ? [{ id: 'hw_none', name: 'Kein Kopfschmuck', rarity: 'common', price_coins: 0, slot: 'headwear', is_default: true, description: 'Standard', icon_emoji: '–' }, ...slotItems]
+      : slotItems
 
-  // Determine the highest rarity equipped item for the preview ring
-  const equippedItems = allItems.filter(i =>
-    i.id === config.body || i.id === config.hair ||
-    i.id === config.outfit || i.id === config.accessory
-  )
-  const rarityOrder = { common: 0, rare: 1, epic: 2, legendary: 3 }
-  const topRarity = equippedItems.reduce((best, i) =>
-    (rarityOrder[i.rarity] ?? 0) > (rarityOrder[best as keyof typeof rarityOrder] ?? 0) ? i.rarity : best,
-    'common' as string
-  )
-  const previewGlow = RARITY_COLORS[topRarity as keyof typeof RARITY_COLORS] || RARITY_COLORS.common
+  const currentEquipped = config[activeSlot === 'headwear' ? 'headwear' : activeSlot] as string | null | undefined
 
   return (
-    <div style={{ minHeight: '100dvh', background: '#060606', paddingTop: 60, paddingBottom: 100 }}>
-
-      {/* Toast */}
-      {toast && (
-        <div style={{
-          position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)',
-          background: 'linear-gradient(135deg, #CC8800, #FFB800)',
-          borderRadius: 12, padding: '10px 20px', zIndex: 300,
-          whiteSpace: 'nowrap', boxShadow: '0 8px 24px rgba(255,184,0,0.3)',
-        }}>
-          <span style={{ fontFamily: 'Cinzel, serif', fontSize: 12, color: '#000', fontWeight: 700 }}>{toast}</span>
-        </div>
-      )}
+    <div style={{ minHeight:'100dvh', background:'#060606', color:'#F0ECE4', display:'flex', flexDirection:'column' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px 20px' }}>
-        <button onClick={() => router.back()} style={{ background: 'transparent', border: 'none', color: 'rgba(240,236,228,0.6)', fontSize: 24, cursor: 'pointer' }}>‹</button>
-        <h1 className="font-display" style={{ fontSize: 20, color: '#f0ece4', letterSpacing: 2 }}>
-          {lang === 'de' ? 'AVATAR' : 'AVATAR'}
-        </h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#111', borderRadius: 20, padding: '4px 12px', border: '1px solid rgba(255,184,0,0.15)' }}>
-          <span style={{ fontSize: 13 }}>🪙</span>
-          <span className="font-display" style={{ fontSize: 13, color: '#FFB800' }}>{coins.toLocaleString()}</span>
-        </div>
+      <div style={{ padding:'16px 20px 8px', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'1px solid #1a1a1a' }}>
+        <button onClick={() => router.back()} style={{ background:'none', border:'none', color:'#888', fontSize:22, cursor:'pointer' }}>‹</button>
+        <span style={{ fontFamily:'Cinzel,serif', fontWeight:700, fontSize:16, letterSpacing:2, color:'#FFB800' }}>AVATAR EDITOR</span>
+        <button
+          onClick={save} disabled={saving}
+          style={{ background: saving ? '#333' : '#FFB800', color:'#000', border:'none', borderRadius:8, padding:'6px 16px', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'Cinzel,serif' }}
+        >
+          {saving ? '...' : 'SAVE'}
+        </button>
       </div>
 
-      {/* ── Full-body avatar preview ────────────────────────────────────────── */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px 28px' }}>
-        {/* Outer glow ring */}
-        <div style={{
-          padding: 3,
-          borderRadius: 24,
-          background: `linear-gradient(135deg, ${previewGlow}80, ${previewGlow}20)`,
-          boxShadow: `0 0 40px ${previewGlow}35`,
-        }}>
-          <AvatarDisplay
-            config={config}
-            archetype={archetype}
-            size={110}
-            showFullBody
-            initials={(profile?.display_name || profile?.username || 'U').slice(0, 2).toUpperCase()}
-          />
-        </div>
-        {/* Name + rarity label */}
-        <p className="font-display" style={{ marginTop: 14, fontSize: 11, color: previewGlow, letterSpacing: 2, opacity: 0.9 }}>
-          {topRarity.toUpperCase()}
-        </p>
-        <p style={{ marginTop: 2, fontSize: 12, color: 'rgba(240,236,228,0.4)', fontFamily: 'Crimson Text, serif' }}>
-          {profile?.display_name || profile?.username || '—'}
-        </p>
+      {/* Preview */}
+      <div style={{ display:'flex', justifyContent:'center', alignItems:'center', padding:'24px 0 16px', background:'#0A0A0A' }}>
+        <AvatarDisplay config={config} archetype={profile?.primary_archetype || 'founder'} size={160} showFullBody streak={profile?.streak || 0} />
       </div>
 
-      {/* ── Slot Tabs ──────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', margin: '0 16px 20px', background: '#111', borderRadius: 12, padding: 4, gap: 2 }}>
-        {(['body', 'hair', 'outfit', 'accessory'] as AvatarSlot[]).map(slot => {
-          const active = activeSlot === slot
+      {/* Coins */}
+      <div style={{ textAlign:'center', paddingBottom:12, fontSize:14, color:'#888' }}>
+        <span style={{ color:'#FFB800', fontWeight:700 }}>🪙 {(profile?.coins || 0).toLocaleString()}</span> Coins
+      </div>
+
+      {/* Slot Tabs */}
+      <div style={{ display:'flex', overflowX:'auto', gap:4, padding:'0 12px 12px', scrollbarWidth:'none' }}>
+        {ALL_SLOTS.map(slot => {
+          const isActive = slot === activeSlot
+          const equipped = config[slot]
+          const hasItem  = equipped && equipped !== 'acc_none' && equipped !== 'bg_dark' && equipped !== 'skin_medium'
           return (
             <button
               key={slot}
               onClick={() => setActiveSlot(slot)}
               style={{
-                flex: 1, padding: '10px 4px', borderRadius: 8, cursor: 'pointer',
-                border: active ? '1px solid rgba(255,184,0,0.25)' : '1px solid transparent',
-                background: active ? 'rgba(255,184,0,0.10)' : 'transparent',
-                color: active ? '#FFB800' : 'rgba(240,236,228,0.35)',
-                fontFamily: 'Cinzel, serif', fontSize: 9, letterSpacing: 0.6,
+                flexShrink: 0,
+                padding: '6px 12px',
+                borderRadius: 20,
+                border: isActive ? '1.5px solid #FFB800' : '1.5px solid #222',
+                background: isActive ? '#FFB80015' : '#111',
+                color: isActive ? '#FFB800' : '#666',
+                fontSize: 10,
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontFamily: 'Cinzel,serif',
+                letterSpacing: 1,
+                position: 'relative',
+                whiteSpace: 'nowrap',
               }}
             >
-              {SLOT_LABELS[slot][lang === 'de' ? 'de' : 'en']}
+              {SLOT_ICONS[slot]} {SLOT_LABELS[slot]}
+              {hasItem && !isActive && (
+                <span style={{ position:'absolute', top:-2, right:-2, width:6, height:6, borderRadius:'50%', background:'#FFB800' }} />
+              )}
             </button>
           )
         })}
       </div>
 
-      {/* ── Items Grid ─────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '0 16px' }}>
-        {slotItems.map(item => {
-          const rc        = RARITY_COLORS[item.rarity]
-          const isOwned   = owned.includes(item.id) || item.is_default
-          const isEquip   = equipped === item.id
-          const canBuy    = !isOwned && item.price_coins > 0
-          const isEarned  = !isOwned && item.price_coins === 0 && !item.is_default
-          const isLoading = busy === item.id
+      {/* Items Grid */}
+      <div style={{ flex:1, overflowY:'auto', padding:'0 12px 120px' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10 }}>
+          {displayItems.map((item) => {
+            const isOwned    = item.id === 'hw_none' || item.is_default || owned.includes(item.id)
+            const isEquipped = (activeSlot === 'headwear' && item.id === 'hw_none')
+              ? !config.headwear
+              : currentEquipped === item.id
+            const rc = RARITY_COLORS[item.rarity as keyof typeof RARITY_COLORS] || '#9ca3af'
+            const isBuying   = busy === item.id
 
-          return (
-            <div
-              key={item.id}
-              onClick={() => isOwned && !isEquip ? equipItem(item) : undefined}
-              style={{
-                background: isEquip ? `${rc}10` : '#111',
-                borderRadius: 16,
-                border: isEquip
-                  ? `1.5px solid ${rc}70`
-                  : `1px solid ${rc}28`,
-                boxShadow: isEquip
-                  ? `0 0 18px ${rc}28, inset 0 0 30px ${rc}08`
-                  : 'none',
-                padding: '18px 12px 14px',
-                textAlign: 'center',
-                position: 'relative',
-                overflow: 'hidden',
-                cursor: isOwned && !isEquip ? 'pointer' : 'default',
-                transition: 'border-color 0.2s, box-shadow 0.2s',
-              }}
-            >
-              {/* Equipped badge */}
-              {isEquip && (
-                <div style={{
-                  position: 'absolute', top: 8, right: 8,
-                  background: `${rc}22`, borderRadius: 6, padding: '2px 8px',
-                  border: `1px solid ${rc}50`,
-                }}>
-                  <span className="font-display" style={{ fontSize: 7, color: rc, letterSpacing: 1 }}>✓ ON</span>
+            return (
+              <div
+                key={item.id}
+                onClick={() => {
+                  if (item.id === 'hw_none') { equip('headwear', ''); return }
+                  if (isOwned) equip(activeSlot, item.id)
+                }}
+                style={{
+                  background: isEquipped ? `${rc}18` : '#111',
+                  borderRadius: 12,
+                  border: isEquipped ? `1.5px solid ${rc}` : `1px solid ${isOwned ? '#222' : '#1a1a1a'}`,
+                  padding: '12px 8px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 6,
+                  cursor: isOwned ? 'pointer' : 'default',
+                  opacity: isOwned ? 1 : 0.6,
+                  position: 'relative',
+                  boxShadow: isEquipped ? `0 0 12px ${rc}44` : 'none',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {/* Rarity dot */}
+                <div style={{ position:'absolute', top:6, right:8, width:6, height:6, borderRadius:'50%', background:rc, boxShadow:`0 0 4px ${rc}` }} />
+
+                {/* Item icon */}
+                <div style={{ opacity: isOwned ? 1 : 0.4 }}>
+                  <AvatarItemIcon itemId={item.id} slot={item.slot} size={52} rarity={item.rarity} />
                 </div>
-              )}
-              {/* Owned but not equipped */}
-              {isOwned && !isEquip && (
-                <div style={{
-                  position: 'absolute', top: 8, right: 8,
-                  background: 'rgba(74,222,128,0.12)', borderRadius: 6, padding: '2px 8px',
-                  border: '1px solid rgba(74,222,128,0.25)',
-                }}>
-                  <span className="font-display" style={{ fontSize: 7, color: '#4ade80', letterSpacing: 0.5 }}>
-                    {lang === 'de' ? 'OWNED' : 'OWNED'}
+
+                {/* Name */}
+                <span style={{ fontSize:10, fontWeight:600, textAlign:'center', color: isEquipped ? rc : '#ccc', lineHeight:1.2 }}>{item.name}</span>
+
+                {/* Rarity label */}
+                <span style={{ fontSize:8, color:rc, fontFamily:'Cinzel,serif', letterSpacing:1, textTransform:'uppercase' }}>{item.rarity}</span>
+
+                {/* Status */}
+                {item.id === 'hw_none' ? (
+                  <span style={{ fontSize:9, color: !config.headwear ? '#FFB800' : '#555' }}>
+                    {!config.headwear ? '✓ KEIN' : 'KEIN'}
                   </span>
-                </div>
-              )}
+                ) : isEquipped ? (
+                  <span style={{ fontSize:9, color:'#FFB800', fontWeight:700, fontFamily:'Cinzel,serif' }}>✓ AKTIV</span>
+                ) : isOwned ? (
+                  <span style={{ fontSize:9, color:'#4ade80' }}>✓ BESESSEN</span>
+                ) : (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); buy(item as AvatarItem) }}
+                    disabled={isBuying}
+                    style={{
+                      background: (profile?.coins || 0) >= item.price_coins ? '#FFB800' : '#333',
+                      color: (profile?.coins || 0) >= item.price_coins ? '#000' : '#666',
+                      border: 'none', borderRadius: 6, padding:'3px 8px',
+                      fontSize:9, fontWeight:700, cursor:'pointer', fontFamily:'Cinzel,serif',
+                    }}
+                  >
+                    {isBuying ? '...' : `🪙 ${item.price_coins}`}
+                  </button>
+                )}
 
-              {/* SVG item icon */}
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10, minHeight: activeSlot === 'outfit' ? 56 : 56 }}>
-                <AvatarItemIcon
-                  itemId={item.id}
-                  slot={item.slot}
-                  size={activeSlot === 'outfit' ? 48 : 52}
-                  rarity={item.rarity}
-                />
+                {/* Lock overlay */}
+                {!isOwned && (
+                  <div style={{ position:'absolute', top:0, left:0, right:0, bottom:0, borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.3)' }}>
+                    <span style={{ fontSize:18 }}>🔒</span>
+                  </div>
+                )}
               </div>
-
-              {/* Item name */}
-              <p className="font-display" style={{ fontSize: 11, color: '#f0ece4', marginBottom: 4, lineHeight: 1.3, letterSpacing: 0.5 }}>
-                {item.name}
-              </p>
-
-              {/* Rarity badge */}
-              <div style={{
-                display: 'inline-block', padding: '2px 8px', borderRadius: 10, marginBottom: 8,
-                background: `${rc}14`, border: `1px solid ${rc}40`,
-              }}>
-                <span className="font-display" style={{ fontSize: 7, letterSpacing: 1, color: rc }}>
-                  {item.rarity.toUpperCase()}
-                </span>
-              </div>
-
-              {/* Action button */}
-              {isEquip ? (
-                <div style={{
-                  width: '100%', padding: '8px', borderRadius: 8,
-                  background: `${rc}14`, color: rc,
-                  fontFamily: 'Cinzel, serif', fontSize: 9, letterSpacing: 1, textAlign: 'center',
-                  border: `1px solid ${rc}40`,
-                }}>
-                  ✓ {lang === 'de' ? 'AUSGERÜSTET' : 'EQUIPPED'}
-                </div>
-              ) : isOwned ? (
-                <button
-                  onClick={e => { e.stopPropagation(); equipItem(item) }}
-                  disabled={isLoading}
-                  style={{
-                    width: '100%', padding: '8px', borderRadius: 8, cursor: 'pointer',
-                    border: '1px solid rgba(74,222,128,0.35)',
-                    background: 'rgba(74,222,128,0.08)', color: '#4ade80',
-                    fontFamily: 'Cinzel, serif', fontSize: 9, letterSpacing: 1,
-                    opacity: isLoading ? 0.5 : 1,
-                  }}
-                >
-                  {isLoading ? '···' : lang === 'de' ? 'AUSRÜSTEN' : 'EQUIP'}
-                </button>
-              ) : canBuy ? (
-                <button
-                  onClick={e => { e.stopPropagation(); buyItem(item) }}
-                  disabled={isLoading || coins < item.price_coins}
-                  style={{
-                    width: '100%', padding: '8px', borderRadius: 8,
-                    cursor: coins >= item.price_coins ? 'pointer' : 'not-allowed',
-                    border: `1px solid ${rc}40`, background: `${rc}12`, color: rc,
-                    fontFamily: 'Cinzel, serif', fontSize: 9, letterSpacing: 1,
-                    opacity: isLoading || coins < item.price_coins ? 0.45 : 1,
-                  }}
-                >
-                  {isLoading ? '···' : `🪙 ${item.price_coins}`}
-                </button>
-              ) : isEarned ? (
-                <div style={{
-                  width: '100%', padding: '8px', borderRadius: 8, textAlign: 'center',
-                  border: '1px solid rgba(255,255,255,0.05)',
-                  color: 'rgba(240,236,228,0.2)', fontFamily: 'Cinzel, serif', fontSize: 9,
-                }}>
-                  {lang === 'de' ? 'VERDIENST' : 'EARNED'}
-                </div>
-              ) : null}
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position:'fixed', bottom:100, left:'50%', transform:'translateX(-50%)',
+          background:'#1A1A2E', border:'1px solid #FFB80044', borderRadius:12,
+          padding:'10px 20px', color:'#FFB800', fontWeight:600, fontSize:13,
+          zIndex:999, whiteSpace:'nowrap', boxShadow:'0 4px 20px rgba(0,0,0,0.5)',
+        }}>{toast}</div>
+      )}
     </div>
   )
 }

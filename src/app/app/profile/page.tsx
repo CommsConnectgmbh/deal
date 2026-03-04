@@ -273,6 +273,25 @@ export default function ProfilePage() {
         </button>
       </div>
 
+      {/* ── Quick Access Grid ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, margin: '0 16px 16px' }}>
+        {[
+          { label: 'BELOHNUNGEN', icon: '🎁', href: '/app/rewards', badge: true },
+          { label: 'CHALLENGES',  icon: '⚔️', href: '/app/challenges' },
+          { label: 'MEILENSTEINE',icon: '🏆', href: '/app/milestones' },
+          { label: 'RANGLISTE',   icon: '📊', href: '/app/leaderboard' },
+          { label: 'EINLADEN',    icon: '🔗', href: '/app/invite' },
+          { label: 'BATTLE PASS', icon: '⭐', href: '/app/battlepass' },
+        ].map(item => (
+          <button key={item.href} onClick={() => router.push(item.href)}
+            style={{ position: 'relative', padding: '14px 12px', background: '#111', borderRadius: 14, border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 22 }}>{item.icon}</span>
+            <span style={{ fontFamily: 'Cinzel, serif', fontSize: 10, letterSpacing: 1, color: 'rgba(240,236,228,0.7)', fontWeight: 700 }}>{item.label}</span>
+            <span style={{ marginLeft: 'auto', color: 'rgba(240,236,228,0.2)', fontSize: 14 }}>›</span>
+          </button>
+        ))}
+      </div>
+
       {/* Menu */}
       <div style={{ margin: '0 16px 100px', background: '#111', borderRadius: 14, border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}>
         <button onClick={() => router.push('/app/notifications')} style={{ width: '100%', padding: '16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

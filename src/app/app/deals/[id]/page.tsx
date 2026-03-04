@@ -260,8 +260,23 @@ export default function DealDetailPage() {
 
         {/* Winner banner */}
         {deal.status === 'completed' && deal.winner_id && (
-          <div style={{ textAlign:'center', padding:'14px', background:'rgba(255,184,0,0.06)', borderRadius:10, border:'1px solid rgba(255,184,0,0.2)', marginBottom:16 }}>
-            <p style={{ fontSize:14, color:'#FFB800' }}>🏆 @{deal.winner?.username} {lang === 'de' ? 'hat gewonnen' : 'won'}</p>
+          <div style={{ textAlign:'center', padding:'16px', background:'rgba(255,184,0,0.06)', borderRadius:10, border:'1px solid rgba(255,184,0,0.2)', marginBottom:16 }}>
+            <p style={{ fontSize:20, marginBottom:6 }}>👑</p>
+            <p style={{ fontSize:14, color:'#FFB800', marginBottom:10 }}>@{deal.winner?.username} {lang === 'de' ? 'hat gewonnen!' : 'won!'}</p>
+            {deal.winner_id === profile?.id && (
+              <button
+                onClick={async () => {
+                  const text = `🏆 Ich habe gewonnen!\n\n"${deal.title}"\nvs @${deal.opponent?.username || deal.creator?.username}\n\n#DealBuddy #Gewonnen`
+                  if (navigator.share) {
+                    await navigator.share({ title: '🏆 DealBuddy Win!', text })
+                  } else {
+                    await navigator.clipboard.writeText(text)
+                  }
+                }}
+                style={{ padding:'8px 20px', borderRadius:10, border:'none', cursor:'pointer', background:'linear-gradient(135deg,#CC8800,#FFB800)', color:'#000', fontFamily:'Cinzel, serif', fontSize:10, fontWeight:700, letterSpacing:1 }}>
+                🔗 WIN TEILEN
+              </button>
+            )}
           </div>
         )}
 
