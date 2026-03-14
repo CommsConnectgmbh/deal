@@ -8,6 +8,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 serve(async (req) => {
@@ -19,18 +20,24 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Get authenticated user
-    const authHeader = req.headers.get('Authorization')!
-    const { data: { user } } = await createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    ).auth.getUser()
+    // Verify authenticated user via JWT
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: corsHeaders })
+    }
 
-    if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized', details: authError?.message }), { status: 401, headers: corsHeaders })
+    }
 
     const { deal_id } = await req.json()
-    if (!deal_id) return new Response(JSON.stringify({ error: 'deal_id required' }), { status: 400, headers: corsHeaders })
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!deal_id || !UUID_RE.test(deal_id)) {
+      return new Response(JSON.stringify({ error: 'Invalid deal_id' }), { status: 400, headers: corsHeaders })
+    }
 
     // Fetch the deal
     const { data: deal, error: dealError } = await supabase
@@ -40,6 +47,16 @@ serve(async (req) => {
       .single()
 
     if (dealError || !deal) return new Response(JSON.stringify({ error: 'Deal not found' }), { status: 404, headers: corsHeaders })
+
+    // Idempotency: if deal already completed, return success (no double-processing)
+    if (deal.status === 'completed') {
+      return new Response(JSON.stringify({
+        success: true,
+        already_processed: true,
+        winner_id: deal.winner_id,
+        message: 'Deal already completed'
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
 
     // Validate: user must be a participant
     if (deal.creator_id !== user.id && deal.opponent_id !== user.id) {
@@ -113,8 +130,18 @@ serve(async (req) => {
       totalWinnerXP = 0 // No XP for winner if cap reached
     }
 
-    const winnerCoins = winCapReached ? 0 : 25
-    const participationCoins = 5
+    // Coin rewards (V11 economy update)
+    const baseWinnerCoins = 100
+    const participationCoins = 20
+
+    // Streak bonus coins
+    const newStreak = currentStreak + 1
+    let streakBonus = 0
+    if (newStreak >= 10) streakBonus = 250
+    else if (newStreak >= 5) streakBonus = 100
+    else if (newStreak >= 3) streakBonus = 50
+
+    const winnerCoins = winCapReached ? 0 : (baseWinnerCoins + streakBonus)
 
     const now = new Date().toISOString()
 
@@ -133,6 +160,14 @@ serve(async (req) => {
       actor_id: user.id,
       action: 'confirm_winner',
       meta: { winner_id, winner_xp: totalWinnerXP, loser_xp: totalLoserXP }
+    })
+
+    // Feed event: deal_completed (visible in activity timeline)
+    await supabase.from('feed_events').insert({
+      event_type: 'deal_completed',
+      user_id: winner_id,
+      deal_id,
+      metadata: { winner: true, title: deal.title, xp: totalWinnerXP, coins: winnerCoins }
     })
 
     // Award XP + coins to winner
@@ -245,6 +280,10 @@ serve(async (req) => {
       last_active_at: now
     }).eq('id', loser_id)
 
+    // Recompute frame progress for both players (V11)
+    await supabase.rpc('compute_frame_progress', { p_user_id: winner_id }).catch(() => {})
+    await supabase.rpc('compute_frame_progress', { p_user_id: loser_id }).catch(() => {})
+
     // Update battle pass season XP
     await supabase.from('user_battlepass')
       .upsert({
@@ -295,16 +334,139 @@ serve(async (req) => {
       user_id: winner_id,
       type: 'deal_won',
       title: '🏆 Deal gewonnen!',
-      body: `Du hast +${totalWinnerXP} XP und ${winnerCoins} Coins erhalten.`,
-      data: { deal_id, xp: totalWinnerXP, coins: winnerCoins }
+      body: `Du hast +${totalWinnerXP} XP und ${winnerCoins + participationCoins} Coins erhalten.${streakBonus > 0 ? ` 🔥 Streak Bonus: +${streakBonus}!` : ''}`,
+      data: { deal_id, xp: totalWinnerXP, coins: winnerCoins + participationCoins, streak_bonus: streakBonus }
     })
+
+    // Send notification to loser
+    await supabase.from('notifications').insert({
+      user_id: loser_id,
+      type: 'deal_lost',
+      title: 'Deal abgeschlossen',
+      body: `Du hast +${totalLoserXP} XP erhalten. Nächstes Mal!`,
+      data: { deal_id, xp: totalLoserXP }
+    })
+
+    // ── Create bet_fulfillment record (Reliability Score) ──
+    // Only for bets with a stake (material obligation)
+    if (deal.stake && deal.stake.trim() !== '') {
+      await supabase.from('bet_fulfillment').insert({
+        bet_id: deal_id,
+        obligated_user_id: loser_id,
+        entitled_user_id: winner_id,
+        status: 'pending_fulfillment',
+        expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+      }).catch((err: any) => {
+        console.error('bet_fulfillment insert error:', err)
+        // Non-blocking — don't fail the deal completion
+      })
+
+      // Notification: ask winner if stake was received
+      await supabase.from('notifications').insert({
+        user_id: winner_id,
+        type: 'fulfillment_check',
+        title: 'Einsatz erhalten?',
+        body: `Hat dein Gegner den Einsatz "${deal.stake}" eingelöst?`,
+        reference_id: deal_id,
+      }).catch(() => {})
+    }
+
+    // ── Resolve deal side bets → award 25 coins to correct predictors ──
+    const SIDE_BET_REWARD = 25
+    const { data: sideBets } = await supabase
+      .from('deal_side_bets')
+      .select('*')
+      .eq('deal_id', deal_id)
+      .eq('status', 'open')
+
+    let sideBetsResolved = 0
+    if (sideBets && sideBets.length > 0) {
+      const winnerSide = winner_id === deal.creator_id ? 'a' : 'b'
+
+      for (const sb of sideBets) {
+        const isCorrect = sb.side === winnerSide
+        const newStatus = isCorrect ? 'won' : 'lost'
+        const coinsAwarded = isCorrect ? SIDE_BET_REWARD : 0
+
+        // Update side bet status
+        await supabase.from('deal_side_bets').update({
+          status: newStatus,
+          coins_awarded: coinsAwarded
+        }).eq('id', sb.id)
+
+        if (isCorrect) {
+          // Credit coins to bettor profile
+          const { data: bettorProfile } = await supabase
+            .from('profiles')
+            .select('coins')
+            .eq('id', sb.user_id)
+            .single()
+
+          await supabase.from('profiles').update({
+            coins: (bettorProfile?.coins || 0) + SIDE_BET_REWARD
+          }).eq('id', sb.user_id)
+
+          // Wallet ledger entry
+          await supabase.from('wallet_ledger').insert({
+            user_id: sb.user_id,
+            delta: SIDE_BET_REWARD,
+            reason: 'side_bet_won',
+            reference_id: deal_id
+          })
+
+          // Notification
+          await supabase.from('notifications').insert({
+            user_id: sb.user_id,
+            type: 'side_bet_won',
+            title: '🎯 Seitenwette gewonnen!',
+            body: `Dein Tipp war richtig! +${SIDE_BET_REWARD} Coins 🪙`,
+            data: { deal_id, coins: SIDE_BET_REWARD }
+          })
+        } else {
+          // Notification for losing bet
+          await supabase.from('notifications').insert({
+            user_id: sb.user_id,
+            type: 'side_bet_lost',
+            title: 'Seitenwette verloren',
+            body: `Dein Tipp war leider falsch. Nächstes Mal!`,
+            data: { deal_id }
+          })
+        }
+
+        sideBetsResolved++
+      }
+    }
+
+    // Web Push notifications (fire-and-forget)
+    const sendPush = async (uid: string, title: string, body: string) => {
+      try {
+        const { data: subs } = await supabase
+          .from('push_subscriptions')
+          .select('endpoint, p256dh, auth_key, subscription_json')
+          .eq('user_id', uid)
+        if (subs && subs.length > 0) {
+          for (const sub of subs) {
+            try {
+              await fetch(sub.endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/octet-stream', TTL: '86400' },
+                body: JSON.stringify({ title, body, url: `/app/deals/${deal_id}`, tag: `deal-${deal_id}` }),
+              })
+            } catch {}
+          }
+        }
+      } catch {}
+    }
+    sendPush(winner_id, '🏆 Deal gewonnen!', `+${totalWinnerXP} XP • ${deal.title}`)
+    sendPush(loser_id, 'Deal abgeschlossen', `+${totalLoserXP} XP • ${deal.title}`)
 
     return new Response(JSON.stringify({
       success: true,
       winner_xp: totalWinnerXP,
       winner_coins: winnerCoins,
       loser_xp: totalLoserXP,
-      anti_farming_applied: winCapReached || sameOpponentPenalty
+      anti_farming_applied: winCapReached || sameOpponentPenalty,
+      side_bets_resolved: sideBetsResolved
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   } catch (err) {

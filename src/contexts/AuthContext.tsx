@@ -31,6 +31,12 @@ interface Profile {
   invite_code?: string
   referred_by?: string | null
   onboarding_completed?: boolean
+  card_dust?: number
+  allow_story_dm?: boolean
+  avatar_card_template_id?: string
+  equipped_card_image_url?: string | null
+  reliability_score?: number | null
+  reliability_color?: string | null
 }
 
 interface AuthCtx {

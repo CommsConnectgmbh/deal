@@ -1,12 +1,28 @@
-// DealBuddy Service Worker
-const CACHE_NAME = 'dealbuddy-v1'
+// DealBuddy Service Worker — v2 (auto-update)
+const SW_VERSION = 'v4-2026-03-14'
 
 self.addEventListener('install', (event) => {
+  // Immediately activate new SW, don't wait for old tabs to close
   self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(clients.claim())
+  event.waitUntil(
+    // Delete ALL old caches so stale pages are never served
+    caches.keys().then((names) =>
+      Promise.all(names.map((name) => caches.delete(name)))
+    ).then(() => {
+      // Take control of all open tabs immediately
+      return clients.claim()
+    }).then(() => {
+      // Notify all open tabs to reload for the new version
+      return clients.matchAll({ type: 'window' }).then((tabs) => {
+        tabs.forEach((tab) => {
+          tab.postMessage({ type: 'SW_UPDATED', version: SW_VERSION })
+        })
+      })
+    })
+  )
 })
 
 // Handle push notifications

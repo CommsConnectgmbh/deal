@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
+import MiniEventCard from '@/components/MiniEventCard'
+import { aggregateFeedEvents, type FeedEvent, type FeedEventItem } from '@/components/MiniEventCard'
 
 interface Notif {
   id: string
@@ -15,23 +17,53 @@ interface Notif {
 }
 
 const TYPE_ICON: Record<string, string> = {
-  follow_request:  '🤝',
-  follow_accepted: '✅',
-  new_message:     '💬',
-  deal_request:    '🤝',
-  deal_update:     '📋',
-  level_up:        '⬆️',
-  default:         '🔔',
+  follow_request:      '🤝',
+  follow_accepted:     '✅',
+  new_message:         '💬',
+  deal_request:        '🤝',
+  deal_update:         '📋',
+  deal_completed:      '🏆',
+  deal_won:            '👑',
+  deal_lost:           '💀',
+  level_up:            '⬆️',
+  battlepass_tier:     '🎖️',
+  battlepass_reward:   '🎁',
+  challenge_reminder:  '🎯',
+  challenge_completed: '✅',
+  streak_milestone:    '🔥',
+  coins_received:      '🪙',
+  referral_completed:  '👥',
+  frame_unlocked:      '✨',
+  archetype_unlocked:  '🧬',
+  side_bet_won:        '💰',
+  side_bet_lost:       '📉',
+  fulfillment_check:   '📋',
+  default:             '🔔',
 }
 
 const TYPE_COLOR: Record<string, string> = {
-  follow_request:  '#60A5FA',
-  follow_accepted: '#4ade80',
-  new_message:     '#FFB800',
-  deal_request:    '#FB923C',
-  deal_update:     '#A78BFA',
-  level_up:        '#FFB800',
-  default:         '#9CA3AF',
+  follow_request:      '#60A5FA',
+  follow_accepted:     '#4ade80',
+  new_message:         '#FFB800',
+  deal_request:        '#FB923C',
+  deal_update:         '#A78BFA',
+  deal_completed:      '#FFB800',
+  deal_won:            '#22C55E',
+  deal_lost:           '#EF4444',
+  level_up:            '#FFB800',
+  battlepass_tier:     '#8B5CF6',
+  battlepass_reward:   '#F59E0B',
+  challenge_reminder:  '#3B82F6',
+  challenge_completed: '#22C55E',
+  streak_milestone:    '#F97316',
+  coins_received:      '#F59E0B',
+  referral_completed:  '#22C55E',
+  frame_unlocked:      '#A855F7',
+  archetype_unlocked:  '#EC4899',
+  side_bet_won:        '#22C55E',
+  side_bet_lost:       '#EF4444',
+  fulfillment_check:   '#FFB800',
+  default:             '#9CA3AF',
 }
 
 function timeAgo(iso: string): string {
@@ -48,7 +80,9 @@ export default function NotificationsPage() {
   const { profile } = useAuth()
   const router = useRouter()
   const [notifs, setNotifs] = useState<Notif[]>([])
+  const [feedEvents, setFeedEvents] = useState<FeedEventItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'notifs' | 'activity'>('notifs')
 
   const fetchNotifs = useCallback(async () => {
     if (!profile) return
@@ -68,7 +102,20 @@ export default function NotificationsPage() {
       .eq('read', false)
   }, [profile])
 
-  useEffect(() => { fetchNotifs() }, [fetchNotifs])
+  const fetchFeedEvents = useCallback(async () => {
+    if (!profile) return
+    const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    const { data } = await supabase
+      .from('feed_events')
+      .select('*, user:user_id(username, display_name, avatar_url)')
+      .gte('created_at', since7d)
+      .order('created_at', { ascending: false })
+      .limit(50)
+    const aggregated = aggregateFeedEvents((data || []) as FeedEvent[])
+    setFeedEvents(aggregated)
+  }, [profile])
+
+  useEffect(() => { fetchNotifs(); fetchFeedEvents() }, [fetchNotifs, fetchFeedEvents])
 
   // Realtime
   useEffect(() => {
@@ -86,10 +133,18 @@ export default function NotificationsPage() {
   }, [profile])
 
   const handleNotifTap = (n: Notif) => {
-    if (n.type === 'new_message' && n.reference_id)     router.push(`/app/chat/${n.reference_id}`)
-    else if (n.type === 'follow_request')                router.push('/app/profile')
+    if (n.type === 'new_message' && n.reference_id) router.push(`/app/chat/${n.reference_id}`)
+    else if (n.type === 'follow_request') router.push('/app/profile')
     else if (n.type === 'follow_accepted' && n.reference_id) router.push(`/app/profile/${n.reference_id}`)
-    else if ((n.type === 'deal_request' || n.type === 'deal_update') && n.reference_id) router.push(`/app/deals/${n.reference_id}`)
+    else if (['deal_request', 'deal_update', 'deal_completed', 'deal_won', 'deal_lost'].includes(n.type) && n.reference_id) router.push(`/app/deals/${n.reference_id}`)
+    else if (['battlepass_tier', 'battlepass_reward'].includes(n.type)) router.push('/app/battlepass')
+    else if (['challenge_reminder', 'challenge_completed'].includes(n.type)) router.push('/app/challenges')
+    else if (n.type === 'streak_milestone') router.push('/app/rewards')
+    else if (['coins_received', 'side_bet_won', 'side_bet_lost'].includes(n.type) && n.reference_id) router.push(`/app/deals/${n.reference_id}`)
+    else if (n.type === 'referral_completed') router.push('/app/invite')
+    else if (n.type === 'fulfillment_check' && n.reference_id) router.push(`/app/deals/${n.reference_id}`)
+    else if (['frame_unlocked', 'archetype_unlocked'].includes(n.type)) router.push('/app/shop')
+    else if (n.type === 'level_up') router.push('/app/profile')
   }
 
   const handleFollowRequest = async (n: Notif, action: 'accept' | 'decline') => {
@@ -118,22 +173,56 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div style={{ minHeight: '100dvh', background: '#060606', paddingTop: 60, paddingBottom: 100 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 20px 20px' }}>
-        <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: 'rgba(240,236,228,0.5)', fontSize: 20, cursor: 'pointer', padding: 0 }}>←</button>
-        <h1 className="font-display" style={{ fontSize: 22, color: '#f0ece4', letterSpacing: 1 }}>BENACHRICHTIGUNGEN</h1>
+    <div style={{ minHeight: '100dvh', background: 'var(--bg-base)', paddingTop: 60, paddingBottom: 100 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 20px 12px' }}>
+        <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 20, cursor: 'pointer', padding: 0 }}>←</button>
+        <h1 className="font-display" style={{ fontSize: 22, color: 'var(--text-primary)', letterSpacing: 1 }}>BENACHRICHTIGUNGEN</h1>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 8, padding: '0 16px 16px' }}>
+        {(['notifs', 'activity'] as const).map(tab => (
+          <button key={tab} onClick={() => setActiveTab(tab)} style={{
+            flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
+            background: activeTab === tab ? 'rgba(255,184,0,0.12)' : 'var(--bg-surface)',
+            color: activeTab === tab ? '#FFB800' : 'var(--text-muted)',
+            fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
+            transition: 'all 0.2s',
+          }}>
+            {tab === 'notifs' ? '🔔 WICHTIG' : '📋 AKTIVITÄT'}
+          </button>
+        ))}
       </div>
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 60 }}>
-          <div style={{ width: 28, height: 28, border: '2px solid transparent', borderTopColor: '#FFB800', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          <div style={{ width: 28, height: 28, border: '2px solid transparent', borderTopColor: 'var(--gold-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
           <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
         </div>
+      ) : activeTab === 'activity' ? (
+        /* ═══ AKTIVITÄT TAB — Feed Events ═══ */
+        feedEvents.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '80px 32px' }}>
+            <div style={{ fontSize: 52, marginBottom: 16 }}>📋</div>
+            <p className="font-display" style={{ fontSize: 16, color: 'var(--text-secondary)', marginBottom: 8 }}>KEINE AKTIVITÄT</p>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: 'Crimson Text, serif' }}>
+              Hier erscheinen Aktivitäten der letzten 7 Tage.
+            </p>
+          </div>
+        ) : (
+          <div style={{ padding: '0 16px' }}>
+            {feedEvents.map((evt) => (
+              <div key={evt.id} style={{ marginBottom: 6 }}>
+                <MiniEventCard event={evt} />
+              </div>
+            ))}
+          </div>
+        )
       ) : notifs.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 32px' }}>
           <div style={{ fontSize: 52, marginBottom: 16 }}>🔔</div>
-          <p className="font-display" style={{ fontSize: 16, color: 'rgba(240,236,228,0.4)', marginBottom: 8 }}>KEINE BENACHRICHTIGUNGEN</p>
-          <p style={{ fontSize: 13, color: 'rgba(240,236,228,0.25)', fontFamily: 'Crimson Text, serif' }}>
+          <p className="font-display" style={{ fontSize: 16, color: 'var(--text-secondary)', marginBottom: 8 }}>KEINE BENACHRICHTIGUNGEN</p>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: 'Crimson Text, serif' }}>
             Du bist auf dem aktuellsten Stand.
           </p>
         </div>
@@ -151,8 +240,8 @@ export default function NotificationsPage() {
                 style={{
                   display: 'flex', alignItems: 'flex-start', gap: 12,
                   padding: '14px 16px', borderRadius: 14, marginBottom: 8,
-                  background: !n.read ? `${color}08` : '#111',
-                  border: !n.read ? `1px solid ${color}25` : '1px solid rgba(255,255,255,0.05)',
+                  background: !n.read ? `${color}08` : 'var(--bg-surface)',
+                  border: !n.read ? `1px solid ${color}25` : '1px solid var(--border-subtle)',
                   cursor: isFollowRequest ? 'default' : 'pointer',
                 }}
               >
@@ -169,15 +258,15 @@ export default function NotificationsPage() {
                 {/* Text */}
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 }}>
-                    <span style={{ fontSize: 13, color: '#f0ece4', fontWeight: !n.read ? 600 : 400 }}>
+                    <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: !n.read ? 600 : 400 }}>
                       {n.title}
                     </span>
-                    <span style={{ fontSize: 10, color: 'rgba(240,236,228,0.3)', flexShrink: 0, marginLeft: 8 }}>
+                    <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0, marginLeft: 8 }}>
                       {timeAgo(n.created_at)}
                     </span>
                   </div>
                   {n.body && (
-                    <p style={{ fontSize: 12, color: 'rgba(240,236,228,0.5)', fontFamily: 'Crimson Text, serif', lineHeight: 1.4 }}>
+                    <p style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'Crimson Text, serif', lineHeight: 1.4 }}>
                       {n.body}
                     </p>
                   )}
@@ -188,16 +277,16 @@ export default function NotificationsPage() {
                         onClick={() => handleFollowRequest(n, 'accept')}
                         style={{
                           padding: '7px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                          background: 'linear-gradient(135deg, #CC8800, #FFB800)',
-                          color: '#000', fontFamily: 'Cinzel, serif', fontSize: 9, fontWeight: 700, letterSpacing: 1,
+                          background: 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))',
+                          color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 9, fontWeight: 700, letterSpacing: 1,
                         }}
                       >ANNEHMEN</button>
                       <button
                         onClick={() => handleFollowRequest(n, 'decline')}
                         style={{
                           padding: '7px 16px', borderRadius: 8, cursor: 'pointer',
-                          background: 'transparent', border: '1px solid rgba(255,255,255,0.1)',
-                          color: 'rgba(240,236,228,0.4)', fontFamily: 'Cinzel, serif', fontSize: 9, letterSpacing: 1,
+                          background: 'transparent', border: '1px solid var(--border-subtle)',
+                          color: 'var(--text-secondary)', fontFamily: 'var(--font-display)', fontSize: 9, letterSpacing: 1,
                         }}
                       >ABLEHNEN</button>
                     </div>

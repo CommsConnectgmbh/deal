@@ -2,335 +2,474 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useLang } from '@/contexts/LanguageContext'
-import Image from 'next/image'
-import AvatarDisplay, { AvatarConfig } from '@/components/AvatarDisplay'
+import AvatarFrame, { FrameRarity } from '@/components/AvatarFrame'
+import { getEquippedCard, type EquippedCard } from '@/lib/card-helpers'
+import CoinIcon from '@/components/CoinIcon'
+import ProfileImage from '@/components/ProfileImage'
+import ProfileImageLightbox from '@/components/ProfileImageLightbox'
 import { supabase } from '@/lib/supabase'
 
+/* ─── Helpers ─── */
+function mapFrameRarity(frameName?: string | null): FrameRarity {
+  if (!frameName) return 'common'
+  if (frameName.includes('founder')) return 'founder'
+  if (frameName.includes('legendary')) return 'legendary'
+  if (frameName.includes('epic')) return 'epic'
+  if (frameName.includes('rare')) return 'rare'
+  return 'common'
+}
+
+function daysSince(dateStr?: string | null): number {
+  if (!dateStr) return 0
+  const diff = Date.now() - new Date(dateStr).getTime()
+  return Math.max(1, Math.floor(diff / 86400000))
+}
+
 const ARCHETYPES: Record<string, { icon: string; color: string }> = {
-  closer:    { icon: '🤝', color: '#FFB800' },
-  duelist:   { icon: '⚔️', color: '#f87171' },
-  architect: { icon: '🏗️', color: '#60a5fa' },
-  comeback:  { icon: '🔥', color: '#fb923c' },
-  founder:   { icon: '👑', color: '#FFB800' },
-  icon:      { icon: '💎', color: '#a78bfa' },
+  closer:    { icon: '\u{1F91D}', color: 'var(--gold-primary)' },
+  duelist:   { icon: '\u{2694}\u{FE0F}', color: 'var(--status-error)' },
+  architect: { icon: '\u{1F3D7}\u{FE0F}', color: 'var(--status-info)' },
+  comeback:  { icon: '\u{1F525}', color: 'var(--status-warning)' },
+  founder:   { icon: '\u{1F451}', color: 'var(--gold-primary)' },
+  icon:      { icon: '\u{1F48E}', color: '#a78bfa' },
 }
 
-interface SocialUser {
-  id: string
-  username: string
-  display_name: string
-  level: number
-  primary_archetype?: string
+const RANK_TIERS = [
+  { min: 0,  title: 'RECRUIT',      icon: '\u{1F396}\u{FE0F}', color: '#6b7280' },
+  { min: 3,  title: 'CONTENDER',    icon: '\u{2694}\u{FE0F}',  color: '#60a5fa' },
+  { min: 10, title: 'VETERAN',      icon: '\u{1F3AF}',         color: '#a78bfa' },
+  { min: 25, title: 'ELITE',        icon: '\u{1F525}',         color: '#f97316' },
+  { min: 50, title: 'LEGEND',       icon: '\u{1F451}',         color: 'var(--gold-primary)' },
+  { min: 100,title: 'MYTHIC',       icon: '\u{1F48E}',         color: '#ec4899' },
+]
+
+function getRank(wins: number) {
+  let rank = RANK_TIERS[0]
+  for (const t of RANK_TIERS) { if (wins >= t.min) rank = t }
+  const nextIdx = RANK_TIERS.indexOf(rank) + 1
+  const next = nextIdx < RANK_TIERS.length ? RANK_TIERS[nextIdx] : null
+  const progress = next ? Math.min(((wins - rank.min) / (next.min - rank.min)) * 100, 100) : 100
+  return { ...rank, next, progress, winsToNext: next ? next.min - wins : 0 }
 }
 
+const DAY_LABELS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+
+/* ─── Types ─── */
+interface StreakData { current_streak: number; longest_streak: number; last_login_date: string | null; login_cycle_day: number }
+interface RivalData { rival_id: string; total_deals: number; profiles?: { username: string } }
+
+/* ═══════════════════════════════════════════════════════════════
+   PROFILE PAGE — Viral Competitive Trophy Page
+   ═══════════════════════════════════════════════════════════════ */
 export default function ProfilePage() {
   const { profile, signOut } = useAuth()
-  const { t, lang, setLang } = useLang()
   const router = useRouter()
-  const [avatarConfig, setAvatarConfig] = useState<AvatarConfig | null>(null)
-  const [unreadNotifs, setUnreadNotifs] = useState(0)
+
   const [followerCount, setFollowerCount] = useState(0)
   const [followingCount, setFollowingCount] = useState(0)
+  const [streakData, setStreakData] = useState<StreakData | null>(null)
+  const [topRival, setTopRival] = useState<RivalData | null>(null)
+  const [createdAt, setCreatedAt] = useState<string | null>(null)
+  const [bpTiers, setBpTiers] = useState<{ tier: number; claimed: boolean }[]>([])
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [profileImages, setProfileImages] = useState<any[]>([])
+  const [myDeals, setMyDeals] = useState<any[]>([])
+  const [dealsLoading, setDealsLoading] = useState(true)
+  const [equippedCard, setEquippedCard] = useState<EquippedCard | null>(null)
+  const [globalRank, setGlobalRank] = useState(0)
 
-  // Follow modal
-  const [followModal, setFollowModal] = useState<'followers' | 'following' | null>(null)
-  const [followModalList, setFollowModalList] = useState<SocialUser[]>([])
-  const [followModalLoading, setFollowModalLoading] = useState(false)
+  const loadProfileImages = useCallback(async () => {
+    if (!profile) return
+    const { data } = await supabase
+      .from('profile_images')
+      .select('id, user_id, storage_path, public_url, created_at')
+      .eq('user_id', profile.id)
+      .order('created_at', { ascending: false })
+    setProfileImages(data || [])
+  }, [profile])
+
+  useEffect(() => { loadProfileImages() }, [loadProfileImages])
 
   const archetype = profile?.primary_archetype || 'founder'
-
-  useEffect(() => {
-    if (!profile) return
-    loadData()
-  }, [profile])
-
-  const loadData = useCallback(async () => {
-    if (!profile) return
-    const [avatarRes, notifsRes, profileRes] = await Promise.all([
-      supabase.from('avatar_config').select('*').eq('user_id', profile.id).single(),
-      supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', profile.id).eq('read', false),
-      supabase.from('profiles').select('follower_count, following_count').eq('id', profile.id).single(),
-    ])
-    if (avatarRes.data) {
-      setAvatarConfig({ body: avatarRes.data.body, hair: avatarRes.data.hair, outfit: avatarRes.data.outfit, accessory: avatarRes.data.accessory })
-    }
-    setUnreadNotifs(notifsRes.count || 0)
-    if (profileRes.data) {
-      setFollowerCount(profileRes.data.follower_count || 0)
-      setFollowingCount(profileRes.data.following_count || 0)
-    }
-  }, [profile])
-
-  const openFollowModal = async (type: 'followers' | 'following') => {
-    setFollowModal(type)
-    setFollowModalLoading(true)
-    setFollowModalList([])
-    let data: SocialUser[] = []
-    if (type === 'followers') {
-      const { data: rows } = await supabase
-        .from('follows')
-        .select('follower_id, profiles!follows_follower_id_fkey(id, username, display_name, level, primary_archetype)')
-        .eq('following_id', profile!.id)
-        .eq('status', 'accepted')
-        .limit(50)
-      data = (rows || []).map((r: any) => r.profiles).filter(Boolean)
-    } else {
-      const { data: rows } = await supabase
-        .from('follows')
-        .select('following_id, profiles!follows_following_id_fkey(id, username, display_name, level, primary_archetype)')
-        .eq('follower_id', profile!.id)
-        .eq('status', 'accepted')
-        .limit(50)
-      data = (rows || []).map((r: any) => r.profiles).filter(Boolean)
-    }
-    setFollowModalList(data)
-    setFollowModalLoading(false)
-  }
-
   const archetypeData = ARCHETYPES[archetype] || ARCHETYPES.founder
   const level = profile?.level ?? 1
   const xp = profile?.xp ?? 0
   const xpForLevel = level * 100
   const xpProgress = Math.min((xp % xpForLevel) / xpForLevel * 100, 100)
+  const wins = profile?.wins ?? 0
+  const losses = profile?.losses ?? 0
+  const streak = profile?.streak ?? 0
+  const dealsTotal = profile?.deals_total ?? 0
+  const winRate = dealsTotal > 0 ? Math.round((wins / dealsTotal) * 100) : 0
+  const kdRatio = losses > 0 ? (wins / losses).toFixed(1) : wins > 0 ? `${wins}.0` : '0.0'
   const bpLevel = profile?.battle_pass_level ?? 1
-  const bpProgress = Math.min(bpLevel / 30 * 100, 100)
-  const initials = (profile?.display_name || profile?.username || 'U').slice(0, 2).toUpperCase()
+  const rank = getRank(wins)
 
-  const handleLogout = async () => {
-    await signOut()
-    router.replace('/auth/login')
+  /* ─── Load all data ─── */
+  useEffect(() => { if (profile) { loadAllData(); loadMyDeals() } }, [profile])
+
+  const loadAllData = useCallback(async () => {
+    if (!profile) return
+    getEquippedCard(profile.id).then(card => setEquippedCard(card))
+    const [profileRes, streakRes, rivalRes, rankRes] = await Promise.all([
+      supabase.from('profiles').select('follower_count, following_count, created_at').eq('id', profile.id).single(),
+      supabase.from('user_login_streaks').select('current_streak, longest_streak, last_login_date, login_cycle_day').eq('user_id', profile.id).single(),
+      supabase.from('rivalries').select('rival_id, total_deals, profiles:rival_id(username)').eq('user_id', profile.id).order('total_deals', { ascending: false }).limit(1).single(),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).gt('wins', profile.wins || 0),
+    ])
+    if (profileRes.data) {
+      setFollowerCount(profileRes.data.follower_count || 0)
+      setFollowingCount(profileRes.data.following_count || 0)
+      setCreatedAt(profileRes.data.created_at)
+    }
+    setStreakData(streakRes.data || null)
+    setTopRival(rivalRes.data as any || null)
+    setGlobalRank((rankRes.count || 0) + 1)
+
+    const { data: bpData } = await supabase.from('battle_pass_rewards').select('tier').order('tier', { ascending: true }).limit(10)
+    if (bpData) { setBpTiers(bpData.map((r: any) => ({ tier: r.tier, claimed: r.tier <= bpLevel }))) }
+  }, [profile, bpLevel])
+
+  const loadMyDeals = useCallback(async () => {
+    if (!profile) return
+    setDealsLoading(true)
+    const { data } = await supabase
+      .from('bets')
+      .select('id, title, stake, status, category, created_at, creator_id, opponent_id, creator:creator_id(username, display_name, avatar_url), opponent:opponent_id(username, display_name, avatar_url)')
+      .or(`creator_id.eq.${profile.id},opponent_id.eq.${profile.id}`)
+      .order('created_at', { ascending: false })
+      .limit(20)
+    setMyDeals(data || [])
+    setDealsLoading(false)
+  }, [profile])
+
+  const handleLogout = async () => { await signOut(); router.replace('/auth/login') }
+
+  /* Calendar */
+  const today = new Date().getDay()
+  const todayIdx = today === 0 ? 6 : today - 1
+
+  const sectionStyle = {
+    background: 'var(--bg-deepest)', border: '1px solid var(--border-subtle)',
+    borderRadius: 14, padding: 16, marginBottom: 12,
   }
 
+  /* ═══ RENDER ═══ */
   return (
-    <div style={{ minHeight: '100dvh', background: '#060606', paddingTop: 60 }}>
+    <div style={{ minHeight: '100dvh', background: 'var(--bg-base)', paddingTop: 60, paddingBottom: 120 }}>
 
-      {/* Follow Modal */}
-      {followModal && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}
-          onClick={() => setFollowModal(null)}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{ width: '100%', background: '#111', borderRadius: '20px 20px 0 0', border: '1px solid rgba(255,255,255,0.08)', maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px 12px' }}>
-              <span className="font-display" style={{ fontSize: 13, letterSpacing: 2, color: '#f0ece4' }}>
-                {followModal === 'followers'
-                  ? (lang === 'de' ? 'FOLLOWER' : 'FOLLOWERS')
-                  : (lang === 'de' ? 'FOLGE ICH' : 'FOLLOWING')}
-              </span>
-              <button onClick={() => setFollowModal(null)} style={{ background: 'none', border: 'none', color: 'rgba(240,236,228,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>×</button>
+      {/* ═══ HEADER ═══ */}
+      <div style={{ padding: '0 20px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'var(--text-primary)', letterSpacing: 2 }}>PROFIL</h1>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button onClick={() => router.push('/app/discover')} style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 16, padding: '6px 10px' }}>
+            {'\u{1F50D}'}
+          </button>
+          <button onClick={() => router.push('/app/notifications')} style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 16, padding: '6px 10px', position: 'relative' }}>
+            {'\u{1F514}'}
+          </button>
+          <button onClick={() => router.push('/app/settings')} style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 16, padding: '6px 10px' }}>{'\u{2699}\u{FE0F}'}</button>
+        </div>
+      </div>
+
+      {/* ═══ AVATAR + IDENTITY ═══ */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px 12px' }}>
+        <div onClick={() => setLightboxOpen(true)} style={{ cursor: 'pointer', position: 'relative', marginBottom: 8 }}>
+          <ProfileImage size={76} avatarUrl={profile?.avatar_url} name={profile?.display_name || profile?.username} goldBorder />
+          {profileImages.length > 1 && (
+            <div style={{ display: 'flex', gap: 3, justifyContent: 'center', marginTop: 4 }}>
+              {profileImages.slice(0, 5).map((_, i) => (
+                <div key={i} style={{ width: 5, height: 5, borderRadius: 3, background: i === 0 ? 'var(--gold-primary)' : 'var(--text-muted)' }} />
+              ))}
             </div>
-            <div style={{ overflowY: 'auto', flex: 1, padding: '0 16px 32px' }}>
-              {followModalLoading && (
-                <div style={{ textAlign: 'center', padding: 40, color: 'rgba(240,236,228,0.4)' }}>···</div>
-              )}
-              {!followModalLoading && followModalList.length === 0 && (
-                <div style={{ textAlign: 'center', padding: 40 }}>
-                  <p style={{ fontSize: 13, color: 'rgba(240,236,228,0.4)' }}>
-                    {lang === 'de' ? 'Noch niemand hier.' : 'Nobody here yet.'}
-                  </p>
+          )}
+        </div>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 20, color: 'var(--text-primary)', marginBottom: 2 }}>{profile?.display_name || profile?.username}</h2>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>@{profile?.username}</p>
+
+        {/* Follower / Following */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+          <button onClick={() => router.push('/app/profile/followers')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-primary)', fontFamily: 'var(--font-body)', fontSize: 13 }}>
+            <strong>{followerCount}</strong> <span style={{ color: 'var(--text-muted)' }}>Follower</span>
+          </button>
+          <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{'\u00B7'}</span>
+          <button onClick={() => router.push('/app/profile/following')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-primary)', fontFamily: 'var(--font-body)', fontSize: 13 }}>
+            <strong>{followingCount}</strong> <span style={{ color: 'var(--text-muted)' }}>Folge ich</span>
+          </button>
+        </div>
+
+        {/* Archetype badge */}
+        <div style={{ padding: '4px 14px', borderRadius: 20, background: `${archetypeData.color}18`, border: `1px solid ${archetypeData.color}44` }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 9, letterSpacing: 2, color: archetypeData.color }}>{archetypeData.icon} {archetype.toUpperCase()}</span>
+        </div>
+
+        {/* SHARE + EINLADEN */}
+        <div style={{ display: 'flex', gap: 10, marginTop: 14, width: '100%', maxWidth: 320 }}>
+          <button
+            onClick={() => {
+              const url = `https://app.deal-buddy.app/app/profile/${profile?.username}`
+              if (navigator.share) {
+                navigator.share({ title: `@${profile?.username} auf DealBuddy`, text: `${rank.icon} ${rank.title} \u2022 ${wins}W/${losses}L \u2022 K/D: ${kdRatio} \u2022 ${'\u{1F525}'}${streak} Streak`, url })
+              } else { navigator.clipboard.writeText(url); alert('Link kopiert!') }
+            }}
+            style={{
+              flex: 1, padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
+              background: 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))',
+              color: 'var(--text-inverse)', fontFamily: 'var(--font-display)',
+              fontSize: 10, fontWeight: 700, letterSpacing: 1.5, border: 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              boxShadow: '0 4px 12px rgba(245,158,11,0.25)',
+            }}
+          >
+            {'\u{1F4E4}'} PROFIL TEILEN
+          </button>
+          <button onClick={() => router.push('/app/invite')} style={{
+            flex: 1, padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
+            background: 'var(--bg-surface)', border: '1px solid var(--gold-glow)',
+            color: 'var(--gold-primary)', fontFamily: 'var(--font-display)',
+            fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          }}>
+            {'\u{1F381}'} EINLADEN
+          </button>
+        </div>
+
+        {/* SHOP Button */}
+        <button onClick={() => router.push('/app/shop')} style={{
+          width: '100%', maxWidth: 320, marginTop: 10, padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
+          background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
+          color: 'var(--text-primary)', fontFamily: 'var(--font-display)',
+          fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        }}>
+          {'\u{1F6CD}\u{FE0F}'} SHOP
+        </button>
+      </div>
+
+      <div style={{ padding: '0 16px' }}>
+
+        {/* ═══ BATTLE CARD — HERO SECTION ═══ */}
+        {equippedCard?.imageUrl ? (
+          <div onClick={() => router.push('/app/avatar')} style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer',
+            padding: '16px 0', marginBottom: 12,
+          }}>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 3, color: 'var(--gold-primary)', marginBottom: 14 }}>BATTLE CARD</p>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <AvatarFrame
+                frameType={(profile?.active_frame as any) || 'none'}
+                imageUrl={equippedCard.imageUrl}
+                size="lg"
+                username={profile?.username}
+                level={profile?.level}
+                streak={profile?.streak}
+                serialNumber={equippedCard.serialDisplay}
+                showInfo
+              />
+            </div>
+          </div>
+        ) : (
+          <div
+            onClick={() => router.push('/app/avatar-card/create')}
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer',
+              padding: '16px 0', marginBottom: 12,
+            }}
+          >
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 3, color: 'var(--gold-primary)', marginBottom: 16 }}>BATTLE CARD</p>
+            <div style={{
+              width: 140, height: 200, borderRadius: 16,
+              background: 'linear-gradient(135deg, rgba(205,127,50,0.15), rgba(205,127,50,0.05))',
+              border: '2px dashed rgba(255,184,0,0.3)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              gap: 12, marginBottom: 16,
+            }}>
+              <span style={{ fontSize: 44 }}>{'\u{1F3B4}'}</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 8, letterSpacing: 2, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Noch keine Karte</span>
+            </div>
+            <button style={{
+              padding: '14px 32px', borderRadius: 12, border: 'none',
+              background: 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))',
+              color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 12,
+              fontWeight: 700, letterSpacing: 2, cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(245,158,11,0.35)',
+            }}>
+              KARTE ERSTELLEN
+            </button>
+          </div>
+        )}
+
+        {/* ═══ STATS ═══ */}
+        <div style={sectionStyle}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--text-muted)' }}>STATISTIKEN</p>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 1, color: 'var(--gold-primary)' }}>#{globalRank}</span>
+          </div>
+
+          {/* Stat grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
+            {[
+              { label: 'DEALS', val: dealsTotal, color: 'var(--status-info)' },
+              { label: 'WIN%', val: `${winRate}%`, color: '#4ade80' },
+              { label: 'STREAK', val: streak, color: 'var(--status-warning)', icon: '\u{1F525}' },
+              { label: 'ZUVERL.', val: profile?.reliability_score != null ? `${Math.round((profile.reliability_score as number) * 100)}%` : '—', color: profile?.reliability_color === 'green' ? '#22C55E' : profile?.reliability_color === 'yellow' ? '#EAB308' : profile?.reliability_color === 'red' ? '#EF4444' : 'var(--text-muted)' },
+              { label: 'COINS', val: profile?.coins ?? 0, color: 'var(--gold-primary)', isCoin: true },
+            ].map(s => (
+              <div key={s.label} onClick={s.isCoin ? () => router.push('/app/shop?section=coins') : undefined} style={{
+                background: 'var(--bg-overlay)', borderRadius: 10, border: '1px solid var(--border-subtle)',
+                padding: '10px 4px', textAlign: 'center', cursor: s.isCoin ? 'pointer' : 'default',
+              }}>
+                {s.isCoin && <CoinIcon size={16} style={{ margin: '0 auto 2px', display: 'block' }} />}
+                <p style={{ fontFamily: 'var(--font-display)', fontSize: 15, color: s.color, marginBottom: 2 }}>
+                  {s.icon || ''}{s.val}
+                </p>
+                <p style={{ fontFamily: 'var(--font-display)', fontSize: 7, letterSpacing: 1, color: 'var(--text-muted)' }}>{s.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Rival + Member since */}
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'var(--font-body)', textAlign: 'center' }}>
+            Rivale: <strong style={{ color: 'var(--gold-primary)' }}>{topRival?.profiles?.username ? `@${(topRival.profiles as any).username}` : '-'}</strong>
+            {' \u00B7 '}Bester Streak: <strong style={{ color: 'var(--text-primary)' }}>{streakData?.longest_streak ?? streak}</strong>
+            {' \u00B7 '}{daysSince(createdAt)}d dabei
+          </div>
+        </div>
+
+        {/* ═══ SEASON 1 + BATTLE PASS (combined) ═══ */}
+        <div style={sectionStyle}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--text-muted)' }}>SEASON 1</p>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 10, color: 'var(--gold-primary)' }}>Level {level}</span>
+          </div>
+
+          {/* XP bar */}
+          <div style={{ height: 6, background: 'var(--border-subtle)', borderRadius: 3, overflow: 'hidden', marginBottom: 6 }}>
+            <div style={{ height: '100%', width: `${xpProgress}%`, background: 'linear-gradient(90deg, var(--gold-dim), var(--gold-primary), var(--gold-bright))', borderRadius: 3, transition: 'width 0.5s' }} />
+          </div>
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: 10, color: 'var(--text-muted)', marginBottom: 12, textAlign: 'right' }}>{xp % xpForLevel}/{xpForLevel} XP</p>
+
+          {/* Streak + Calendar row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--status-warning)' }}>{'\u{1F525}'} {streakData?.current_streak ?? streak} Tage Streak</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4, marginBottom: 16 }}>
+            {DAY_LABELS.map((day, i) => {
+              const isToday = i === todayIdx
+              const isPast = i < todayIdx
+              let icon = '\u{2591}'
+              let bg = 'var(--bg-overlay)'
+              let color = 'var(--text-muted)'
+              if (isToday) { icon = '\u{1F525}'; bg = 'var(--status-warning)22'; color = 'var(--status-warning)' }
+              else if (isPast) { icon = '\u{2705}'; bg = 'var(--status-active)18'; color = 'var(--status-active)' }
+              return (
+                <div key={day} style={{ flex: 1, textAlign: 'center', padding: '6px 0', borderRadius: 8, background: bg, border: isToday ? '1px solid var(--status-warning)' : '1px solid transparent' }}>
+                  <p style={{ fontFamily: 'var(--font-display)', fontSize: 7, letterSpacing: 1, color: 'var(--text-muted)', marginBottom: 2 }}>{day}</p>
+                  <p style={{ fontSize: 12 }}>{icon}</p>
                 </div>
-              )}
-              {followModalList.map(user => (
-                <div
-                  key={user.id}
-                  onClick={() => { setFollowModal(null); router.push(`/app/profile/${user.username}`) }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}
-                >
-                  <AvatarDisplay config={null} archetype={user.primary_archetype || 'founder'} size={38} initials={(user.display_name || user.username || 'U').slice(0,2).toUpperCase()} />
-                  <div>
-                    <p style={{ fontSize: 14, color: '#f0ece4', fontWeight: 600 }}>{user.display_name || user.username}</p>
-                    <p style={{ fontSize: 11, color: 'rgba(240,236,228,0.4)' }}>@{user.username} · Lv.{user.level}</p>
+              )
+            })}
+          </div>
+
+          {/* ── Battle Pass (integrated) ── */}
+          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--gold-primary)' }}>BATTLE PASS</p>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 8, color: profile?.battle_pass_premium ? 'var(--gold-primary)' : 'var(--text-muted)', padding: '3px 8px', borderRadius: 8, background: profile?.battle_pass_premium ? 'var(--gold-subtle)' : 'var(--bg-overlay)', border: `1px solid ${profile?.battle_pass_premium ? 'var(--gold-glow)' : 'var(--border-subtle)'}` }}>
+                {profile?.battle_pass_premium ? 'PREMIUM' : 'FREE'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 6, WebkitOverflowScrolling: 'touch' }}>
+              {(bpTiers.length > 0 ? bpTiers : Array.from({ length: 10 }, (_, i) => ({ tier: i + 1, claimed: i + 1 <= bpLevel }))).map((t, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+                  <div style={{
+                    minWidth: 44, padding: '6px 4px', borderRadius: 8, textAlign: 'center',
+                    background: t.claimed ? 'var(--gold-subtle)' : 'var(--bg-overlay)',
+                    border: `1px solid ${t.claimed ? 'var(--gold-glow)' : 'var(--border-subtle)'}`,
+                  }}>
+                    <p style={{ fontFamily: 'var(--font-display)', fontSize: 7, color: t.claimed ? 'var(--gold-primary)' : 'var(--text-muted)', letterSpacing: 0.5 }}>{t.tier}</p>
+                    <p style={{ fontSize: 11, marginTop: 1 }}>{t.claimed ? '\u{2705}' : '\u{1F512}'}</p>
                   </div>
+                  {i < (bpTiers.length > 0 ? bpTiers.length : 10) - 1 && <span style={{ color: 'var(--text-muted)', fontSize: 8 }}>{'\u{2192}'}</span>}
                 </div>
               ))}
             </div>
+            <button onClick={() => router.push('/app/battlepass')} style={{ width: '100%', marginTop: 8, padding: 7, borderRadius: 8, border: '1px solid var(--gold-glow)', background: 'var(--gold-subtle)', color: 'var(--gold-primary)', fontFamily: 'var(--font-display)', fontSize: 9, letterSpacing: 2, cursor: 'pointer' }}>
+              BATTLE PASS {'\u{203A}'}
+            </button>
           </div>
         </div>
-      )}
 
-      {/* Header */}
-      <div style={{ padding: '0 20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 className="font-display" style={{ fontSize: 28, color: '#f0ece4' }}>{t('profile.title')}</h1>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {/* Notifications bell */}
-          <button
-            onClick={() => router.push('/app/notifications')}
-            style={{ position: 'relative', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, color: 'rgba(240,236,228,0.6)', cursor: 'pointer', fontSize: 16, padding: '6px 10px' }}
-          >
-            🔔
-            {unreadNotifs > 0 && (
-              <span style={{ position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, borderRadius: 8, background: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Cinzel, serif', fontSize: 8, color: '#fff', fontWeight: 700, padding: '0 3px' }}>
-                {unreadNotifs > 9 ? '9+' : unreadNotifs}
-              </span>
-            )}
-          </button>
-          <button onClick={() => router.push('/app/discover')} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, color: 'rgba(240,236,228,0.6)', cursor: 'pointer', fontSize: 16, padding: '6px 10px' }}>🔍</button>
-          <button onClick={() => router.push('/app/settings')} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, color: 'rgba(240,236,228,0.6)', cursor: 'pointer', fontSize: 16, padding: '6px 10px' }}>⚙️</button>
-        </div>
-      </div>
-
-      {/* Avatar + name */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px 20px' }}>
-        <div style={{ position: 'relative', marginBottom: 8 }}>
-          <AvatarDisplay config={avatarConfig} archetype={archetype} size={96} initials={initials} />
-        </div>
-        <button
-          onClick={() => router.push('/app/avatar')}
-          style={{ marginBottom: 12, padding: '4px 14px', borderRadius: 16, background: 'rgba(255,184,0,0.08)', border: '1px solid rgba(255,184,0,0.2)', color: 'rgba(255,184,0,0.7)', fontFamily: 'Cinzel, serif', fontSize: 9, letterSpacing: 1, cursor: 'pointer' }}
-        >
-          {t('avatar.editAvatar').toUpperCase()} ✏️
-        </button>
-        <h2 className="font-display" style={{ fontSize: 20, color: '#f0ece4', marginBottom: 4 }}>{profile?.display_name || profile?.username}</h2>
-        <p style={{ fontSize: 13, color: 'rgba(240,236,228,0.4)', marginBottom: 10 }}>@{profile?.username}</p>
-
-        {/* Follower / Following counts */}
-        <div style={{ display: 'flex', gap: 24, marginBottom: 12 }}>
-          <button
-            onClick={() => openFollowModal('followers')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'center', padding: 0 }}
-          >
-            <p className="font-display" style={{ fontSize: 18, color: '#f0ece4', marginBottom: 2 }}>{followerCount}</p>
-            <p style={{ fontFamily: 'Cinzel, serif', fontSize: 8, letterSpacing: 2, color: 'rgba(240,236,228,0.35)' }}>
-              {lang === 'de' ? 'FOLLOWER' : 'FOLLOWERS'}
-            </p>
-          </button>
-          <div style={{ width: 1, background: 'rgba(255,255,255,0.06)', alignSelf: 'stretch' }} />
-          <button
-            onClick={() => openFollowModal('following')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'center', padding: 0 }}
-          >
-            <p className="font-display" style={{ fontSize: 18, color: '#f0ece4', marginBottom: 2 }}>{followingCount}</p>
-            <p style={{ fontFamily: 'Cinzel, serif', fontSize: 8, letterSpacing: 2, color: 'rgba(240,236,228,0.35)' }}>
-              {lang === 'de' ? 'FOLGE ICH' : 'FOLLOWING'}
-            </p>
-          </button>
-        </div>
-
-        <div style={{ padding: '4px 14px', borderRadius: 20, background: `${archetypeData.color}18`, border: `1px solid ${archetypeData.color}44` }}>
-          <span className="font-display" style={{ fontSize: 9, letterSpacing: 2, color: archetypeData.color }}>{archetypeData.icon} {t(`profile.archetypes.${archetype}`).toUpperCase()}</span>
-        </div>
-      </div>
-
-      {/* Level / XP */}
-      <div style={{ margin: '0 16px 20px', background: '#111', borderRadius: 14, border: '1px solid rgba(255,184,0,0.1)', padding: '16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <div>
-            <span className="font-display" style={{ fontSize: 9, letterSpacing: 2, color: 'rgba(240,236,228,0.4)' }}>{t('profile.level').toUpperCase()}</span>
-            <p className="font-display" style={{ fontSize: 32, color: '#FFB800', lineHeight: 1 }}>{level}</p>
+        {/* ═══ MEINE DEALS ═══ */}
+        <div style={sectionStyle}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--text-muted)' }}>MEINE DEALS</p>
+            <button onClick={() => router.push('/app/deals')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gold-primary)', fontFamily: 'var(--font-display)', fontSize: 9, letterSpacing: 1 }}>ALLE {'\u{203A}'}</button>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <span className="font-display" style={{ fontSize: 8, letterSpacing: 2, color: 'rgba(240,236,228,0.3)' }}>SEASON 1 · THE FOUNDERS ERA</span>
-            <p style={{ fontSize: 12, color: 'rgba(240,236,228,0.4)', marginTop: 2 }}>{xp % xpForLevel} / {xpForLevel} XP</p>
-          </div>
+
+          {dealsLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 16 }}>
+              <div style={{ width: 24, height: 24, border: '2px solid transparent', borderTopColor: 'var(--gold-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            </div>
+          ) : myDeals.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 20 }}>
+              <p style={{ fontSize: 24, marginBottom: 6 }}>{'\u{2694}\u{FE0F}'}</p>
+              <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text-secondary)' }}>Noch keine Deals — fordere jemanden heraus!</p>
+            </div>
+          ) : (
+            <>
+              {(['active', 'open', 'pending', 'pending_confirmation', 'completed'] as const).map(status => {
+                const statusDeals = myDeals.filter((d: any) => d.status === status)
+                if (statusDeals.length === 0) return null
+                const statusLabels: Record<string, string> = { active: 'AKTIV', open: 'OFFEN', pending: 'EINGELADEN', pending_confirmation: 'BEST\u00C4TIGUNG', completed: 'ABGESCHLOSSEN' }
+                const statusColors: Record<string, string> = { active: '#4ade80', open: '#FFB800', pending: '#f97316', pending_confirmation: '#a78bfa', completed: '#60a5fa' }
+                return (
+                  <div key={status} style={{ marginBottom: 8 }}>
+                    <p style={{ fontFamily: 'var(--font-display)', fontSize: 8, letterSpacing: 2, color: statusColors[status] || 'var(--text-muted)', marginBottom: 4 }}>
+                      {statusLabels[status] || status.toUpperCase()} ({statusDeals.length})
+                    </p>
+                    {statusDeals.slice(0, 3).map((deal: any) => {
+                      const isCreator = deal.creator_id === profile?.id
+                      const otherUser = isCreator ? deal.opponent : deal.creator
+                      return (
+                        <div key={deal.id} onClick={() => router.push(`/app/deals/${deal.id}`)} style={{
+                          display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10, marginBottom: 4,
+                          background: 'var(--bg-overlay)', border: `1px solid ${statusColors[status] || 'var(--border-subtle)'}22`, cursor: 'pointer',
+                        }}>
+                          <ProfileImage size={28} avatarUrl={otherUser?.avatar_url} name={otherUser?.display_name || otherUser?.username || '?'} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{deal.title}</p>
+                            <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>vs @{otherUser?.username || 'Offen'}</p>
+                          </div>
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{'\u{203A}'}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })}
+            </>
+          )}
         </div>
-        <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${xpProgress}%`, background: 'linear-gradient(90deg, #CC8800, #FFB800, #FFE566)', borderRadius: 2, transition: 'width 0.5s' }} />
-        </div>
+
+        {/* ═══ LOGOUT (subtle, bottom) ═══ */}
+        <button onClick={handleLogout} style={{
+          width: '100%', padding: 12, marginTop: 20, borderRadius: 10,
+          background: 'transparent', border: '1px solid rgba(239,68,68,0.15)',
+          color: 'var(--status-error)', fontFamily: 'var(--font-display)',
+          fontSize: 10, letterSpacing: 2, cursor: 'pointer', opacity: 0.7,
+        }}>
+          LOGOUT
+        </button>
       </div>
 
-      {/* Stats row */}
-      <div style={{ display: 'flex', gap: 8, margin: '0 16px 20px' }}>
-        {[
-          { label: t('profile.wins'),   val: profile?.wins ?? 0,        color: '#4ade80' },
-          { label: t('profile.deals'),  val: profile?.deals_total ?? 0, color: '#60a5fa' },
-          { label: t('profile.streak'), val: profile?.streak ?? 0,      color: '#fb923c' },
-          { label: t('profile.coins'),  val: profile?.coins ?? 0,       color: '#FFB800', img: true },
-        ].map(s => (
-          <div key={s.label} style={{ flex: 1, background: '#111', borderRadius: 10, border: '1px solid rgba(255,255,255,0.05)', padding: '10px 6px', textAlign: 'center' }}>
-            {s.img ? <Image src="/coin.png" alt="coin" width={20} height={20} style={{ margin: '0 auto 4px' }} /> : null}
-            <p className="font-display" style={{ fontSize: s.img ? 14 : 20, color: s.color, marginBottom: 4 }}>{s.val}</p>
-            <p className="font-display" style={{ fontSize: 7, letterSpacing: 1, color: 'rgba(240,236,228,0.3)' }}>{s.label.toUpperCase()}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Battle Pass */}
-      <div style={{ margin: '0 16px 20px', background: '#111', borderRadius: 14, border: '1px solid rgba(255,184,0,0.15)', padding: '16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <span className="font-display" style={{ fontSize: 11, letterSpacing: 2, color: '#FFB800' }}>{t('profile.battlePass').toUpperCase()}</span>
-          <div style={{ padding: '3px 10px', borderRadius: 10, background: profile?.battle_pass_premium ? 'rgba(255,184,0,0.15)' : 'rgba(255,255,255,0.05)', border: `1px solid ${profile?.battle_pass_premium ? 'rgba(255,184,0,0.3)' : 'rgba(255,255,255,0.08)'}` }}>
-            <span className="font-display" style={{ fontSize: 8, color: profile?.battle_pass_premium ? '#FFB800' : 'rgba(240,236,228,0.3)' }}>{profile?.battle_pass_premium ? t('profile.premiumTrack').toUpperCase() : t('profile.freeTrack').toUpperCase()}</span>
-          </div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-          <span className="font-display" style={{ fontSize: 9, color: 'rgba(240,236,228,0.4)' }}>{t('profile.passLevel').toUpperCase()} {bpLevel}/30</span>
-          <span className="font-display" style={{ fontSize: 9, color: 'rgba(240,236,228,0.3)' }}>{30 - bpLevel} {lang === 'de' ? 'verbleibend' : 'remaining'}</span>
-        </div>
-        <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${bpProgress}%`, background: 'linear-gradient(90deg, #CC8800, #FFB800, #FFE566)', borderRadius: 3, transition: 'width 0.5s' }} />
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-          {Array.from({ length: 10 }, (_, i) => i * 3 + 3).map(lvl => (
-            <div key={lvl} style={{ width: 6, height: 6, borderRadius: '50%', background: bpLevel >= lvl ? '#FFB800' : 'rgba(255,255,255,0.1)' }} />
-          ))}
-        </div>
-        <button onClick={() => router.push('/app/battlepass')} style={{ width: '100%', marginTop: 14, padding: '10px', borderRadius: 8, border: '1px solid rgba(255,184,0,0.2)', background: 'rgba(255,184,0,0.06)', color: '#FFB800', fontFamily: 'Cinzel, serif', fontSize: 10, letterSpacing: 2, cursor: 'pointer' }}>
-          {t('profile.battlePass').toUpperCase()} →
-        </button>
-      </div>
-
-      {/* ── Quick Access Grid ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, margin: '0 16px 16px' }}>
-        {[
-          { label: 'BELOHNUNGEN', icon: '🎁', href: '/app/rewards', badge: true },
-          { label: 'CHALLENGES',  icon: '⚔️', href: '/app/challenges' },
-          { label: 'MEILENSTEINE',icon: '🏆', href: '/app/milestones' },
-          { label: 'RANGLISTE',   icon: '📊', href: '/app/leaderboard' },
-          { label: 'EINLADEN',    icon: '🔗', href: '/app/invite' },
-          { label: 'BATTLE PASS', icon: '⭐', href: '/app/battlepass' },
-        ].map(item => (
-          <button key={item.href} onClick={() => router.push(item.href)}
-            style={{ position: 'relative', padding: '14px 12px', background: '#111', borderRadius: 14, border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 22 }}>{item.icon}</span>
-            <span style={{ fontFamily: 'Cinzel, serif', fontSize: 10, letterSpacing: 1, color: 'rgba(240,236,228,0.7)', fontWeight: 700 }}>{item.label}</span>
-            <span style={{ marginLeft: 'auto', color: 'rgba(240,236,228,0.2)', fontSize: 14 }}>›</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Menu */}
-      <div style={{ margin: '0 16px 100px', background: '#111', borderRadius: 14, border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}>
-        <button onClick={() => router.push('/app/notifications')} style={{ width: '100%', padding: '16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 15, color: '#f0ece4', display: 'flex', alignItems: 'center', gap: 8 }}>
-            🔔 {lang === 'de' ? 'Benachrichtigungen' : 'Notifications'}
-            {unreadNotifs > 0 && (
-              <span style={{ minWidth: 18, height: 18, borderRadius: 9, background: '#f87171', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Cinzel, serif', fontSize: 9, color: '#fff', fontWeight: 700, padding: '0 4px' }}>
-                {unreadNotifs > 9 ? '9+' : unreadNotifs}
-              </span>
-            )}
-          </span>
-          <span style={{ color: 'rgba(240,236,228,0.3)' }}>›</span>
-        </button>
-        <button onClick={() => router.push('/app/chat')} style={{ width: '100%', padding: '16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 15, color: '#f0ece4' }}>💬 {lang === 'de' ? 'Nachrichten' : 'Messages'}</span>
-          <span style={{ color: 'rgba(240,236,228,0.3)' }}>›</span>
-        </button>
-        <button onClick={() => router.push('/app/settings')} style={{ width: '100%', padding: '16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 15, color: '#f0ece4' }}>⚙️ {t('profile.settings')}</span>
-          <span style={{ color: 'rgba(240,236,228,0.3)' }}>›</span>
-        </button>
-        <button onClick={() => router.push('/app/discover')} style={{ width: '100%', padding: '16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 15, color: '#f0ece4' }}>🔍 {t('profile.discover')}</span>
-          <span style={{ color: 'rgba(240,236,228,0.3)' }}>›</span>
-        </button>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-          <span style={{ fontSize: 15, color: '#f0ece4' }}>🌐 {t('profile.language')}</span>
-          <div style={{ display: 'flex', background: '#1a1a1a', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
-            {(['de', 'en'] as const).map(l => (
-              <button key={l} onClick={() => setLang(l)} style={{ padding: '6px 16px', border: 'none', cursor: 'pointer', background: lang === l ? 'linear-gradient(135deg, #CC8800, #FFB800)' : 'transparent', color: lang === l ? '#000' : 'rgba(240,236,228,0.4)', fontFamily: 'Cinzel, serif', fontSize: 11, fontWeight: 700, letterSpacing: 1, transition: 'all 0.2s' }}>
-                {l.toUpperCase()}
-              </button>
-            ))}
-          </div>
-        </div>
-        <button onClick={handleLogout} style={{ width: '100%', padding: '16px', background: 'rgba(248,113,113,0.05)', border: 'none', cursor: 'pointer', color: '#f87171', fontFamily: 'Cinzel, serif', fontSize: 12, letterSpacing: 2, textAlign: 'center' }}>
-          {t('auth.logout').toUpperCase()}
-        </button>
-      </div>
+      <ProfileImageLightbox
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        images={profileImages}
+        onImagesChanged={loadProfileImages}
+        isOwnProfile={true}
+      />
     </div>
   )
 }
