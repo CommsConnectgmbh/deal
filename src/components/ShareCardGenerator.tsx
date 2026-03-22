@@ -97,7 +97,7 @@ export default function ShareCardGenerator({ deal, open, onClose }: Props) {
       const winnerY = stakeY + 50
       ctx.font = '700 18px Cinzel, serif'
       ctx.fillStyle = '#FFB800'
-      ctx.fillText(`👑 @${winnerName} gewinnt!`, w / 2, winnerY)
+      ctx.fillText(`\uD83D\uDC51 @${winnerName} wins!`, w / 2, winnerY)
     }
 
     // Bottom: URL

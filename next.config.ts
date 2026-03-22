@@ -44,17 +44,19 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        /* HTML pages — revalidate on every visit so deploys are picked up */
+        /* App pages — no cache + noindex */
         source: '/app/:path*',
         headers: [
           { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
         ],
       },
       {
-        /* Auth pages — also no cache */
+        /* Auth pages — no cache + noindex */
         source: '/auth/:path*',
         headers: [
           { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
         ],
       },
       {

@@ -13,6 +13,7 @@ import WinCardShare from '@/components/WinCardShare'
 import CoinIcon from '@/components/CoinIcon'
 import InteractionBar from '@/components/InteractionBar'
 import DealBetWidget from '@/components/DealBetWidget'
+import WinCelebrationModal from '@/components/WinCelebrationModal'
 import { trackDealAccepted, trackResultSubmitted, trackResultConfirmed, trackScreenView, trackShareClicked } from '@/lib/analytics'
 import { uploadDealMedia as uploadDealMediaUtil } from '@/lib/mediaUpload'
 
@@ -74,6 +75,7 @@ export default function DealDetailPage() {
   const [deal, setDeal] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [xpToast, setXpToast] = useState<{ xp: number; coins: number } | null>(null)
+  const [winCelebration, setWinCelebration] = useState<{ xp: number; coins: number; streak: number; winnerName: string; loserName: string } | null>(null)
   const [commentsOpen, setCommentsOpen] = useState(false)
   const [commentCount, setCommentCount] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -368,8 +370,21 @@ export default function DealDetailPage() {
       trackResultConfirmed(id as string, deal.proposed_winner_id === profile?.id)
       if (data?.xp_winner !== undefined) {
         const isWinner = deal.proposed_winner_id === profile?.id
-        setXpToast({ xp: isWinner ? (data.xp_winner || 0) : (data.xp_loser || 50), coins: isWinner ? 30 : 5 })
-        setTimeout(() => setXpToast(null), 4000)
+        const xp = isWinner ? (data.xp_winner || 0) : (data.xp_loser || 50)
+        const coins = isWinner ? 30 : 5
+        if (isWinner) {
+          const winnerProfile = deal.proposed_winner_id === deal.creator_id ? deal.creator : deal.opponent
+          const loserProfile = deal.proposed_winner_id === deal.creator_id ? deal.opponent : deal.creator
+          setWinCelebration({
+            xp, coins,
+            streak: (profile?.streak || 0) + 1,
+            winnerName: winnerProfile?.display_name || winnerProfile?.username || 'Winner',
+            loserName: loserProfile?.display_name || loserProfile?.username || 'Opponent',
+          })
+        } else {
+          setXpToast({ xp, coins })
+          setTimeout(() => setXpToast(null), 4000)
+        }
       }
       fetchDeal()
     } catch {
@@ -604,7 +619,20 @@ export default function DealDetailPage() {
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg-base)', paddingBottom: 100 }}>
-      {/* XP Toast */}
+      {/* Win Celebration Modal */}
+      {winCelebration && (
+        <WinCelebrationModal
+          xp={winCelebration.xp}
+          coins={winCelebration.coins}
+          streak={winCelebration.streak}
+          winnerName={winCelebration.winnerName}
+          loserName={winCelebration.loserName}
+          dealTitle={deal?.title || ''}
+          onClose={() => setWinCelebration(null)}
+        />
+      )}
+
+      {/* XP Toast (for loser) */}
       {xpToast && (
         <div style={{ position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)', background: 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))', borderRadius: 12, padding: '12px 24px', zIndex: 300, display: 'flex', gap: 16, alignItems: 'center', boxShadow: '0 8px 32px rgba(255,184,0,0.4)' }}>
           <span style={{ fontSize: 14, fontFamily: 'var(--font-display)', color: 'var(--text-inverse)', fontWeight: 700 }}>+{xpToast.xp} XP</span>

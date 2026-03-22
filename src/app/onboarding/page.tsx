@@ -163,7 +163,7 @@ export default function OnboardingPage() {
           transform: animate ? 'translateY(0)' : 'translateY(20px)',
           transition: 'all 0.6s 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
         }}>
-          Starte Challenges. Gewinne Wetten.<br/>
+          Starte Challenges. Gewinne Duelle.<br/>
           Klettere im Leaderboard.
         </p>
 

@@ -6,24 +6,29 @@ import { ThemeScript } from '@/hooks/useTheme'
 import PostHogProvider from '@/components/PostHogProvider'
 
 export const metadata: Metadata = {
-  title: { default: 'DealBuddy', template: '%s | DealBuddy' },
-  description: 'Fordere Freunde heraus, wette um Ehre und Status. Die App f\u00fcr Challenges, Tipps und Wettbewerbe.',
+  title: { default: 'DealBuddy – Compete. Win. Reign.', template: '%s | DealBuddy' },
+  description: 'Fordere Freunde heraus, kämpfe um Ehre und Status. Die App für Challenges, Tipps und Duelle. Erstelle Deals, gewinne Battle Cards und steige im Ranking auf.',
+  keywords: ['DealBuddy', 'Challenge App', 'Duelle', 'Deals', 'Battle Cards', 'Freunde herausfordern', 'Social Competition', 'Tipping', 'Sporttipps'],
   manifest: '/manifest.json',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'DealBuddy' },
   icons: { apple: '/icon-512.png', icon: '/icon-512.png' },
   metadataBase: new URL('https://app.deal-buddy.app'),
+  alternates: { canonical: 'https://app.deal-buddy.app' },
+  robots: { index: true, follow: true },
   openGraph: {
     type: 'website',
     locale: 'de_DE',
     url: 'https://app.deal-buddy.app',
     siteName: 'DealBuddy',
-    title: 'DealBuddy \u2013 Compete. Win. Reign.',
-    description: 'Fordere Freunde heraus, wette um Ehre und Status.',
+    title: 'DealBuddy – Compete. Win. Reign.',
+    description: 'Fordere Freunde heraus, kämpfe um Ehre und Status. Die App für Challenges, Tipps und Duelle.',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'DealBuddy – Compete. Win. Reign.' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'DealBuddy \u2013 Compete. Win. Reign.',
-    description: 'Fordere Freunde heraus, wette um Ehre und Status.',
+    title: 'DealBuddy – Compete. Win. Reign.',
+    description: 'Fordere Freunde heraus, kämpfe um Ehre und Status.',
+    images: ['/opengraph-image'],
   },
 }
 
@@ -50,6 +55,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeScript />
       </head>
       <body>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'WebApplication',
+            name: 'DealBuddy',
+            url: 'https://app.deal-buddy.app',
+            description: 'Fordere Freunde heraus, kämpfe um Ehre und Status. Die App für Challenges, Tipps und Duelle.',
+            applicationCategory: 'SocialNetworkingApplication',
+            operatingSystem: 'iOS, Android, Web',
+            offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+            author: { '@type': 'Organization', name: 'DealBuddy', url: 'https://deal-buddy.app' },
+          })}}
+        />
         <LanguageProvider>
           <AuthProvider>
             <PostHogProvider>

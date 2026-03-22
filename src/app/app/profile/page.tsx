@@ -9,6 +9,7 @@ import ProfileImage from '@/components/ProfileImage'
 import ProfileImageLightbox from '@/components/ProfileImageLightbox'
 import { useLang } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
+import FrameProgressWidget from '@/components/FrameProgressWidget'
 
 /* ─── Helpers ─── */
 function mapFrameRarity(frameName?: string | null): FrameRarity {
@@ -336,6 +337,13 @@ export default function ProfilePage() {
             }}>
               {t('profile.createCard').toUpperCase()}
             </button>
+          </div>
+        )}
+
+        {/* ═══ FRAME PROGRESS ═══ */}
+        {profile?.id && (
+          <div style={{ marginBottom: 12 }}>
+            <FrameProgressWidget userId={profile.id} />
           </div>
         )}
 

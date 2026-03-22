@@ -8,7 +8,7 @@ import { useLang } from '@/contexts/LanguageContext'
 import DealCardMenu from '@/components/DealCardMenu'
 
 /* ═══════════════════════════════════════════════════════════════
-   LiveDuelCard — Titel oben, Media + Lesezeichen, Einsatz mittig, Bet Widget
+   LiveDuelCard — Titel oben, Media + Lesezeichen, Einsatz mittig, Tipp Widget
    Green glow for active, purple for pending_confirmation
    ═══════════════════════════════════════════════════════════════ */
 export default function LiveDuelCard({
@@ -143,7 +143,7 @@ export default function LiveDuelCard({
           </div>
         )}
 
-        {/* ═══ Bet Widget ═══ */}
+        {/* ═══ Tipp Widget ═══ */}
         <DealBetWidget
           dealId={deal.id}
           creatorId={deal.creator_id}

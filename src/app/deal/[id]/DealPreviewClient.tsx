@@ -256,13 +256,39 @@ export default function DealPreviewClient({ deal }: { deal: DealPreview }) {
         </div>
       </div>
 
-      {/* Footer */}
-      <p style={{
-        marginTop: 24, fontSize: 11, color: '#6B6E76',
-        letterSpacing: 1, fontFamily: 'Oswald, sans-serif',
-      }}>
-        Jetzt kostenlos registrieren und mitmachen!
-      </p>
+      {/* In der App öffnen */}
+      <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, width: '100%', maxWidth: 400 }}>
+        <button
+          onClick={() => {
+            const deepLink = `dealbuddy://c/${deal.id}`
+            // Versuche Custom Scheme, Fallback auf App Store
+            const timeout = setTimeout(() => {
+              window.location.href = /android/i.test(navigator.userAgent)
+                ? 'https://play.google.com/store/apps/details?id=de.dealbuddy.app'
+                : 'https://apps.apple.com/app/dealbuddy/id0000000000'
+            }, 1500)
+            window.addEventListener('blur', () => clearTimeout(timeout), { once: true })
+            window.location.href = deepLink
+          }}
+          style={{
+            width: '100%', padding: 14, borderRadius: 12,
+            border: '1px solid rgba(245,158,11,0.3)',
+            background: 'rgba(245,158,11,0.08)',
+            cursor: 'pointer',
+            color: '#F59E0B',
+            fontFamily: 'Oswald, sans-serif', fontSize: 13,
+            fontWeight: 700, letterSpacing: 2,
+          }}
+        >
+          IN DER APP ÖFFNEN
+        </button>
+        <p style={{
+          fontSize: 11, color: '#6B6E76',
+          letterSpacing: 1, fontFamily: 'Oswald, sans-serif',
+        }}>
+          Jetzt kostenlos registrieren und mitmachen!
+        </p>
+      </div>
     </div>
   )
 }

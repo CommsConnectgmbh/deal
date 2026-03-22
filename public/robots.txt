@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Allow: /onboarding
+Allow: /c/
+Allow: /deal/
+Disallow: /app/
+Disallow: /auth/
+Disallow: /api/
+
+Sitemap: https://app.deal-buddy.app/sitemap.xml

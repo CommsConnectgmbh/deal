@@ -12,7 +12,7 @@ interface Props {
 /**
  * Compact dropdown widget for predicting the tippgruppe winner.
  * Collapsed: shows summary bar with LIVE indicator + total tips.
- * Expanded: shows all members with animated vote bars, percentages, bet counts.
+ * Expanded: shows all members with animated vote bars, percentages, tip counts.
  * Supports 50+ members via scrollable expanded view.
  */
 export default function TipGroupBetWidget({ groupId, compact = true }: Props) {
@@ -295,7 +295,7 @@ export default function TipGroupBetWidget({ groupId, compact = true }: Props) {
                     </span>
                   )}
 
-                  {/* Bet count + pct */}
+                  {/* Tip count + pct */}
                   {totalBets > 0 && (
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 4,

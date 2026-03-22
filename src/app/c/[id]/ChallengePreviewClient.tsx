@@ -237,13 +237,41 @@ export default function ChallengePreviewClient({ challenge }: { challenge: Chall
         </div>
       </div>
 
-      {/* App Store Links Placeholder */}
-      <p style={{
-        marginTop: 24, fontSize: 11, color: '#6B6E76',
-        letterSpacing: 1, fontFamily: 'Oswald, sans-serif',
-      }}>
-        Auch als App für iOS & Android verfügbar
-      </p>
+      {/* In der App öffnen */}
+      <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, width: '100%', maxWidth: 400 }}>
+        <button
+          onClick={() => {
+            const deepLink = `dealbuddy://c/${challenge.id}`
+            const universalLink = `https://dealbuddy.app/c/${challenge.id}`
+            // Versuche zuerst den Custom Scheme, dann Universal Link
+            const timeout = setTimeout(() => {
+              // App nicht installiert -> App Store Fallback
+              window.location.href = /android/i.test(navigator.userAgent)
+                ? 'https://play.google.com/store/apps/details?id=de.dealbuddy.app'
+                : 'https://apps.apple.com/app/dealbuddy/id0000000000'
+            }, 1500)
+            window.addEventListener('blur', () => clearTimeout(timeout), { once: true })
+            window.location.href = deepLink
+          }}
+          style={{
+            width: '100%', padding: 14, borderRadius: 12,
+            border: '1px solid rgba(255,184,0,0.3)',
+            background: 'rgba(255,184,0,0.08)',
+            cursor: 'pointer',
+            color: '#FFB800',
+            fontFamily: 'Oswald, sans-serif', fontSize: 13,
+            fontWeight: 700, letterSpacing: 2,
+          }}
+        >
+          IN DER APP ÖFFNEN
+        </button>
+        <p style={{
+          fontSize: 11, color: '#6B6E76',
+          letterSpacing: 1, fontFamily: 'Oswald, sans-serif',
+        }}>
+          Auch als App für iOS & Android verfügbar
+        </p>
+      </div>
     </div>
   )
 }

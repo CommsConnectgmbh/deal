@@ -14,6 +14,7 @@ import FeedDealCard from '@/components/feed/FeedDealCard'
 import type { StoryGroup } from '@/components/StoryViewer'
 import { trackScreenView } from '@/lib/analytics'
 import { useLang } from '@/contexts/LanguageContext'
+// StreakRewardBanner merged into unified dashboard card
 
 // Heavy components loaded on demand (not needed on first render)
 const StoryViewer = dynamic(() => import('@/components/StoryViewer'), { ssr: false })
@@ -900,173 +901,98 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* ═══ QUICK ACTIONS — Prioritized action-first continue-zone ═══ */}
+      {/* ═══ UNIFIED DASHBOARD CARD — Actions + Streak in one compact zone ═══ */}
       {profile && !loading && (() => {
+        const streak = profile.streak || 0
         const actionItems: { id: string; title: string; sub: string; label: string; color: string; href: string; prio: number }[] = []
 
-        // Prio 100: Ergebnis melden (active/pending_confirmation + ich bin Teilnehmer)
         deals.forEach((d: any) => {
           if ((d.status === 'active' || d.status === 'pending_confirmation') && (d.creator_id === profile.id || d.opponent_id === profile.id)) {
             const vsUser = d.creator_id === profile.id ? d.opponent?.username : d.creator?.username
-            actionItems.push({
-              id: d.id,
-              title: t('home.resultFor').replace('{title}', d.title),
-              sub: `vs @${vsUser || '?'}`,
-              label: d.status === 'pending_confirmation' ? t('home.confirm') : t('home.report'),
-              color: '#4ade80', href: `/app/deals/${d.id}`, prio: 100,
-            })
+            actionItems.push({ id: d.id, title: t('home.resultFor').replace('{title}', d.title), sub: `vs @${vsUser || '?'}`, label: d.status === 'pending_confirmation' ? t('home.confirm') : t('home.report'), color: '#4ade80', href: `/app/deals/${d.id}`, prio: 100 })
           }
         })
-
-        // Prio 95: Einladung annehmen
         pendingInvites.forEach((inv: any) => {
-          const inviterName = inv.creator?.display_name || inv.creator?.username || '?'
-          actionItems.push({
-            id: inv.id,
-            title: t('home.acceptChallenge').replace('{username}', inv.creator?.username || '?'),
-            sub: `\u201E${inv.title}\u201C`,
-            label: t('home.acceptLabel'), color: '#f97316', href: `/app/deals/${inv.id}`, prio: 95,
-          })
+          actionItems.push({ id: inv.id, title: t('home.acceptChallenge').replace('{username}', inv.creator?.username || '?'), sub: `\u201E${inv.title}\u201C`, label: t('home.acceptLabel'), color: '#f97316', href: `/app/deals/${inv.id}`, prio: 95 })
         })
-
-        // Prio 80: Gegner gesucht (eigene offene Deals ohne Opponent)
         deals.forEach((d: any) => {
           if (d.status === 'open' && d.creator_id === profile.id && !d.opponent_id) {
-            actionItems.push({
-              id: d.id,
-              title: t('home.findOpponent').replace('{title}', d.title),
-              sub: t('home.noOpponentYet'),
-              label: t('home.shareLabel'), color: '#FFB800', href: `/app/deals/${d.id}`, prio: 80,
-            })
+            actionItems.push({ id: d.id, title: t('home.findOpponent').replace('{title}', d.title), sub: t('home.noOpponentYet'), label: t('home.shareLabel'), color: '#FFB800', href: `/app/deals/${d.id}`, prio: 80 })
           }
         })
-
-        // Prio 75: Revanche starten (completed + ich habe verloren)
-        deals.forEach((d: any) => {
-          if (d.status === 'completed' && d.confirmed_winner_id && d.confirmed_winner_id !== profile.id &&
-              (d.creator_id === profile.id || d.opponent_id === profile.id)) {
-            const rival = d.creator_id === profile.id ? d.opponent?.username : d.creator?.username
-            actionItems.push({
-              id: `rematch-${d.id}`,
-              title: t('home.startRematch').replace('{username}', rival || '?'),
-              sub: t('home.youLostDeal').replace('{title}', d.title),
-              label: t('home.rematch'), color: '#f97316', href: `/app/deals/${d.id}`, prio: 75,
-            })
-          }
-        })
-
-        // Sortieren (höhere prio zuerst) + Max 3
         actionItems.sort((a, b) => b.prio - a.prio)
-        const items = actionItems.slice(0, 3)
+        const topAction = actionItems[0] || null
 
-        // Fallback: Neue Challenge starten
-        if (items.length === 0) {
-          return (
-            <div style={{ padding: '6px 16px 4px' }}>
-              <button onClick={() => router.push('/app/deals/create')} style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
-                background: 'rgba(255,184,0,0.06)', border: '1px solid rgba(255,184,0,0.2)',
-                borderRadius: 10, cursor: 'pointer', textAlign: 'left', width: '100%',
-              }}>
-                <span style={{ fontSize: 16, flexShrink: 0 }}>{'\uD83E\uDD4A'}</span>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontFamily: 'var(--font-display)', fontSize: 11, fontWeight: 800, color: 'var(--gold-primary)', letterSpacing: 0.5, margin: 0, textTransform: 'uppercase' }}>
-                    {t('home.newChallenge')}
-                  </p>
-                  <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', margin: '2px 0 0' }}>
-                    {t('home.challengeSomeone')}
-                  </p>
-                </div>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold-primary)" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              </button>
-            </div>
-          )
-        }
+        // Nothing to show
+        if (!topAction && streak < 1 && deals.length === 0) return null
 
         return (
-          <div style={{ padding: '6px 16px 4px', display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <p style={{ fontFamily: 'var(--font-display)', fontSize: 7, letterSpacing: 3, color: 'var(--gold-primary)', margin: 0 }}>
-              {t('home.continueNow')}
-            </p>
-            {items.map((item) => (
-              <button key={`action-${item.id}`} onClick={() => router.push(item.href)} style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
-                background: `${item.color}0A`, border: `1px solid ${item.color}33`,
-                borderRadius: 10, cursor: 'pointer', textAlign: 'left', width: '100%',
-              }}>
-                <span style={{
-                  width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-                  background: item.color, boxShadow: `0 0 5px ${item.color}80`,
-                }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{
-                    fontFamily: 'var(--font-display)', fontSize: 11, fontWeight: 800,
-                    color: 'var(--text-primary)', textTransform: 'uppercase' as const,
-                    letterSpacing: 0.5, margin: 0,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>
-                    {item.title}
-                  </p>
-                  <p style={{ fontSize: 9, color: item.color, margin: '1px 0 0' }}>
-                    {item.sub}
-                  </p>
-                </div>
-                <span style={{
-                  fontSize: 8, padding: '3px 8px', borderRadius: 6, flexShrink: 0,
-                  fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: 1,
-                  background: `${item.color}20`, color: item.color,
-                }}>
-                  {item.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        )
-      })()}
-
-      {/* ═══ MOTIVATIONAL BANNER — dynamic stats → story ═══ */}
-      {profile && !loading && deals.length > 0 && (() => {
-        const myDeals = deals.filter((d: any) => d.creator_id === profile.id || d.opponent_id === profile.id)
-        const wins = myDeals.filter((d: any) => d.status === 'completed' && d.confirmed_winner_id === profile.id).length
-        const losses = myDeals.filter((d: any) => d.status === 'completed' && d.confirmed_winner_id && d.confirmed_winner_id !== profile.id).length
-        const activeCount = myDeals.filter((d: any) => d.status === 'active').length
-        const level = profile.level || 1
-        const streak = profile.streak || 0
-
-        // Pick the most motivational message
-        let msg = ''
-        let icon = ''
-        let color = '#FFB800'
-        if (streak >= 3) {
-          msg = t('home.streakMsg').replace('{n}', String(streak)); icon = '\uD83D\uDD25'; color = '#EF4444'
-        } else if (wins > 0 && losses === 0) {
-          msg = t('home.perfectRecord').replace('{wins}', String(wins)); icon = '\u{1F4AA}'; color = '#22C55E'
-        } else if (activeCount > 0) {
-          msg = t('home.activeDuels').replace('{n}', String(activeCount)); icon = '\u26A1'; color = '#4ade80'
-        } else if (wins > 0) {
-          const needed = (level * 3) - wins
-          if (needed > 0) {
-            msg = t('home.winsToLevel').replace('{n}', String(needed)).replace('{level}', String(level + 1)); icon = '\uD83C\uDFAF'; color = '#FFB800'
-          } else {
-            msg = t('home.keepGoing').replace('{w}', String(wins)).replace('{l}', String(losses)); icon = '\uD83C\uDFC6'; color = '#FFB800'
-          }
-        } else if (myDeals.length > 0) {
-          msg = t('home.firstDuelWaiting'); icon = '\uD83E\uDD4A'; color = '#f97316'
-        }
-        if (!msg) return null
-        return (
-          <div style={{
-            margin: '0 16px 4px', padding: '8px 14px', borderRadius: 10,
-            background: `${color}08`, border: `1px solid ${color}18`,
-            display: 'flex', alignItems: 'center', gap: 8,
-          }}>
-            <span style={{ fontSize: 16 }}>{icon}</span>
-            <p style={{
-              margin: 0, fontSize: 11, fontFamily: 'var(--font-body)',
-              color, fontWeight: 600, lineHeight: 1.3,
+          <div style={{ padding: '6px 16px 4px' }}>
+            <div style={{
+              background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
+              borderRadius: 14, padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8,
             }}>
-              {msg}
-            </p>
+              {/* Row: Streak (left) + Top Action (right) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {/* Streak badge */}
+                {streak > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                    <span style={{ fontSize: 18 }}>{'\uD83D\uDD25'}</span>
+                    <div>
+                      <span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 900, color: streak >= 3 ? '#EF4444' : 'var(--gold-primary)', lineHeight: 1 }}>{streak}</span>
+                      <p style={{ fontFamily: 'var(--font-display)', fontSize: 6, letterSpacing: 2, color: 'var(--text-muted)', margin: 0 }}>STREAK</p>
+                    </div>
+                    <div style={{ width: 1, height: 28, background: 'var(--border-subtle)', marginLeft: 4 }} />
+                  </div>
+                )}
+
+                {/* Top action or fallback */}
+                {topAction ? (
+                  <button onClick={() => router.push(topAction.href)} style={{
+                    flex: 1, display: 'flex', alignItems: 'center', gap: 8,
+                    background: `${topAction.color}08`, border: `1px solid ${topAction.color}25`,
+                    borderRadius: 10, padding: '8px 10px', cursor: 'pointer', textAlign: 'left',
+                  }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: topAction.color, boxShadow: `0 0 5px ${topAction.color}80` }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: 0.5, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'uppercase' as const }}>{topAction.title}</p>
+                      <p style={{ fontSize: 8, color: topAction.color, margin: '1px 0 0' }}>{topAction.sub}</p>
+                    </div>
+                    <span style={{ fontSize: 7, padding: '3px 7px', borderRadius: 6, flexShrink: 0, fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: 1, background: `${topAction.color}20`, color: topAction.color }}>{topAction.label}</span>
+                  </button>
+                ) : (
+                  <button onClick={() => router.push('/app/deals/create')} style={{
+                    flex: 1, display: 'flex', alignItems: 'center', gap: 8,
+                    background: 'rgba(255,184,0,0.06)', border: '1px solid rgba(255,184,0,0.15)',
+                    borderRadius: 10, padding: '8px 10px', cursor: 'pointer', textAlign: 'left',
+                  }}>
+                    <span style={{ fontSize: 14, flexShrink: 0 }}>{'\uD83E\uDD4A'}</span>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 800, color: 'var(--gold-primary)', letterSpacing: 0.5, margin: 0, textTransform: 'uppercase' as const }}>{t('home.newChallenge')}</p>
+                      <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.4)', margin: '1px 0 0' }}>{t('home.challengeSomeone')}</p>
+                    </div>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--gold-primary)" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  </button>
+                )}
+              </div>
+
+              {/* Extra actions (max 2 more, compact) */}
+              {actionItems.length > 1 && (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {actionItems.slice(1, 3).map(item => (
+                    <button key={`sub-${item.id}`} onClick={() => router.push(item.href)} style={{
+                      flex: 1, display: 'flex', alignItems: 'center', gap: 6,
+                      background: `${item.color}06`, border: `1px solid ${item.color}18`,
+                      borderRadius: 8, padding: '5px 8px', cursor: 'pointer', textAlign: 'left',
+                    }}>
+                      <span style={{ width: 4, height: 4, borderRadius: '50%', flexShrink: 0, background: item.color }} />
+                      <p style={{ fontFamily: 'var(--font-display)', fontSize: 8, fontWeight: 700, color: 'var(--text-muted)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>{item.title}</p>
+                      <span style={{ fontSize: 6, padding: '2px 5px', borderRadius: 4, flexShrink: 0, fontFamily: 'var(--font-display)', fontWeight: 700, background: `${item.color}15`, color: item.color }}>{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )
       })()}

@@ -179,20 +179,25 @@ export default function ProofUploadSheet({ dealId, proofType, open, onClose, onC
                 cursor: 'pointer', textAlign: 'center', marginBottom: 16,
               }}
             >
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 8 }}>
-                <span style={{ fontSize: 28, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); document.getElementById('proofCameraInput')?.click() }}>📷</span>
-                <span style={{ fontSize: 28 }}>📁</span>
-              </div>
+              <span style={{ fontSize: 36, display: 'block', marginBottom: 8 }}>{'\uD83D\uDCF8'}</span>
               <p style={{ fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 2, color: 'var(--gold-primary)' }}>
-                KAMERA / GALERIE
+                LIVE-FOTO AUFNEHMEN
               </p>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, fontFamily: 'var(--font-body)' }}>
-                {t('proof.chooseHint')}
+                {t('proof.cameraOnlyHint')}
               </p>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10,
+                padding: '4px 10px', borderRadius: 8,
+                background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)',
+              }}>
+                <span style={{ fontSize: 12 }}>{'\u2705'}</span>
+                <span style={{ fontSize: 9, color: '#4ade80', fontFamily: 'var(--font-display)', letterSpacing: 1 }}>VERIFIZIERT</span>
+              </div>
             </button>
           )}
-          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm" style={{ display: 'none' }} onChange={handleFilePick} />
-          <input id="proofCameraInput" type="file" accept="image/*,video/*" capture="environment" style={{ display: 'none' }} onChange={handleFilePick} />
+          {/* Camera-only input — no gallery access for proof integrity */}
+          <input ref={fileRef} type="file" accept="image/*,video/*" capture="environment" style={{ display: 'none' }} onChange={handleFilePick} />
 
           {/* Description */}
           <textarea

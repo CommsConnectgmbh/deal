@@ -1,7 +1,7 @@
 {
   "name": "DealBuddy",
   "short_name": "DealBuddy",
-  "description": "Die Wette, die du nie vergisst.",
+  "description": "Fordere Freunde heraus. Compete. Win. Reign.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#060606",

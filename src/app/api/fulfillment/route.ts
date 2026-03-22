@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Fulfillment already resolved' }, { status: 400 })
     }
 
-    // Verify the bet is completed
+    // Verify the deal is completed
     const { data: bet } = await supabaseAdmin
       .from('bets')
       .select('status')
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (!bet || bet.status !== 'completed') {
-      return NextResponse.json({ error: 'Bet is not completed' }, { status: 400 })
+      return NextResponse.json({ error: 'Deal is not completed' }, { status: 400 })
     }
 
     // Update fulfillment status (triggers recalc_reliability)
