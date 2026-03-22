@@ -74,6 +74,10 @@ export default function TippenPage() {
   const [bookmarkedGroupIds, setBookmarkedGroupIds] = useState<Set<string>>(new Set())
   const [followerGroupIds, setFollowerGroupIds] = useState<Set<string>>(new Set())
 
+  // Loading states for actions
+  const [bookmarkLoading, setBookmarkLoading] = useState<string | null>(null)
+  const [actionLoading, setActionLoading] = useState(false)
+
   // Edit/Delete state
   const [editGroupId, setEditGroupId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
@@ -219,22 +223,27 @@ export default function TippenPage() {
   // Toggle bookmark for a tip group
   const toggleGroupBookmark = async (groupId: string) => {
     if (!profile) return
-    const isBookmarked = bookmarkedGroupIds.has(groupId)
-    if (isBookmarked) {
-      await supabase
-        .from('user_bookmarks')
-        .delete()
-        .eq('user_id', profile.id)
-        .eq('item_type', 'tip_group')
-        .eq('item_id', groupId)
-      setBookmarkedGroupIds(prev => { const next = new Set(prev); next.delete(groupId); return next })
-    } else {
-      await supabase
-        .from('user_bookmarks')
-        .insert({ user_id: profile.id, item_type: 'tip_group', item_id: groupId })
-      setBookmarkedGroupIds(prev => new Set(prev).add(groupId))
+    setBookmarkLoading(groupId)
+    try {
+      const isBookmarked = bookmarkedGroupIds.has(groupId)
+      if (isBookmarked) {
+        await supabase
+          .from('user_bookmarks')
+          .delete()
+          .eq('user_id', profile.id)
+          .eq('item_type', 'tip_group')
+          .eq('item_id', groupId)
+        setBookmarkedGroupIds(prev => { const next = new Set(prev); next.delete(groupId); return next })
+      } else {
+        await supabase
+          .from('user_bookmarks')
+          .insert({ user_id: profile.id, item_type: 'tip_group', item_id: groupId })
+        setBookmarkedGroupIds(prev => new Set(prev).add(groupId))
+      }
+      if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10)
+    } finally {
+      setBookmarkLoading(null)
     }
-    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10)
   }
 
   // Filtered public groups
@@ -412,17 +421,27 @@ export default function TippenPage() {
   }
 
   const handleDeleteGroup = async (groupId: string) => {
-    await supabase.from('tip_groups').update({ status: 'deleted' }).eq('id', groupId)
-    setDeleteConfirmId(null)
-    setMenuOpenId(null)
-    fetchGroups()
+    setActionLoading(true)
+    try {
+      await supabase.from('tip_groups').update({ status: 'deleted' }).eq('id', groupId)
+      setDeleteConfirmId(null)
+      setMenuOpenId(null)
+      fetchGroups()
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   const handleLeaveGroup = async (groupId: string) => {
     if (!user) return
-    await supabase.from('tip_group_members').delete().eq('group_id', groupId).eq('user_id', user.id)
-    setMenuOpenId(null)
-    fetchGroups()
+    setActionLoading(true)
+    try {
+      await supabase.from('tip_group_members').delete().eq('group_id', groupId).eq('user_id', user.id)
+      setMenuOpenId(null)
+      fetchGroups()
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   const formatDeadline = (iso: string) => {
@@ -560,13 +579,14 @@ export default function TippenPage() {
                         }}>
                           {t('tippen.cancel')}
                         </button>
-                        <button onClick={() => handleDeleteGroup(g.id)} style={{
+                        <button onClick={() => handleDeleteGroup(g.id)} disabled={actionLoading} style={{
                           flex: 1, padding: '10px',
                           background: 'var(--status-error)', border: 'none', borderRadius: 10,
                           color: '#fff', fontSize: 11, fontFamily: 'var(--font-display)',
-                          fontWeight: 700, cursor: 'pointer', letterSpacing: 1,
+                          fontWeight: 700, cursor: actionLoading ? 'not-allowed' : 'pointer', letterSpacing: 1,
+                          opacity: actionLoading ? 0.6 : 1,
                         }}>
-                          {t('tippen.yesDelete')}
+                          {actionLoading ? '...' : t('tippen.yesDelete')}
                         </button>
                       </div>
                     </div>
@@ -654,11 +674,13 @@ export default function TippenPage() {
                       {/* Bookmark button */}
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleGroupBookmark(g.id) }}
+                        disabled={bookmarkLoading === g.id}
                         style={{
-                          background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
+                          background: 'none', border: 'none', cursor: bookmarkLoading === g.id ? 'not-allowed' : 'pointer', padding: '2px 4px',
                           fontSize: 16, flexShrink: 0, lineHeight: 1,
                           color: bookmarkedGroupIds.has(g.id) ? '#FFB800' : 'rgba(255,255,255,0.25)',
                           transition: 'color 0.2s ease',
+                          opacity: bookmarkLoading === g.id ? 0.5 : 1,
                         }}
                       >
                         {bookmarkedGroupIds.has(g.id) ? '\u2691' : '\u2690'}
@@ -744,7 +766,8 @@ export default function TippenPage() {
                                 </button>
                               ) : (
                                 <button onClick={(e) => { e.stopPropagation(); if (confirm(t('tippen.leaveConfirm'))) { handleLeaveGroup(g.id) } }}
-                                  style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', color: 'var(--status-error)', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}>
+                                  disabled={actionLoading}
+                                  style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', color: 'var(--status-error)', fontSize: 13, textAlign: 'left', cursor: actionLoading ? 'not-allowed' : 'pointer', opacity: actionLoading ? 0.6 : 1 }}>
                                   {'\uD83D\uDEAA'} {t('tippen.leave')}
                                 </button>
                               )}

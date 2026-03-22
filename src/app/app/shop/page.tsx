@@ -415,7 +415,16 @@ export default function ShopPage() {
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px 12px' }}>
-        <h1 className='font-display' style={{ fontSize: 26, color: 'var(--text-primary)' }}>{t('shop.title')}</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={() => router.back()} style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-primary)" strokeWidth="2" strokeLinecap="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <h1 className='font-display' style={{ fontSize: 26, color: 'var(--text-primary)' }}>{t('shop.title')}</h1>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div onClick={() => router.push('/app/cards')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, background: 'var(--bg-surface)', borderRadius: 18, border: '1px solid rgba(255,184,0,0.15)', cursor: 'pointer' }}>
             <span style={{ fontSize: 16 }}>🃏</span>

@@ -132,7 +132,16 @@ export default function RivalsPage() {
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px 20px' }}>
-        <h1 className="font-display" style={{ fontSize: 26, color: 'var(--text-primary)' }}>{t('rivals.title')}</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={() => router.back()} style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-primary)" strokeWidth="2" strokeLinecap="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <h1 className="font-display" style={{ fontSize: 26, color: 'var(--text-primary)' }}>{t('rivals.title')}</h1>
+        </div>
         <button
           onClick={() => setAddOpen(true)}
           style={{ padding: '10px 16px', borderRadius: 10, border: '1px solid var(--gold-glow)', background: 'transparent', color: 'var(--gold-primary)', fontFamily: 'var(--font-display)', fontSize: 9, letterSpacing: 1, cursor: 'pointer' }}

@@ -17,9 +17,12 @@ const STAKE_PRESET_EMOJIS = ['\u{1F37A}', '\u{1F37D}\uFE0F', '\u{1F4F8}', '\u{1F
 interface Props {
   value: string
   onChange: (stake: string) => void
+  error?: string
+  onBlur?: () => void
+  onKeyDown?: (e: React.KeyboardEvent) => void
 }
 
-export default function StakePresets({ value, onChange }: Props) {
+export default function StakePresets({ value, onChange, error, onBlur, onKeyDown }: Props) {
   const { t } = useLang()
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
 
@@ -75,17 +78,20 @@ export default function StakePresets({ value, onChange }: Props) {
       <input
         value={value}
         onChange={e => onChange(e.target.value)}
+        onBlur={onBlur}
+        onKeyDown={onKeyDown}
         placeholder={translatedPresets[placeholderIdx]}
         style={{
           width: '100%', padding: '14px 16px',
           background: 'var(--bg-elevated)',
-          border: '1px solid var(--border-subtle)',
+          border: error ? '1px solid var(--status-error)' : '1px solid var(--border-subtle)',
           borderRadius: 10,
           color: 'var(--text-primary)',
           fontSize: 16, fontFamily: 'var(--font-body)',
           outline: 'none', boxSizing: 'border-box',
         }}
       />
+      {error && <p style={{ color: 'var(--status-error)', fontSize: 12, marginTop: 4, margin: '4px 0 0' }}>{error}</p>}
     </div>
   )
 }

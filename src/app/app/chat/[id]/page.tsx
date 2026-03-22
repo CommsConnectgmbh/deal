@@ -431,7 +431,13 @@ export default function ChatConversationPage() {
         padding: 'calc(env(safe-area-inset-top) + 12px) 16px 12px 16px', zIndex: 101,
         display: 'flex', alignItems: 'center', gap: 12,
       }}>
-        <button onClick={() => router.push('/app/chat')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 20, cursor: 'pointer', padding: 0 }}>←</button>
+        <button onClick={() => router.back()} style={{
+          background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-primary)" strokeWidth="2" strokeLinecap="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
         {otherUser && (
           <>
             <ProfileImage
@@ -629,7 +635,8 @@ export default function ChatConversationPage() {
         position: 'fixed', bottom: 72, left: '50%', transform: 'translateX(-50%)',
         width: '100%', maxWidth: 430, background: 'var(--bg-base)',
         backdropFilter: 'blur(20px)', borderTop: '1px solid var(--border-subtle)',
-        padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, zIndex: 50,
+        padding: '10px 16px', paddingBottom: 'max(10px, env(safe-area-inset-bottom))',
+        display: 'flex', alignItems: 'center', gap: 8, zIndex: 50,
       }}>
         {/* Media button */}
         <button onClick={() => fileRef.current?.click()} style={{

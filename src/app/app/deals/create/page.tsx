@@ -52,6 +52,10 @@ function CreateDealContent() {
   const mediaRef = useRef<HTMLInputElement>(null)
   const [showEditor, setShowEditor] = useState(false)
   const [showAdvanced, setShowAdvanced] = useReducerCompat(false)
+  const [titleErr, setTitleErr] = useState('')
+  const [stakeErr, setStakeErr] = useState('')
+  const [titleTouched, setTitleTouched] = useState(false)
+  const [stakeTouched, setStakeTouched] = useState(false)
 
   // Track screen view
   useEffect(() => { trackScreenView('create_deal') }, [])
@@ -111,13 +115,29 @@ function CreateDealContent() {
 
   const goNext = () => {
     if (state.step === 'gegner') dispatch({ type: 'SET_STEP', step: 'challenge' })
-    else if (state.step === 'challenge') dispatch({ type: 'SET_STEP', step: 'einsatz' })
+    else if (state.step === 'challenge') {
+      const tErr = validateTitle(state.title)
+      setTitleErr(tErr); setTitleTouched(true)
+      if (tErr) return
+      dispatch({ type: 'SET_STEP', step: 'einsatz' })
+    }
   }
 
   /* --- Validation per step --- */
+  const validateTitle = (v: string): string => {
+    if (!v.trim()) return t('deals.enterChallenge')
+    if (v.trim().length < 3) return t('auth.errorMinThreeChars')
+    if (v.trim().length > 100) return 'Max. 100 Zeichen'
+    return ''
+  }
+  const validateStake = (v: string): string => {
+    if (!v.trim()) return t('deals.stakeLabel') + ' ' + t('auth.errorUsernameRequired').toLowerCase()
+    if (v.trim().length < 2) return 'Min. 2 Zeichen'
+    return ''
+  }
   const canGoToChallenge = state.mode !== '1v1' || state.opponent !== null
-  const canGoToEinsatz = state.title.trim().length > 0
-  const canSubmit = state.title.trim().length > 0 && state.stake.trim().length > 0
+  const canGoToEinsatz = state.title.trim().length >= 3
+  const canSubmit = state.title.trim().length >= 3 && state.stake.trim().length >= 2
 
   /* --- Dynamic CTA text --- */
   const uploadPercent = state.uploadProgress?.match(/(\d+)%/)?.[1]
@@ -131,7 +151,12 @@ function CreateDealContent() {
 
   /* --- Submit --- */
   const createDeal = async () => {
-    if (!profile || !canSubmit) return
+    if (!profile) return
+    const tErr = validateTitle(state.title)
+    const sErr = validateStake(state.stake)
+    setTitleErr(tErr); setStakeErr(sErr)
+    setTitleTouched(true); setStakeTouched(true)
+    if (tErr || sErr) return
     dispatch({ type: 'SET_LOADING', loading: true })
 
     try {
@@ -532,18 +557,20 @@ function CreateDealContent() {
               <div style={{ position: 'relative' }}>
                 <input
                   value={state.title}
-                  onChange={e => dispatch({ type: 'SET_FIELD', field: 'title', value: e.target.value.slice(0, 60) })}
+                  onChange={e => { dispatch({ type: 'SET_FIELD', field: 'title', value: e.target.value.slice(0, 100) }); if (titleTouched) setTitleErr(validateTitle(e.target.value.slice(0, 100))) }}
+                  onBlur={() => { setTitleTouched(true); setTitleErr(validateTitle(state.title)) }}
                   placeholder={t('deals.challengePlaceholder')}
-                  style={inputStyle}
+                  style={{ ...inputStyle, border: titleErr ? '1px solid var(--status-error)' : inputStyle.border }}
                   autoFocus
                 />
                 <span style={{
-                  position: 'absolute', right: 12, bottom: 14,
+                  position: 'absolute', right: 12, bottom: titleErr ? 30 : 14,
                   fontSize: 11, color: 'var(--text-muted)',
                 }}>
-                  {state.title.length}/60
+                  {state.title.length}/100
                 </span>
               </div>
+              {titleErr && <p style={{ color: 'var(--status-error)', fontSize: 12, marginTop: 4, margin: '4px 0 0' }}>{titleErr}</p>}
             </div>
 
             {/* Category */}
@@ -673,7 +700,10 @@ function CreateDealContent() {
             {/* Stake */}
             <StakePresets
               value={state.stake}
-              onChange={v => dispatch({ type: 'SET_FIELD', field: 'stake', value: v })}
+              onChange={v => { dispatch({ type: 'SET_FIELD', field: 'stake', value: v }); if (stakeTouched) setStakeErr(validateStake(v)) }}
+              error={stakeErr}
+              onBlur={() => { setStakeTouched(true); setStakeErr(validateStake(state.stake)) }}
+              onKeyDown={e => { if (e.key === 'Enter') createDeal() }}
             />
 
             {/* Deadline */}

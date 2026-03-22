@@ -217,6 +217,7 @@ function RegisterForm() {
             value={username}
             onChange={e => { setUsername(e.target.value.toLowerCase()); if (unErr) setUnErr('') }}
             onBlur={() => setUnErr(validateUsername(username))}
+            onKeyDown={e => e.key === 'Enter' && handle()}
             placeholder={t('auth.usernamePlaceholder')}
             style={inputStyle(!!unErr)}
             autoCapitalize="none"
@@ -234,6 +235,7 @@ function RegisterForm() {
             value={email}
             onChange={e => { setEmail(e.target.value); if (emailErr) setEmailErr('') }}
             onBlur={() => setEmailErr(validateEmail(email))}
+            onKeyDown={e => e.key === 'Enter' && handle()}
             placeholder={t('auth.emailPlaceholder')}
             style={inputStyle(!!emailErr)}
           />
@@ -247,6 +249,7 @@ function RegisterForm() {
             value={password}
             onChange={e => { setPassword(e.target.value); if (pwErr) setPwErr('') }}
             onBlur={() => setPwErr(validatePassword(password))}
+            onKeyDown={e => e.key === 'Enter' && handle()}
             placeholder={t('auth.errorMinChars')}
             style={inputStyle(!!pwErr)}
           />

@@ -134,6 +134,19 @@ export default function WelcomePage() {
 
   const name = profile?.display_name || profile?.username || 'Champion'
 
+  // Skip button shared across all steps
+  const skipButton = (
+    <button onClick={goHome} style={{
+      position: 'absolute', top: 'calc(env(safe-area-inset-top) + 16px)', right: 16,
+      background: 'none', border: '1px solid rgba(255,255,255,0.15)',
+      borderRadius: 20, padding: '6px 16px', cursor: 'pointer', zIndex: 10,
+      color: 'var(--text-secondary)', fontFamily: 'var(--font-display)',
+      fontSize: 11, letterSpacing: 1,
+    }}>
+      SKIP
+    </button>
+  )
+
   // ── STEP 0: Language Selection ──
   if (step === 0) {
     return (
@@ -142,6 +155,7 @@ export default function WelcomePage() {
         display: 'flex', flexDirection: 'column',
         maxWidth: 430, margin: '0 auto', position: 'relative', overflow: 'hidden',
       }}>
+        {skipButton}
         {/* Gold glow */}
         <div style={{
           position: 'absolute', top: '15%', left: '50%', transform: 'translateX(-50%)',
@@ -253,6 +267,7 @@ export default function WelcomePage() {
         display: 'flex', flexDirection: 'column',
         maxWidth: 430, margin: '0 auto', position: 'relative', overflow: 'hidden',
       }}>
+        {skipButton}
         <div style={{
           position: 'absolute', top: '20%', left: '50%', transform: 'translateX(-50%)',
           width: 300, height: 300, borderRadius: '50%',
@@ -362,6 +377,7 @@ export default function WelcomePage() {
         display: 'flex', flexDirection: 'column',
         maxWidth: 430, margin: '0 auto', position: 'relative', overflow: 'hidden',
       }}>
+        {skipButton}
         <div style={{
           position: 'absolute', top: '10%', left: '50%', transform: 'translateX(-50%)',
           width: 350, height: 350, borderRadius: '50%',
@@ -498,6 +514,7 @@ export default function WelcomePage() {
         display: 'flex', flexDirection: 'column',
         maxWidth: 430, margin: '0 auto', position: 'relative', overflow: 'hidden',
       }}>
+        {skipButton}
         <div style={{
           position: 'absolute', top: '15%', left: '50%', transform: 'translateX(-50%)',
           width: 300, height: 300, borderRadius: '50%',
@@ -660,6 +677,7 @@ export default function WelcomePage() {
         display: 'flex', flexDirection: 'column',
         maxWidth: 430, margin: '0 auto', position: 'relative', overflow: 'hidden',
       }}>
+        {skipButton}
         <div style={{
           position: 'absolute', top: '15%', left: '50%', transform: 'translateX(-50%)',
           width: 300, height: 300, borderRadius: '50%',

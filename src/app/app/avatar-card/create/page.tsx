@@ -128,7 +128,15 @@ export default function AvatarCardCreate() {
       padding: '60px 20px 40px',
     }}>
       {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: 32 }}>
+      <div style={{ textAlign: 'center', marginBottom: 32, position: 'relative' }}>
+        <button onClick={() => router.back()} style={{
+          background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+          position: 'absolute', left: 0, top: 4,
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-primary)" strokeWidth="2" strokeLinecap="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
         <h1 className="font-display" style={{
           fontSize: 22, color: 'var(--gold-primary)', letterSpacing: 3, marginBottom: 8,
         }}>ERSTELLE DEINEN AVATAR</h1>
