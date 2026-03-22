@@ -24,7 +24,7 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     // Supabase sets the session from the URL hash on load
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any) => {
       if (event === 'PASSWORD_RECOVERY') {
         setReady(true)
       }

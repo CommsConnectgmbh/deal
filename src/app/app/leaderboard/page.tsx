@@ -62,7 +62,7 @@ export default function LeaderboardPage() {
   useEffect(() => {
     if (!profile) return
     supabase.from('follows').select('following_id').eq('follower_id', profile.id)
-      .then(({ data }) => {
+      .then(({ data }: any) => {
         const ids = (data || []).map((f: any) => f.following_id)
         setFollowIds(ids)
       })

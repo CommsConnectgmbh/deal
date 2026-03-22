@@ -205,7 +205,7 @@ export default function ChatConversationPage() {
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'messages',
         filter: `conversation_id=eq.${convoId}`,
-      }, (payload) => {
+      }, (payload: any) => {
         const newMsg = payload.new as Msg
         // Deduplicate: skip if message already exists (e.g. sender's own message)
         setMessages(prev => {
@@ -218,7 +218,7 @@ export default function ChatConversationPage() {
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'messages',
         filter: `conversation_id=eq.${convoId}`,
-      }, (payload) => {
+      }, (payload: any) => {
         setMessages(prev => prev.map(m => m.id === (payload.new as Msg).id ? { ...m, ...(payload.new as Msg) } : m))
       })
       .subscribe()

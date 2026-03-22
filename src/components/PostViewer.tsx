@@ -118,7 +118,7 @@ export default function PostViewer({ posts, initialIndex, onClose }: Props) {
     }
 
     // Load user profiles for comments
-    const userIds = [...new Set(data.map(c => c.user_id))]
+    const userIds = [...new Set(data.map((c: any) => c.user_id))]
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, username, display_name, avatar_url')
@@ -129,7 +129,7 @@ export default function PostViewer({ posts, initialIndex, onClose }: Props) {
       profileMap[p.id] = { username: p.username, display_name: p.display_name, avatar_url: p.avatar_url }
     }
 
-    setComments(data.map(c => ({
+    setComments(data.map((c: any) => ({
       ...c,
       user: profileMap[c.user_id] || null,
     })))

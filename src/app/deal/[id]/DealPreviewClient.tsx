@@ -29,7 +29,7 @@ export default function DealPreviewClient({ deal }: { deal: DealPreview }) {
 
   // If logged in, redirect to app deal page
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data }: any) => {
       if (data.session) {
         router.replace(`/app/deals/${deal.id}`)
       } else {

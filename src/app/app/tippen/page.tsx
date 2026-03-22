@@ -211,7 +211,7 @@ export default function TippenPage() {
           .from('tip_group_members')
           .select('group_id')
           .in('user_id', fIds)
-        const uniqueGroupIds = new Set((memberRows || []).map((r: any) => r.group_id))
+        const uniqueGroupIds = new Set<string>((memberRows || []).map((r: any) => r.group_id))
         setFollowerGroupIds(uniqueGroupIds)
       } else {
         setFollowerGroupIds(new Set())

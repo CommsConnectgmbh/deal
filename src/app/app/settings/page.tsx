@@ -69,7 +69,7 @@ export default function SettingsPage() {
     if (profile) {
       supabase.from('push_subscriptions')
         .select('id').eq('user_id', profile.id).limit(1)
-        .then(({ data }) => setPushEnabled(!!(data && data.length > 0)))
+        .then(({ data }: any) => setPushEnabled(!!(data && data.length > 0)))
     }
   }, [profile?.id])
 

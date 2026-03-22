@@ -127,7 +127,7 @@ export default function NotificationsPage() {
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'notifications',
         filter: `user_id=eq.${profile.id}`,
-      }, (p) => {
+      }, (p: any) => {
         setNotifs(prev => [p.new as Notif, ...prev])
       })
       .subscribe()

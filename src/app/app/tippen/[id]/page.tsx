@@ -201,7 +201,7 @@ export default function TippgruppeDetailPage() {
     if (qIds.length > 0) {
       const { data: ans } = await supabase.from('tip_answers').select('*').eq('user_id', user.id).in('question_id', qIds)
       const map: Record<string, TipAnswer> = {}
-      ;(ans || []).forEach(a => { map[a.question_id] = a })
+      ;(ans || []).forEach((a: any) => { map[a.question_id] = a })
       setMyAnswers(map)
     }
   }, [user, groupId])
@@ -247,7 +247,7 @@ export default function TippgruppeDetailPage() {
           .eq('group_id', groupId)
           .eq('match_status', 'FINISHED')
           .neq('status', 'resolved')
-        const unresolvedMDs = [...new Set((unresolvedQ || []).map(q => q.matchday).filter(Boolean))]
+        const unresolvedMDs = [...new Set((unresolvedQ || []).map((q: any) => q.matchday).filter(Boolean))]
         for (const md of unresolvedMDs) {
           await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/resolve-matchday`, {
             method: 'POST',
@@ -383,7 +383,7 @@ export default function TippgruppeDetailPage() {
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'messages',
         filter: `group_id=eq.${groupId}`,
-      }, async (payload) => {
+      }, async (payload: any) => {
         const newMsg = payload.new as ChatMsg
         const { data: p } = await supabase.from('profiles').select('username, display_name, avatar_url').eq('id', newMsg.sender_id).single()
         setChatMessages(prev => [...prev, { ...newMsg, profiles: p || undefined }])
@@ -740,7 +740,7 @@ export default function TippgruppeDetailPage() {
                   groupId={groupId}
                   onCreated={() => {
                     supabase.from('tip_bonus_questions').select('*').eq('group_id', groupId).order('sort_order')
-                      .then(({ data }) => setBonusQuestions(data || []))
+                      .then(({ data }: any) => setBonusQuestions(data || []))
                   }}
                   onResolve={async (qId, correctAnswer) => {
                     await supabase.from('tip_bonus_questions')
@@ -1026,7 +1026,7 @@ export default function TippgruppeDetailPage() {
               onCreated={() => {
                 // Reload bonus questions
                 supabase.from('tip_bonus_questions').select('*').eq('group_id', groupId).order('sort_order')
-                  .then(({ data }) => setBonusQuestions(data || []))
+                  .then(({ data }: any) => setBonusQuestions(data || []))
               }}
               onResolve={async (qId, correctAnswer) => {
                 await supabase.from('tip_bonus_questions')

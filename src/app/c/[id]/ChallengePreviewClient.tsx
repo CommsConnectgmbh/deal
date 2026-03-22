@@ -23,7 +23,7 @@ export default function ChallengePreviewClient({ challenge }: { challenge: Chall
 
   // Eingeloggte User direkt in die App leiten
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data }: any) => {
       if (data.session) {
         if (challenge.isOpen) {
           // Direkt zur Challenge mit Join-Intent

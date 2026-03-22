@@ -102,7 +102,7 @@ export default function DiscoverPage() {
               followStatus: (followMap[u.id] as any) || 'none',
               mutualCount: mutualMap[u.id] || 0,
             }))
-            .sort((a, b) => (b.mutualCount || 0) - (a.mutualCount || 0))
+            .sort((a: any, b: any) => (b.mutualCount || 0) - (a.mutualCount || 0))
         }
       }
     }

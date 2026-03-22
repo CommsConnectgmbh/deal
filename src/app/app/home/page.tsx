@@ -200,7 +200,7 @@ export default function HomePage() {
       .select('following_id, is_favorite')
       .eq('follower_id', profile.id)
       .eq('status', 'accepted')
-    const ids = data?.map(f => f.following_id) || []
+    const ids = data?.map((f: any) => f.following_id) || []
     const favs = new Set<string>()
     for (const f of (data || [])) {
       if (f.is_favorite) favs.add(f.following_id)
@@ -640,7 +640,7 @@ export default function HomePage() {
       .order('created_at', { ascending: false })
       .limit(10)
     // Get member counts
-    const ids = (data || []).map(g => g.id)
+    const ids = (data || []).map((g: any) => g.id)
     let memberCounts: Record<string, number> = {}
     if (ids.length > 0) {
       const { data: mc } = await supabase
@@ -651,7 +651,7 @@ export default function HomePage() {
         memberCounts[m.group_id] = (memberCounts[m.group_id] || 0) + 1
       }
     }
-    setPublicTipGroups((data || []).map(g => ({ ...g, member_count: memberCounts[g.id] || 0 })))
+    setPublicTipGroups((data || []).map((g: any) => ({ ...g, member_count: memberCounts[g.id] || 0 })))
   }
 
   const loadInteractions = async () => {

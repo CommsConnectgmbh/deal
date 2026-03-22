@@ -35,7 +35,7 @@ export default function MiniLeaderboard() {
 
       // Find current user rank
       if (profile) {
-        const idx = sorted.findIndex(l => l.id === profile.id)
+        const idx = sorted.findIndex((l: any) => l.id === profile.id)
         if (idx >= 0) {
           setMyRank(idx + 1)
         } else {

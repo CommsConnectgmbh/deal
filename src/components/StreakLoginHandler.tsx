@@ -109,14 +109,14 @@ export default function StreakLoginHandler({ userId }: Props) {
         reason: 'login_streak',
         reference_id: `streak_${today}_day${loginCycleDay}`,
       })
-      await supabase.rpc('increment_coins', { uid: userId, amount: reward.coins }).then(({ error }) => {
+      await supabase.rpc('increment_coins', { uid: userId, amount: reward.coins }).then(({ error }: any) => {
         // Fallback: direct update if RPC doesn't exist
         if (error) {
           supabase.from('profiles')
             .select('coins')
             .eq('id', userId)
             .single()
-            .then(({ data }) => {
+            .then(({ data }: any) => {
               if (data) {
                 supabase.from('profiles')
                   .update({ coins: (data.coins || 0) + reward.coins })
