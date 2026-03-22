@@ -190,13 +190,23 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "Rate limit exceeded", sent: 0, failed: 0, total: 0 }), { status: 429, headers: corsHeaders });
     }
 
-    // Get subscriptions
+    // Get Web Push subscriptions
     const { data: subs } = await supabase
       .from("push_subscriptions")
       .select("endpoint, p256dh, auth_key, subscription_json")
       .eq("user_id", user_id);
 
-    if (!subs || subs.length === 0) {
+    // Get Expo Push tokens (native app)
+    const { data: expoPref } = await supabase
+      .from("notification_preferences")
+      .select("push_token, push_enabled")
+      .eq("user_id", user_id)
+      .single();
+
+    const hasWebSubs = subs && subs.length > 0;
+    const hasExpoToken = expoPref?.push_enabled && expoPref?.push_token?.startsWith("ExponentPushToken[");
+
+    if (!hasWebSubs && !hasExpoToken) {
       return new Response(JSON.stringify({ sent: 0, failed: 0, total: 0 }), { headers: corsHeaders });
     }
 
@@ -255,7 +265,36 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    return new Response(JSON.stringify({ sent, failed, total: subs.length }), { headers: corsHeaders });
+    // ─── Expo Push (Native App) ─────────────────────────────────────────────
+    if (hasExpoToken) {
+      try {
+        const expoRes = await fetch("https://exp.host/--/api/v2/push/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify({
+            to: expoPref!.push_token,
+            title,
+            body: body || "",
+            data: { url: url || "/app/home" },
+            sound: "default",
+            badge: 1,
+            channelId: "dealbuddy",
+          }),
+        });
+        if (expoRes.ok) {
+          sent++;
+        } else {
+          console.error(`Expo push failed: ${expoRes.status}`);
+          failed++;
+        }
+      } catch (err) {
+        console.error("Expo push error:", err);
+        failed++;
+      }
+    }
+
+    const total = (subs?.length || 0) + (hasExpoToken ? 1 : 0);
+    return new Response(JSON.stringify({ sent, failed, total }), { headers: corsHeaders });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("send-push error:", msg);
