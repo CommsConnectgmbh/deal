@@ -1,0 +1,23 @@
+{
+  "name": "dealbuddy-card-generator",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "generate": "tsx batch-runner.ts",
+    "generate:founder": "tsx batch-runner.ts founder",
+    "generate:legendary": "tsx batch-runner.ts legendary",
+    "generate:epic": "tsx batch-runner.ts epic",
+    "generate:rare": "tsx batch-runner.ts rare",
+    "generate:common": "tsx batch-runner.ts common",
+    "generate:event": "tsx batch-runner.ts event",
+    "export": "tsx export-traits.ts",
+    "test:one": "tsx batch-runner.ts founder --limit 1"
+  },
+  "dependencies": {
+    "openai": "^4.73.0",
+    "@supabase/supabase-js": "^2.49.1",
+    "dotenv": "^16.4.7",
+    "sharp": "^0.33.5",
+    "tsx": "^4.19.0"
+  }
+}

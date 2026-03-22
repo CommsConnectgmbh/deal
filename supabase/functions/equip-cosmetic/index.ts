@@ -5,6 +5,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 const VALID_SLOTS = ['frame', 'badge', 'title', 'card', 'victory_animation']
@@ -24,7 +25,7 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), { status: 401, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: corsHeaders })
     }
 
     const supabase = createClient(
@@ -32,18 +33,28 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    const { data: { user }, error: authError } = await createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    ).auth.getUser()
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Unauthorized', details: authError?.message }), { status: 401, headers: corsHeaders })
+    }
+
+    // Rate limit: 30 equips per hour
+    const { data: allowed } = await supabase.rpc('check_rate_limit', {
+      p_user_id: user.id, p_action: 'equip_cosmetic', p_max_count: 30, p_window_minutes: 60
+    })
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { status: 429, headers: corsHeaders })
     }
 
     const { slot, item_id } = await req.json()
-    if (!slot || !item_id) {
+    if (!slot || !item_id || typeof slot !== 'string' || typeof item_id !== 'string') {
       return new Response(JSON.stringify({ error: 'Missing slot or item_id' }), { status: 400, headers: corsHeaders })
+    }
+
+    if (item_id.length > 100) {
+      return new Response(JSON.stringify({ error: 'Invalid item_id' }), { status: 400, headers: corsHeaders })
     }
 
     if (!VALID_SLOTS.includes(slot)) {

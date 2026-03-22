@@ -83,17 +83,17 @@ export default function SettingsPage() {
     const cleanUsername = usernameInput.trim().toLowerCase()
     if (cleanUsername !== (profile?.username || '')) {
       if (!cleanUsername || cleanUsername.length < 3) {
-        setUsernameError(lang === 'de' ? 'Mindestens 3 Zeichen' : 'At least 3 characters')
+        setUsernameError(t('settings.usernameMin'))
         setSavingProfile(false)
         return
       }
       if (cleanUsername.length > 20) {
-        setUsernameError(lang === 'de' ? 'Maximal 20 Zeichen' : 'Max 20 characters')
+        setUsernameError(t('settings.usernameMax'))
         setSavingProfile(false)
         return
       }
       if (!/^[a-z0-9_]+$/.test(cleanUsername)) {
-        setUsernameError(lang === 'de' ? 'Nur a-z, 0-9 und _' : 'Only a-z, 0-9, and _')
+        setUsernameError(t('settings.usernameChars'))
         setSavingProfile(false)
         return
       }
@@ -106,7 +106,7 @@ export default function SettingsPage() {
         .is('deleted_at', null)
         .limit(1)
       if (unameExists && unameExists.length > 0) {
-        setUsernameError(lang === 'de' ? 'Dieser Username ist bereits vergeben' : 'This username is already taken')
+        setUsernameError(t('settings.usernameTaken'))
         setSavingProfile(false)
         return
       }
@@ -122,7 +122,7 @@ export default function SettingsPage() {
         .is('deleted_at', null)
         .limit(1)
       if (existing && existing.length > 0) {
-        setDisplayNameError(lang === 'de' ? 'Dieser Name ist bereits vergeben' : 'This name is already taken')
+        setDisplayNameError(t('settings.displayNameTaken'))
         setSavingProfile(false)
         return
       }
@@ -156,7 +156,7 @@ export default function SettingsPage() {
     try {
       if (enable) {
         if (!isPushSupported()) {
-          alert('Dieser Browser unterstützt keine Push-Benachrichtigungen.')
+          alert(t('settings.pushNotSupported'))
           setPushLoading(false); return
         }
         // Register SW first
@@ -168,7 +168,7 @@ export default function SettingsPage() {
           setPushEnabled(true)
         } else {
           // Permission denied or failed
-          alert('Push-Berechtigung wurde verweigert oder fehlgeschlagen.')
+          alert(t('settings.pushDenied'))
         }
       } else {
         await unsubscribeFromPush(profile.id)
@@ -231,7 +231,7 @@ export default function SettingsPage() {
       <div style={{ padding:'0 16px' }}>
 
         {/* Profile Photo Section */}
-        <p style={sectionTitle}>PROFILBILD</p>
+        <p style={sectionTitle}>{t('settings.profilePhoto')}</p>
         <div style={{ ...card, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
           <ProfileImage
             size={80}
@@ -249,16 +249,16 @@ export default function SettingsPage() {
               fontSize: 10, letterSpacing: 2, cursor: 'pointer',
             }}
           >
-            FOTO ANPASSEN
+            {t('settings.adjustPhoto')}
           </button>
         </div>
 
         {/* Appearance / Theme Section */}
-        <p style={sectionTitle}>ERSCHEINUNGSBILD</p>
+        <p style={sectionTitle}>{t('settings.appearance')}</p>
         <div style={card}>
           <ToggleRow
-            label={lang === 'de' ? 'Dunkles Design' : 'Dark Mode'}
-            sub={lang === 'de' ? 'Wechsle zwischen hellem und dunklem Design' : 'Switch between light and dark theme'}
+            label={t('settings.darkMode')}
+            sub={t('settings.darkModeSub')}
             checked={theme === 'dark'}
             onChange={() => toggleTheme()}
           />
@@ -274,14 +274,14 @@ export default function SettingsPage() {
             <input
               value={usernameInput}
               onChange={e => { setUsernameInput(e.target.value.toLowerCase()); setUsernameError('') }}
-              placeholder="dein_name"
+              placeholder={t('settings.usernamePlaceholder')}
               autoCapitalize="none"
               style={{ ...inputStyle, border: usernameError ? '1px solid var(--status-error)' : '1px solid var(--gold-glow)' }}
             />
             {usernameError
               ? <p style={{ fontSize: 12, color: 'var(--status-error)', marginTop: 6 }}>{usernameError}</p>
               : <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                  {lang === 'de' ? 'Dein @-Handle · nur a-z, 0-9, _' : 'Your @-handle · only a-z, 0-9, _'}
+                  {t('settings.usernameHandle')}
                 </p>
             }
           </div>
@@ -299,7 +299,7 @@ export default function SettingsPage() {
               <p style={{ fontSize: 12, color: 'var(--status-error)', marginTop: 6 }}>{displayNameError}</p>
             )}
             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-              {lang === 'de' ? 'Dieser Name wird überall in der App angezeigt' : 'This name is shown everywhere in the app'}
+              {t('settings.displayNameShown')}
             </p>
           </div>
           <div style={{ marginBottom:16 }}>
@@ -334,8 +334,8 @@ export default function SettingsPage() {
           />
           <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 12, paddingTop: 12 }}>
             <ToggleRow
-              label={lang === 'de' ? 'Nachrichten auf Stories erlauben' : 'Allow DMs on stories'}
-              sub={lang === 'de' ? 'Andere können dir direkte Nachrichten über deine Stories senden' : 'Others can send you direct messages on your stories'}
+              label={t('settings.allowStoryDm')}
+              sub={t('settings.storyDmText')}
               checked={allowStoryDm}
               onChange={async (v) => {
                 setAllowStoryDm(v)
@@ -346,10 +346,10 @@ export default function SettingsPage() {
         </div>
 
         {/* Opponent Filter Section */}
-        <p style={sectionTitle}>GEGNER-FILTER</p>
+        <p style={sectionTitle}>{t('settings.opponentFilter')}</p>
         <div style={card}>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'var(--font-body)', lineHeight: 1.5, marginBottom: 16 }}>
-            Lege fest, wer dich herausfordern darf.
+            {t('settings.opponentFilterDesc')}
           </p>
 
           {/* Option 1: No filter */}
@@ -371,8 +371,8 @@ export default function SettingsPage() {
               )}
             </div>
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 14, color: 'var(--text-primary)' }}>Jeden akzeptieren</p>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Standard — alle können dich herausfordern</p>
+              <p style={{ fontSize: 14, color: 'var(--text-primary)' }}>{t('settings.acceptEveryone')}</p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{t('settings.acceptEveryoneSub')}</p>
             </div>
           </div>
 
@@ -398,8 +398,8 @@ export default function SettingsPage() {
               )}
             </div>
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 14, color: 'var(--text-primary)' }}>Mindest-Zuverlässigkeit</p>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Nur Gegner mit Score ≥ dem Mindestwert</p>
+              <p style={{ fontSize: 14, color: 'var(--text-primary)' }}>{t('settings.minReliability')}</p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{t('settings.minReliabilitySub')}</p>
             </div>
           </div>
 
@@ -407,7 +407,7 @@ export default function SettingsPage() {
           {opponentFilterEnabled && !opponentRequireConfirmation && (
             <div style={{ padding: '12px 0 8px', paddingLeft: 32 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Mindestwert</span>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t('settings.minScore')}</span>
                 <span style={{ fontFamily: 'var(--font-display)', fontSize: 16, color: 'var(--gold-primary)' }}>
                   {opponentMinReliability || 75}%
                 </span>
@@ -452,8 +452,8 @@ export default function SettingsPage() {
               )}
             </div>
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 14, color: 'var(--text-primary)' }}>Manuell bestätigen</p>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Jede neue Challenge einzeln freigeben</p>
+              <p style={{ fontSize: 14, color: 'var(--text-primary)' }}>{t('settings.manualConfirm')}</p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{t('settings.manualConfirmSub')}</p>
             </div>
           </div>
         </div>
@@ -496,7 +496,7 @@ export default function SettingsPage() {
           <p style={{ fontSize:15, color:'var(--text-primary)', marginBottom:4 }}>{t('settings.changePassword')}</p>
           <p style={{ fontSize:12, color:'var(--text-secondary)', marginBottom:14 }}>{t('settings.changePasswordText')}</p>
           {resetSent ? (
-            <p style={{ fontSize:14, color:'var(--status-active)', textAlign:'center', padding:'10px 0' }}>✓ E-Mail gesendet!</p>
+            <p style={{ fontSize:14, color:'var(--status-active)', textAlign:'center', padding:'10px 0' }}>✓ {t('settings.emailSent')}</p>
           ) : (
             <button
               onClick={sendPasswordReset}
@@ -509,17 +509,17 @@ export default function SettingsPage() {
         </div>
 
         {/* Push Notifications */}
-        <p style={sectionTitle}>BENACHRICHTIGUNGEN</p>
+        <p style={sectionTitle}>{t('settings.notifications').toUpperCase()}</p>
         <div style={card}>
           <ToggleRow
-            label="Push Benachrichtigungen"
-            sub="Erhalte Benachrichtigungen für neue Herausforderungen & Deal-Updates"
+            label={t('settings.pushLabel')}
+            sub={t('settings.pushSub')}
             checked={pushEnabled}
             onChange={togglePush}
           />
           {pushLoading && (
             <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 10, textAlign: 'center', fontFamily: 'var(--font-display)', letterSpacing: 1 }}>
-              WIRD EINGERICHTET...
+              {t('settings.pushSetting')}
             </p>
           )}
         </div>
@@ -573,7 +573,7 @@ export default function SettingsPage() {
               {deletingAccount ? '...' : t('settings.deleteAccountConfirm').toUpperCase()}
             </button>
             <button onClick={() => setDeleteOpen(false)} style={{ width:'100%', padding:14, borderRadius:12, border:'1px solid var(--border-subtle)', background:'transparent', color:'var(--text-secondary)', fontFamily:'var(--font-display)', fontSize:11, cursor:'pointer' }}>
-              {lang === 'de' ? 'ABBRECHEN' : 'CANCEL'}
+              {t('common.cancel')}
             </button>
           </div>
         </div>

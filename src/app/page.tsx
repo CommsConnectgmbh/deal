@@ -18,8 +18,8 @@ export default function RootPage() {
   }, [user, loading, router])
 
   return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100dvh', background:'#060606' }}>
-      <div style={{ width:40, height:40, border:'2px solid transparent', borderTopColor:'#FFB800', borderRadius:'50%', animation:'spin 0.8s linear infinite' }}/>
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100dvh', background:'var(--bg-base)' }}>
+      <div style={{ width:40, height:40, border:'2px solid transparent', borderTopColor:'var(--gold-primary)', borderRadius:'50%', animation:'spin 0.8s linear infinite' }}/>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )

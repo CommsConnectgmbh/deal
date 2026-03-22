@@ -2,9 +2,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 serve(async (req) => {
@@ -15,7 +18,7 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), { status: 401, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: corsHeaders })
     }
 
     const supabase = createClient(
@@ -23,19 +26,24 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Get user from JWT
-    const { data: { user }, error: authError } = await createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    ).auth.getUser()
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Unauthorized', details: authError?.message }), { status: 401, headers: corsHeaders })
+    }
+
+    // Rate limit: 20 opens per hour
+    const { data: allowed } = await supabase.rpc('check_rate_limit', {
+      p_user_id: user.id, p_action: 'open_reward_box', p_max_count: 20, p_window_minutes: 60
+    })
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { status: 429, headers: corsHeaders })
     }
 
     const { box_id } = await req.json()
-    if (!box_id) {
-      return new Response(JSON.stringify({ error: 'Missing box_id' }), { status: 400, headers: corsHeaders })
+    if (!box_id || !UUID_RE.test(box_id)) {
+      return new Response(JSON.stringify({ error: 'Invalid box_id' }), { status: 400, headers: corsHeaders })
     }
 
     // Get box info
@@ -44,22 +52,13 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Box not found' }), { status: 404, headers: corsHeaders })
     }
 
-    // Get user profile (coins)
-    const { data: profile } = await supabase.from('profiles').select('coins').eq('id', user.id).single()
-    if (!profile) {
-      return new Response(JSON.stringify({ error: 'Profile not found' }), { status: 404, headers: corsHeaders })
-    }
-
-    // Check coins
-    if (profile.coins < box.price_coins) {
+    // Atomic coin deduction (prevents race conditions)
+    const { data: deducted } = await supabase.rpc('deduct_coins', {
+      p_user_id: user.id, p_amount: box.price_coins
+    })
+    if (!deducted) {
       return new Response(JSON.stringify({ error: 'Not enough coins' }), { status: 400, headers: corsHeaders })
     }
-
-    // Deduct coins
-    await supabase
-      .from('profiles')
-      .update({ coins: profile.coins - box.price_coins })
-      .eq('id', user.id)
 
     // Log wallet ledger
     await supabase.from('wallet_ledger').insert({
@@ -101,7 +100,7 @@ serve(async (req) => {
     let itemEmoji = '🎁'
 
     if (winner.reward_type === 'coins') {
-      await supabase.from('profiles').update({ coins: profile.coins - box.price_coins + qty }).eq('id', user.id)
+      await supabase.rpc('add_coins', { p_user_id: user.id, p_amount: qty })
       await supabase.from('wallet_ledger').insert({
         user_id: user.id,
         delta: qty,

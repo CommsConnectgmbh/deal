@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
+import { useLang } from '@/contexts/LanguageContext'
 
 interface DailyReward {
   id: string
@@ -25,6 +26,7 @@ const RARITY_COLORS: Record<string, string> = {
 
 export default function DailyLoginPopup({ onClose }: { onClose: () => void }) {
   const { profile, refreshProfile } = useAuth()
+  const { t } = useLang()
   const [rewards,   setRewards]   = useState<DailyReward[]>([])
   const [userLogin, setUserLogin] = useState<UserLogin | null>(null)
   const [claiming,  setClaiming]  = useState(false)
@@ -93,7 +95,7 @@ export default function DailyLoginPopup({ onClose }: { onClose: () => void }) {
 
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.88)', display:'flex', alignItems:'flex-end', justifyContent:'center', zIndex:500, padding:'0 0 0 0' }}>
-      <div style={{ width:'100%', maxWidth:480, background:'#0D0D18', borderRadius:'24px 24px 0 0', border:'1px solid rgba(255,184,0,0.2)', padding:'24px 24px 48px' }}>
+      <div style={{ width:'100%', maxWidth:480, background:'var(--bg-deepest)', borderRadius:'24px 24px 0 0', border:'1px solid var(--border-subtle)', padding:'24px 24px 48px' }}>
 
         {/* Drag handle */}
         <div style={{ display:'flex', justifyContent:'center', marginBottom:20 }}>
@@ -102,11 +104,11 @@ export default function DailyLoginPopup({ onClose }: { onClose: () => void }) {
 
         {/* Title */}
         <div style={{ textAlign:'center', marginBottom:20 }}>
-          <p style={{ fontFamily:'Cinzel,serif', fontSize:10, letterSpacing:3, color:'#FFB80088', marginBottom:4 }}>TÄGLICHER LOGIN</p>
-          <h2 style={{ fontFamily:'Cinzel,serif', fontSize:20, color:'#F0ECE4', fontWeight:700 }}>
+          <p style={{ fontFamily:'var(--font-display)', fontSize:10, letterSpacing:3, color:'var(--gold-subtle)', marginBottom:4 }}>{t('components.dailyLogin')}</p>
+          <h2 style={{ fontFamily:'var(--font-display)', fontSize:20, color:'var(--text-primary)', fontWeight:700 }}>
             {alreadyClaimed || claimed ? '✅ Schon abgeholt!' : `Tag ${currentDay} von 7`}
           </h2>
-          <p style={{ fontSize:13, color:'#555', marginTop:4 }}>
+          <p style={{ fontSize:13, color:'var(--text-muted)', marginTop:4 }}>
             {(userLogin?.total_logins || 0)} Tage in Folge eingeloggt
           </p>
         </div>
@@ -122,13 +124,13 @@ export default function DailyLoginPopup({ onClose }: { onClose: () => void }) {
             return (
               <div key={r.day_number} style={{
                 flex:1, borderRadius:10,
-                border: isCurrent ? `2px solid ${rc}` : isPast ? '1px solid #4ade8033' : '1px solid #1a1a1a',
-                background: isCurrent ? `${rc}15` : isPast ? '#0D0D18' : '#0A0A0A',
+                border: isCurrent ? `2px solid ${rc}` : isPast ? '1px solid #4ade8033' : '1px solid var(--bg-elevated)',
+                background: isCurrent ? `${rc}15` : isPast ? 'var(--bg-deepest)' : 'var(--bg-deepest)',
                 padding:'8px 4px', textAlign:'center',
                 boxShadow: isCurrent ? `0 0 12px ${rc}33` : 'none',
                 animation: isCurrent && !claimed && !alreadyClaimed ? 'pulse 1.5s ease-in-out infinite' : 'none',
               }}>
-                <p style={{ fontSize:8, fontFamily:'Cinzel,serif', color: isCurrent ? rc : isPast ? '#4ade80' : '#444', marginBottom:4 }}>T{r.day_number}</p>
+                <p style={{ fontSize:8, fontFamily:'var(--font-display)', color: isCurrent ? rc : isPast ? '#4ade80' : '#444', marginBottom:4 }}>T{r.day_number}</p>
                 <p style={{ fontSize:14 }}>{isPast ? '✅' : isCurrent ? (r.reward_type === 'coins' ? '🪙' : '🎁') : '🔒'}</p>
                 <p style={{ fontSize:8, color: isCurrent ? rc : '#444', marginTop:4 }}>
                   {r.reward_type === 'coins' ? `${r.reward_amount}` : '🎁'}
@@ -140,12 +142,12 @@ export default function DailyLoginPopup({ onClose }: { onClose: () => void }) {
 
         {/* Today's Reward */}
         {todayReward && (
-          <div style={{ background:'#111', borderRadius:14, border:'1px solid rgba(255,184,0,0.15)', padding:'16px', marginBottom:20, textAlign:'center' }}>
-            <p style={{ fontSize:11, color:'#555', marginBottom:8, fontFamily:'Cinzel,serif', letterSpacing:1 }}>HEUTE'S REWARD</p>
+          <div style={{ background:'var(--bg-surface)', borderRadius:14, border:'1px solid var(--border-subtle)', padding:'16px', marginBottom:20, textAlign:'center' }}>
+            <p style={{ fontSize:11, color:'var(--text-muted)', marginBottom:8, fontFamily:'var(--font-display)', letterSpacing:1 }}>HEUTE'S REWARD</p>
             <p style={{ fontSize:28, marginBottom:8 }}>
               {showAnim ? '✨' : todayReward.reward_type === 'coins' ? '🪙' : '🎁'}
             </p>
-            <p style={{ fontFamily:'Cinzel,serif', fontSize:16, color:'#FFB800', fontWeight:700 }}>
+            <p style={{ fontFamily:'var(--font-display)', fontSize:16, color:'var(--gold-primary)', fontWeight:700 }}>
               {todayReward.reward_type === 'coins' ? `+${todayReward.reward_amount} Coins` : todayReward.name}
             </p>
           </div>
@@ -154,12 +156,12 @@ export default function DailyLoginPopup({ onClose }: { onClose: () => void }) {
         {/* CTA */}
         {!alreadyClaimed && !claimed ? (
           <button onClick={claimLogin} disabled={claiming}
-            style={{ width:'100%', padding:18, borderRadius:14, border:'none', cursor:'pointer', background:'linear-gradient(135deg,#CC8800,#FFB800)', color:'#000', fontFamily:'Cinzel,serif', fontSize:14, fontWeight:700, letterSpacing:2 }}>
+            style={{ width:'100%', padding:18, borderRadius:14, border:'none', cursor:'pointer', background:'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))', color:'var(--text-inverse)', fontFamily:'var(--font-display)', fontSize:14, fontWeight:700, letterSpacing:2 }}>
             {claiming ? '...' : '🎁 ABHOLEN'}
           </button>
         ) : (
           <button onClick={onClose}
-            style={{ width:'100%', padding:18, borderRadius:14, border:'1px solid #222', cursor:'pointer', background:'transparent', color:'#888', fontFamily:'Cinzel,serif', fontSize:13, letterSpacing:2 }}>
+            style={{ width:'100%', padding:18, borderRadius:14, border:'1px solid var(--border-subtle)', cursor:'pointer', background:'transparent', color:'var(--text-secondary)', fontFamily:'var(--font-display)', fontSize:13, letterSpacing:2 }}>
             ✅ SCHLIESSEN
           </button>
         )}

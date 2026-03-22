@@ -24,20 +24,20 @@ interface FollowUser {
   id: string; username: string; display_name: string; level: number
 }
 
-function timeAgo(iso: string) {
+function timeAgo(iso: string, t: (key: string) => string) {
   const d = Date.now() - new Date(iso).getTime()
   const m = Math.floor(d / 60000)
-  if (m < 1)  return 'Gerade eben'
-  if (m < 60) return `vor ${m}m`
+  if (m < 1)  return t('profile.timeJustNow')
+  if (m < 60) return t('profile.timeMinutes').replace('{n}', String(m))
   const h = Math.floor(m / 60)
-  if (h < 24) return `vor ${h}h`
-  return `vor ${Math.floor(h / 24)}d`
+  if (h < 24) return t('profile.timeHours').replace('{n}', String(h))
+  return t('profile.timeDays').replace('{n}', String(Math.floor(h / 24)))
 }
 
 export default function PublicProfilePage() {
   const { username } = useParams<{ username: string }>()
   const { profile: me } = useAuth()
-  const { lang } = useLang()
+  const { t, lang } = useLang()
   const router = useRouter()
 
   const [user,         setUser]         = useState<any>(null)
@@ -185,7 +185,7 @@ export default function PublicProfilePage() {
   )
   if (!user) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', background: 'var(--bg-base)' }}>
-      <p style={{ color: 'var(--text-secondary)' }}>Nutzer nicht gefunden</p>
+      <p style={{ color: 'var(--text-secondary)' }}>{t('profile.userNotFound')}</p>
     </div>
   )
 
@@ -208,9 +208,9 @@ export default function PublicProfilePage() {
       {isBlocked ? (
         <div style={{ padding: '60px 32px', textAlign: 'center' }}>
           <p style={{ fontSize: 40, marginBottom: 16 }}>🚫</p>
-          <p className="font-display" style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>Du hast diesen Nutzer blockiert.</p>
+          <p className="font-display" style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>{t('profile.blockedText')}</p>
           <button onClick={async () => { await supabase.from('blocked_users').delete().eq('blocker_id', me!.id).eq('blocked_id', user.id); setIsBlocked(false) }} style={{ padding: '10px 24px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: 'var(--font-display)', fontSize: 10, cursor: 'pointer' }}>
-            ENTBLOCKIEREN
+            {t('profile.unblock').toUpperCase()}
           </button>
         </div>
       ) : (
@@ -223,7 +223,17 @@ export default function PublicProfilePage() {
             <h2 style={{ fontSize: 20, color: 'var(--text-primary)', fontWeight: 700, marginBottom: 3 }}>
               {user.display_name || user.username}
             </h2>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>@{user.username}</p>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>@{user.username}</p>
+
+            {/* Status text */}
+            {user.status_text && (
+              <p style={{
+                fontSize: 12, color: 'rgba(255,255,255,0.5)', fontStyle: 'italic',
+                fontFamily: 'var(--font-body)', marginBottom: 6, padding: '2px 0',
+              }}>
+                {user.status_text}
+              </p>
+            )}
 
             {/* Archetype badge */}
             <div style={{ padding: '4px 14px', borderRadius: 20, background: `${archetypeData.color}18`, border: `1px solid ${archetypeData.color}44`, marginBottom: 8 }}>
@@ -233,7 +243,7 @@ export default function PublicProfilePage() {
             {user.is_private && (
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--bg-overlay)', borderRadius: 20, padding: '3px 12px', marginBottom: 8 }}>
                 <span style={{ fontSize: 10 }}>🔒</span>
-                <span className="font-display" style={{ fontSize: 8, color: 'var(--text-secondary)', letterSpacing: 1 }}>PRIVAT</span>
+                <span className="font-display" style={{ fontSize: 8, color: 'var(--text-secondary)', letterSpacing: 1 }}>{t('profile.privateProfile').toUpperCase()}</span>
               </div>
             )}
 
@@ -241,12 +251,12 @@ export default function PublicProfilePage() {
             <div style={{ display: 'flex', justifyContent: 'center', gap: 32, margin: '12px 0 16px' }}>
               <button onClick={() => openFollowModal('followers')} style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'center', padding: 0 }}>
                 <p className="font-display" style={{ fontSize: 20, color: 'var(--gold-primary)', marginBottom: 2 }}>{user.follower_count ?? 0}</p>
-                <p className="font-display" style={{ fontSize: 8, color: 'var(--text-secondary)', letterSpacing: 1 }}>FOLLOWER</p>
+                <p className="font-display" style={{ fontSize: 8, color: 'var(--text-secondary)', letterSpacing: 1 }}>{t('rivals.followers').toUpperCase()}</p>
               </button>
               <div style={{ width: 1, background: 'var(--border-subtle)' }} />
               <button onClick={() => openFollowModal('following')} style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'center', padding: 0 }}>
                 <p className="font-display" style={{ fontSize: 20, color: 'var(--gold-primary)', marginBottom: 2 }}>{user.following_count ?? 0}</p>
-                <p className="font-display" style={{ fontSize: 8, color: 'var(--text-secondary)', letterSpacing: 1 }}>FOLLOWS</p>
+                <p className="font-display" style={{ fontSize: 8, color: 'var(--text-secondary)', letterSpacing: 1 }}>{t('rivals.following').toUpperCase()}</p>
               </button>
             </div>
 
@@ -255,7 +265,7 @@ export default function PublicProfilePage() {
               {followStatus === 'accepted' ? (
                 <>
                   <button onClick={unfollow} disabled={fwLoading} style={{ padding: '11px 22px', borderRadius: 10, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 1, cursor: 'pointer' }}>
-                    {fwLoading ? '···' : 'ENTFOLGEN'}
+                    {fwLoading ? '···' : t('profile.unfollow').toUpperCase()}
                   </button>
                   <button onClick={toggleFavorite} style={{
                     width: 42, height: 42, borderRadius: 10, border: 'none', cursor: 'pointer',
@@ -269,16 +279,16 @@ export default function PublicProfilePage() {
                 </>
               ) : followStatus === 'pending' ? (
                 <button disabled style={{ padding: '11px 22px', borderRadius: 10, border: '1px solid var(--gold-glow)', background: 'var(--gold-subtle)', color: 'var(--gold-primary)', fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 1, opacity: 0.5 }}>
-                  ANGEFRAGT ⏳
+                  {t('profile.followPending').toUpperCase()} ⏳
                 </button>
               ) : (
                 <button onClick={follow} disabled={fwLoading} style={{ padding: '11px 22px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))', color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 700, letterSpacing: 1, cursor: 'pointer' }}>
-                  {fwLoading ? '···' : theirStatus === 'accepted' ? '+ ZURÜCKFOLGEN' : '+ FOLGEN'}
+                  {fwLoading ? '···' : theirStatus === 'accepted' ? `+ ${t('profile.followBack').toUpperCase()}` : `+ ${t('profile.follow').toUpperCase()}`}
                 </button>
               )}
               {followStatus === 'accepted' && (
                 <button onClick={startDM} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '11px 16px', borderRadius: 10, border: '1px solid var(--gold-glow)', background: 'var(--gold-subtle)', color: 'var(--gold-primary)', fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 1, cursor: 'pointer' }}>
-                  💬 NACHRICHT
+                  💬 {t('profile.message').toUpperCase()}
                 </button>
               )}
               {followStatus === 'accepted' && (
@@ -289,12 +299,12 @@ export default function PublicProfilePage() {
                   fontWeight: 700, letterSpacing: 1, cursor: 'pointer',
                   boxShadow: '0 4px 16px rgba(245,158,11,0.3)',
                 }}>
-                  ⚔️ HERAUSFORDERN
+                  ⚔️ {t('profile.challenge').toUpperCase()}
                 </button>
               )}
             </div>
             {theirStatus === 'accepted' && followStatus !== 'accepted' && (
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-body)', marginTop: 8 }}>Folgt dir</p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-body)', marginTop: 8 }}>{t('profile.followsYou')}</p>
             )}
           </div>
 
@@ -303,7 +313,7 @@ export default function PublicProfilePage() {
             <div style={{ margin: '0 24px', textAlign: 'center', padding: '32px 20px', background: 'var(--bg-surface)', borderRadius: 14, border: '1px solid var(--border-subtle)' }}>
               <p style={{ fontSize: 32, marginBottom: 12 }}>🔒</p>
               <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: 'var(--font-body)' }}>
-                {lang === 'de' ? 'Folge diesem Konto, um Inhalte zu sehen.' : 'Follow this account to see their content.'}
+                {t('profile.followContent')}
               </p>
             </div>
           ) : (
@@ -312,14 +322,14 @@ export default function PublicProfilePage() {
               <div style={{ margin: '0 16px 12px' }}>
                 <div style={{ background: 'var(--bg-deepest)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: 16 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                    <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--text-muted)' }}>STATISTIKEN</p>
+                    <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--text-muted)' }}>{t('profile.stats').toUpperCase()}</p>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
                     {[
+                      { label: 'SCORE', val: user.reliability_score != null ? `${Math.round((user.reliability_score as number) * 100)}%` : '—', color: user.reliability_color === 'green' ? '#22C55E' : user.reliability_color === 'yellow' ? '#EAB308' : user.reliability_color === 'red' ? '#EF4444' : 'var(--text-muted)' },
                       { label: 'DEALS', val: user.deals_total || 0, color: 'var(--status-info)' },
                       { label: 'WIN%', val: `${user.wins && user.deals_total ? Math.round((user.wins / user.deals_total) * 100) : 0}%`, color: '#4ade80' },
                       { label: 'STREAK', val: user.streak || 0, color: 'var(--status-warning)', icon: '\u{1F525}' },
-                      { label: 'ZUVERL.', val: user.reliability_score != null ? `${Math.round((user.reliability_score as number) * 100)}%` : '—', color: user.reliability_color === 'green' ? '#22C55E' : user.reliability_color === 'yellow' ? '#EAB308' : user.reliability_color === 'red' ? '#EF4444' : 'var(--text-muted)' },
                       { label: 'LEVEL', val: user.level || 1, color: 'var(--gold-primary)' },
                     ].map(s => (
                       <div key={s.label} style={{
@@ -335,9 +345,9 @@ export default function PublicProfilePage() {
                   </div>
                   {/* Rival + Best Streak */}
                   <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'var(--font-body)', textAlign: 'center' }}>
-                    Siege: <strong style={{ color: 'var(--text-primary)' }}>{user.wins || 0}</strong>
-                    {' \u00B7 '}Bester Streak: <strong style={{ color: 'var(--text-primary)' }}>{user.longest_streak || user.streak || 0}</strong>
-                    {' \u00B7 '}Losses: <strong style={{ color: 'var(--text-primary)' }}>{user.losses || 0}</strong>
+                    {t('profile.victories')}: <strong style={{ color: 'var(--text-primary)' }}>{user.wins || 0}</strong>
+                    {' \u00B7 '}{t('profile.bestStreak')}: <strong style={{ color: 'var(--text-primary)' }}>{user.longest_streak || user.streak || 0}</strong>
+                    {' \u00B7 '}{t('profile.losses')}: <strong style={{ color: 'var(--text-primary)' }}>{user.losses || 0}</strong>
                   </div>
                 </div>
               </div>
@@ -345,7 +355,7 @@ export default function PublicProfilePage() {
               {/* ── Battle Card ────────────────────────────── */}
               {user.equipped_card_image_url ? (
                 <div style={{ margin: '0 16px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 3, color: 'var(--gold-primary)', marginBottom: 14 }}>BATTLE CARD</p>
+                  <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 3, color: 'var(--gold-primary)', marginBottom: 14 }}>{t('profile.battleCard').toUpperCase()}</p>
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
                     <AvatarFrame
                       frameType={(user.active_frame as any) || 'none'}
@@ -360,14 +370,14 @@ export default function PublicProfilePage() {
                 </div>
               ) : (
                 <div style={{ margin: '0 16px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 3, color: 'var(--gold-primary)', marginBottom: 16 }}>BATTLE CARD</p>
+                  <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 3, color: 'var(--gold-primary)', marginBottom: 16 }}>{t('profile.battleCard').toUpperCase()}</p>
                   <div style={{
                     width: 140, height: 200, borderRadius: 16,
                     background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.1)',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
                   }}>
                     <span style={{ fontSize: 32, opacity: 0.3 }}>{'\u{1F0CF}'}</span>
-                    <span style={{ fontFamily: 'var(--font-display)', fontSize: 8, color: 'var(--text-muted)', letterSpacing: 1 }}>NOCH KEINE KARTE</span>
+                    <span style={{ fontFamily: 'var(--font-display)', fontSize: 8, color: 'var(--text-muted)', letterSpacing: 1 }}>{t('profile.noCard').toUpperCase()}</span>
                   </div>
                 </div>
               )}
@@ -381,8 +391,8 @@ export default function PublicProfilePage() {
                 return (
                   <div style={{ margin: '0 16px 16px', background: 'var(--bg-deepest)', borderRadius: 14, border: '1px solid var(--border-subtle)', padding: 16 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--text-muted)' }}>SEASON 1</p>
-                      <span style={{ fontFamily: 'var(--font-display)', fontSize: 10, color: 'var(--gold-primary)' }}>Level {level}</span>
+                      <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--text-muted)' }}>{t('battlepass.season').toUpperCase()}</p>
+                      <span style={{ fontFamily: 'var(--font-display)', fontSize: 10, color: 'var(--gold-primary)' }}>{t('profile.level')} {level}</span>
                     </div>
 
                     {/* XP bar */}
@@ -393,7 +403,7 @@ export default function PublicProfilePage() {
 
                     {/* Battle Pass preview */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--gold-primary)' }}>BATTLE PASS</p>
+                      <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--gold-primary)' }}>{t('profile.battlePass').toUpperCase()}</p>
                       <span style={{ fontFamily: 'var(--font-display)', fontSize: 8, color: user.battle_pass_premium ? 'var(--gold-primary)' : 'var(--text-muted)', padding: '3px 8px', borderRadius: 8, background: user.battle_pass_premium ? 'var(--gold-subtle)' : 'var(--bg-overlay)', border: `1px solid ${user.battle_pass_premium ? 'var(--gold-glow)' : 'var(--border-subtle)'}` }}>
                         {user.battle_pass_premium ? 'PREMIUM' : 'FREE'}
                       </span>
@@ -419,11 +429,11 @@ export default function PublicProfilePage() {
 
               {/* ── Deals List ─────────────────────────────────────────── */}
               <div style={{ margin: '0 16px 16px', background: 'var(--bg-deepest)', borderRadius: 14, border: '1px solid var(--border-subtle)', padding: 16 }}>
-                <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--text-muted)', marginBottom: 12 }}>DEALS</p>
+                <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--text-muted)', marginBottom: 12 }}>{t('deals.title').toUpperCase()}</p>
                 {publicDeals.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: 24 }}>
                     <p style={{ fontSize: 28, marginBottom: 6 }}>⚡</p>
-                    <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text-secondary)' }}>Noch keine Deals</p>
+                    <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text-secondary)' }}>{t('profile.noDealsPublic')}</p>
                   </div>
                 ) : (
                   <>
@@ -431,8 +441,8 @@ export default function PublicProfilePage() {
                       const statusDeals = publicDeals.filter((d: any) => d.status === status)
                       if (statusDeals.length === 0) return null
                       const statusLabels: Record<string, string> = {
-                        active: 'AKTIV', open: 'OFFEN', pending: 'EINGELADEN',
-                        pending_confirmation: 'BEST\u00C4TIGUNG', completed: 'ABGESCHLOSSEN',
+                        active: t('profile.statusActive').toUpperCase(), open: t('profile.statusOpen').toUpperCase(), pending: t('profile.statusPending').toUpperCase(),
+                        pending_confirmation: t('profile.statusConfirmation').toUpperCase(), completed: t('profile.statusCompleted').toUpperCase(),
                       }
                       const statusColors: Record<string, string> = {
                         active: '#4ade80', open: '#FFB800', pending: '#f97316',
@@ -463,7 +473,7 @@ export default function PublicProfilePage() {
                                     {deal.title}
                                   </p>
                                   <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                                    vs @{otherUser?.username || 'Offen'} · {deal.stake}
+                                    vs @{otherUser?.username || t('deals.status.open')} · {deal.stake}
                                   </p>
                                 </div>
                                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{'\u203A'}</span>
@@ -481,7 +491,7 @@ export default function PublicProfilePage() {
               {/* Activity Feed */}
               {activity.length > 0 && (
                 <div style={{ margin: '0 16px 16px' }}>
-                  <p className="font-display" style={{ fontSize: 9, letterSpacing: 3, color: 'var(--text-muted)', marginBottom: 10 }}>AKTIVIT{'\u00C4'}T</p>
+                  <p className="font-display" style={{ fontSize: 9, letterSpacing: 3, color: 'var(--text-muted)', marginBottom: 10 }}>{t('profile.activity').toUpperCase()}</p>
                   {activity.slice(0, 6).map((a: any, i: number) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                       <span style={{ fontSize: 18, width: 28, textAlign: 'center' }}>
@@ -489,10 +499,10 @@ export default function PublicProfilePage() {
                       </span>
                       <div style={{ flex: 1 }}>
                         <p style={{ fontSize: 13, color: 'var(--text-primary)' }}>
-                          {a.action === 'confirm_winner' ? 'Deal abgeschlossen' : a.action === 'accept' ? 'Deal angenommen' : 'Deal erstellt'}
+                          {a.action === 'confirm_winner' ? t('profile.dealCompleted') : a.action === 'accept' ? t('profile.dealAccepted') : t('profile.dealCreated')}
                           {a.deal?.title ? ` \u2013 ${a.deal.title}` : ''}
                         </p>
-                        <p style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>{timeAgo(a.created_at)}</p>
+                        <p style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>{timeAgo(a.created_at, t)}</p>
                       </div>
                     </div>
                   ))}
@@ -513,9 +523,9 @@ export default function PublicProfilePage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 300, display: 'flex', alignItems: 'flex-end' }} onClick={() => setModal(null)}>
           <div style={{ width: '100%', maxWidth: 430, margin: '0 auto', background: 'var(--bg-surface)', borderRadius: '20px 20px 0 0', border: '1px solid var(--border-subtle)', padding: '20px 20px 48px', maxHeight: '70vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ width: 36, height: 4, background: 'var(--bg-overlay)', borderRadius: 2, margin: '0 auto 20px' }} />
-            <p className="font-display" style={{ fontSize: 14, color: 'var(--text-primary)', textAlign: 'center', marginBottom: 16, letterSpacing: 1 }}>{modal === 'followers' ? 'FOLLOWER' : 'FOLLOWS'}</p>
+            <p className="font-display" style={{ fontSize: 14, color: 'var(--text-primary)', textAlign: 'center', marginBottom: 16, letterSpacing: 1 }}>{modal === 'followers' ? t('rivals.followers').toUpperCase() : t('rivals.following').toUpperCase()}</p>
             {modalList.length === 0
-              ? <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, fontFamily: 'var(--font-body)', paddingTop: 20 }}>Niemand hier</p>
+              ? <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, fontFamily: 'var(--font-body)', paddingTop: 20 }}>{t('profile.nobodyHere')}</p>
               : modalList.map(u => (
                 <div key={u.id} onClick={() => { setModal(null); router.push(`/app/profile/${u.username}`) }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer' }}>
                   <ProfileImage size={40} name={u.username} />
@@ -536,15 +546,15 @@ export default function PublicProfilePage() {
           <div style={{ width: '100%', maxWidth: 430, margin: '0 auto', background: 'var(--bg-surface)', borderRadius: '20px 20px 0 0', border: '1px solid var(--border-subtle)', padding: '20px 20px 48px' }} onClick={e => e.stopPropagation()}>
             <div style={{ width: 36, height: 4, background: 'var(--bg-overlay)', borderRadius: 2, margin: '0 auto 20px' }} />
             {[
-              { label: '🚩 MELDEN',     action: () => { setModal('report') }, color: 'var(--status-error)' },
-              { label: '🚫 BLOCKIEREN', action: blockUser,                    color: 'var(--status-error)' },
+              { label: `🚩 ${t('profile.report').toUpperCase()}`,     action: () => { setModal('report') }, color: 'var(--status-error)' },
+              { label: `🚫 ${t('profile.block').toUpperCase()}`, action: blockUser,                    color: 'var(--status-error)' },
             ].map(opt => (
               <button key={opt.label} onClick={opt.action} style={{ width: '100%', padding: '14px', borderRadius: 10, border: '1px solid var(--border-subtle)', background: 'transparent', color: opt.color, fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 1, cursor: 'pointer', marginBottom: 8 }}>
                 {opt.label}
               </button>
             ))}
             <button onClick={() => setModal(null)} style={{ width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: 'var(--bg-overlay)', color: 'var(--text-secondary)', fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 1, cursor: 'pointer' }}>
-              ABBRECHEN
+              {t('deals.cancel').toUpperCase()}
             </button>
           </div>
         </div>
@@ -555,17 +565,17 @@ export default function PublicProfilePage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 300, display: 'flex', alignItems: 'flex-end' }} onClick={() => setModal(null)}>
           <div style={{ width: '100%', maxWidth: 430, margin: '0 auto', background: 'var(--bg-surface)', borderRadius: '20px 20px 0 0', border: '1px solid var(--border-subtle)', padding: '20px 20px 48px' }} onClick={e => e.stopPropagation()}>
             <div style={{ width: 36, height: 4, background: 'var(--bg-overlay)', borderRadius: 2, margin: '0 auto 20px' }} />
-            <p className="font-display" style={{ fontSize: 14, color: 'var(--text-primary)', textAlign: 'center', marginBottom: 16 }}>MELDEN</p>
+            <p className="font-display" style={{ fontSize: 14, color: 'var(--text-primary)', textAlign: 'center', marginBottom: 16 }}>{t('profile.reportTitle').toUpperCase()}</p>
             {reportSent ? (
               <div style={{ textAlign: 'center', padding: '20px 0' }}>
                 <p style={{ fontSize: 32, marginBottom: 12 }}>✅</p>
-                <p style={{ color: 'var(--status-active)', fontSize: 13 }}>Meldung eingereicht. Danke!</p>
+                <p style={{ color: 'var(--status-active)', fontSize: 13 }}>{t('profile.reportSent')}</p>
               </div>
             ) : (
               <>
-                <textarea value={reportMsg} onChange={e => setReportMsg(e.target.value)} placeholder="Warum meldest du diesen Nutzer?" rows={4} style={{ width: '100%', padding: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10, color: 'var(--text-primary)', fontSize: 14, fontFamily: 'var(--font-body)', outline: 'none', resize: 'none', marginBottom: 12, boxSizing: 'border-box' }} />
+                <textarea value={reportMsg} onChange={e => setReportMsg(e.target.value)} placeholder={t('profile.reportPlaceholder')} rows={4} style={{ width: '100%', padding: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10, color: 'var(--text-primary)', fontSize: 14, fontFamily: 'var(--font-body)', outline: 'none', resize: 'none', marginBottom: 12, boxSizing: 'border-box' }} />
                 <button onClick={sendReport} disabled={!reportMsg.trim()} style={{ width: '100%', padding: '13px', borderRadius: 10, border: 'none', background: reportMsg.trim() ? 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))' : 'var(--bg-overlay)', color: reportMsg.trim() ? 'var(--text-inverse)' : 'var(--text-muted)', fontFamily: 'var(--font-display)', fontSize: 11, fontWeight: 700, letterSpacing: 1, cursor: reportMsg.trim() ? 'pointer' : 'default' }}>
-                  SENDEN
+                  {t('profile.reportSend').toUpperCase()}
                 </button>
               </>
             )}

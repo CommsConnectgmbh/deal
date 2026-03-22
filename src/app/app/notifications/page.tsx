@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import MiniEventCard from '@/components/MiniEventCard'
 import { aggregateFeedEvents, type FeedEvent, type FeedEventItem } from '@/components/MiniEventCard'
+import { useLang } from '@/contexts/LanguageContext'
 
 interface Notif {
   id: string
@@ -66,10 +67,10 @@ const TYPE_COLOR: Record<string, string> = {
   default:             '#9CA3AF',
 }
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, t: (key: string) => string): string {
   const diff = Date.now() - new Date(iso).getTime()
   const m = Math.floor(diff / 60000)
-  if (m < 1)   return 'Jetzt'
+  if (m < 1)   return t('notifications.now')
   if (m < 60)  return `${m}m`
   const h = Math.floor(m / 60)
   if (h < 24)  return `${h}h`
@@ -79,6 +80,7 @@ function timeAgo(iso: string): string {
 export default function NotificationsPage() {
   const { profile } = useAuth()
   const router = useRouter()
+  const { t } = useLang()
   const [notifs, setNotifs] = useState<Notif[]>([])
   const [feedEvents, setFeedEvents] = useState<FeedEventItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -159,7 +161,7 @@ export default function NotificationsPage() {
         user_id: n.reference_id,
         type: 'follow_accepted',
         title: profile.display_name || profile.username || '',
-        body: 'hat deine Anfrage angenommen',
+        body: t('notifications.acceptedRequest'),
         reference_id: profile.username,
       })
     } else {
@@ -176,7 +178,7 @@ export default function NotificationsPage() {
     <div style={{ minHeight: '100dvh', background: 'var(--bg-base)', paddingTop: 60, paddingBottom: 100 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 20px 12px' }}>
         <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 20, cursor: 'pointer', padding: 0 }}>←</button>
-        <h1 className="font-display" style={{ fontSize: 22, color: 'var(--text-primary)', letterSpacing: 1 }}>BENACHRICHTIGUNGEN</h1>
+        <h1 className="font-display" style={{ fontSize: 22, color: 'var(--text-primary)', letterSpacing: 1 }}>{t('notifications.title').toUpperCase()}</h1>
       </div>
 
       {/* Tabs */}
@@ -189,7 +191,7 @@ export default function NotificationsPage() {
             fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
             transition: 'all 0.2s',
           }}>
-            {tab === 'notifs' ? '🔔 WICHTIG' : '📋 AKTIVITÄT'}
+            {tab === 'notifs' ? `🔔 ${t('notifications.important')}` : `📋 ${t('notifications.activity')}`}
           </button>
         ))}
       </div>
@@ -204,9 +206,9 @@ export default function NotificationsPage() {
         feedEvents.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '80px 32px' }}>
             <div style={{ fontSize: 52, marginBottom: 16 }}>📋</div>
-            <p className="font-display" style={{ fontSize: 16, color: 'var(--text-secondary)', marginBottom: 8 }}>KEINE AKTIVITÄT</p>
+            <p className="font-display" style={{ fontSize: 16, color: 'var(--text-secondary)', marginBottom: 8 }}>{t('notifications.noActivity')}</p>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: 'Crimson Text, serif' }}>
-              Hier erscheinen Aktivitäten der letzten 7 Tage.
+              {t('notifications.noActivityText')}
             </p>
           </div>
         ) : (
@@ -221,9 +223,9 @@ export default function NotificationsPage() {
       ) : notifs.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 32px' }}>
           <div style={{ fontSize: 52, marginBottom: 16 }}>🔔</div>
-          <p className="font-display" style={{ fontSize: 16, color: 'var(--text-secondary)', marginBottom: 8 }}>KEINE BENACHRICHTIGUNGEN</p>
+          <p className="font-display" style={{ fontSize: 16, color: 'var(--text-secondary)', marginBottom: 8 }}>{t('notifications.noNotifications')}</p>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: 'Crimson Text, serif' }}>
-            Du bist auf dem aktuellsten Stand.
+            {t('notifications.upToDate')}
           </p>
         </div>
       ) : (
@@ -262,7 +264,7 @@ export default function NotificationsPage() {
                       {n.title}
                     </span>
                     <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0, marginLeft: 8 }}>
-                      {timeAgo(n.created_at)}
+                      {timeAgo(n.created_at, t)}
                     </span>
                   </div>
                   {n.body && (
@@ -280,7 +282,7 @@ export default function NotificationsPage() {
                           background: 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))',
                           color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 9, fontWeight: 700, letterSpacing: 1,
                         }}
-                      >ANNEHMEN</button>
+                      >{t('notifications.accept')}</button>
                       <button
                         onClick={() => handleFollowRequest(n, 'decline')}
                         style={{
@@ -288,7 +290,7 @@ export default function NotificationsPage() {
                           background: 'transparent', border: '1px solid var(--border-subtle)',
                           color: 'var(--text-secondary)', fontFamily: 'var(--font-display)', fontSize: 9, letterSpacing: 1,
                         }}
-                      >ABLEHNEN</button>
+                      >{t('notifications.decline')}</button>
                     </div>
                   )}
                 </div>

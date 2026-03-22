@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "src/app/api/upload-media/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}

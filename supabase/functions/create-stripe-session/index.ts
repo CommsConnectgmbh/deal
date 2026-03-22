@@ -8,6 +8,7 @@ import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 const PRODUCTS = {
@@ -38,16 +39,32 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: corsHeaders })
+    }
+
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, { apiVersion: '2023-10-16' })
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized', details: authError?.message }), { status: 401, headers: corsHeaders })
+    }
+
+    // Rate limit: 5 checkout sessions per hour
+    const { data: allowed } = await supabase.rpc('check_rate_limit', {
+      p_user_id: user.id, p_action: 'stripe_checkout', p_max_count: 5, p_window_minutes: 60
+    })
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { status: 429, headers: corsHeaders })
+    }
 
     const { product_type, success_url, cancel_url } = await req.json()
 
@@ -56,8 +73,7 @@ serve(async (req) => {
 
     // Check if premium pass already owned
     if (product_type === 'premium_pass') {
-      const sbAdmin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
-      const { data: bp } = await sbAdmin
+      const { data: bp } = await supabase
         .from('user_battlepass')
         .select('premium_unlocked')
         .eq('user_id', user.id)
@@ -92,8 +108,7 @@ serve(async (req) => {
     })
 
     // Store pending transaction
-    const sbAdmin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
-    await sbAdmin.from('stripe_transactions').insert({
+    await supabase.from('stripe_transactions').insert({
       user_id: user.id,
       session_id: session.id,
       status: 'pending',

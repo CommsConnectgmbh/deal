@@ -4,6 +4,7 @@ import Link from 'next/link'
 import AvatarDisplay, { StreakFlame } from '@/components/AvatarDisplay'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
+import { useLang } from '@/contexts/LanguageContext'
 
 const STATUS_COLORS: Record<string, string> = {
   open:                 '#FFB800',
@@ -14,33 +15,7 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled:            '#f87171',
   disputed:             '#ef4444',
 }
-const STATUS_LABELS: Record<string, string> = {
-  open:                 'OFFEN',
-  pending:              'EINGELADEN',
-  active:               'AKTIV',
-  pending_confirmation: 'BESTÄTIGUNG',
-  completed:            'ABGESCHLOSSEN',
-  cancelled:            'ABGEBROCHEN',
-  disputed:             'STREIT',
-}
-const CATEGORY_ICONS: Record<string, string> = {
-  fitness: '🏋️',
-  gaming:  '🎮',
-  wissen:  '📚',
-  social:  '🍺',
-  custom:  '🎯',
-}
 const REACTION_EMOJIS = { fire:'🔥', funny:'😂', shocked:'😱', savage:'💀' }
-
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const m = Math.floor(diff / 60000)
-  if (m < 1) return 'gerade eben'
-  if (m < 60) return `vor ${m} Min.`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `vor ${h} Std.`
-  return `vor ${Math.floor(h / 24)} Tag${Math.floor(h / 24) !== 1 ? 'en' : ''}`
-}
 
 interface AvatarCfg { skin_tone?:string; hair?:string; top?:string; bottom?:string; shoes?:string; accessory?:string; headwear?:string|null; background?:string; body?:string; outfit?:string }
 interface ReactionCounts { fire:number; funny:number; shocked:number; savage:number }
@@ -76,6 +51,29 @@ export default function DealCard({
   onReact, myReaction,
 }: Props) {
   const { profile } = useAuth()
+  const { t } = useLang()
+
+  const STATUS_LABELS: Record<string, string> = {
+    open:                 t('components.statusOpen'),
+    pending:              t('components.statusInvited'),
+    active:               t('components.statusActive'),
+    pending_confirmation: t('components.statusConfirmation'),
+    completed:            t('components.statusCompleted'),
+    cancelled:            t('components.statusCancelled'),
+    disputed:             t('components.statusDispute'),
+  }
+
+  function timeAgo(dateStr: string) {
+    const diff = Date.now() - new Date(dateStr).getTime()
+    const m = Math.floor(diff / 60000)
+    if (m < 1) return t('components.timeJustNow')
+    if (m < 60) return t('components.timeMinutes').replace('{n}', String(m))
+    const h = Math.floor(m / 60)
+    if (h < 24) return t('components.timeHours').replace('{n}', String(h))
+    const d = Math.floor(h / 24)
+    return d === 1 ? t('components.timeDaySingular').replace('{n}', String(d)) : t('components.timeDays').replace('{n}', String(d))
+  }
+
   const [reactions, setReactions] = useState<ReactionCounts>({ fire:0, funny:0, shocked:0, savage:0 })
   const [myRx, setMyRx] = useState<string | null>(myReaction || null)
   const [rxLoaded, setRxLoaded] = useState(false)
@@ -159,14 +157,11 @@ export default function DealCard({
                 )}
               </div>
               <span style={{ fontSize:10, color:'#aaa', fontWeight:600 }}>@{deal.creator?.username || '?'}</span>
-              {!compact && <span style={{ fontSize:9, color:'#555' }}>Lv. {deal.creator?.level || 1}</span>}
+              {!compact && <span style={{ fontSize:9, color:'#555' }}>Lv.{deal.creator?.level || 1}</span>}
             </div>
 
             {/* VS + Category + Status */}
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, flexShrink:0 }}>
-              {deal.category && (
-                <span style={{ fontSize:16 }}>{CATEGORY_ICONS[deal.category] || '🎯'}</span>
-              )}
               <span style={{
                 fontFamily:'Cinzel,serif', fontSize: compact ? 18 : 22, fontWeight:900,
                 color:'#FFB800', letterSpacing:2,
@@ -199,9 +194,9 @@ export default function DealCard({
                 )}
               </div>
               <span style={{ fontSize:10, color:'#aaa', fontWeight:600 }}>
-                {deal.opponent ? `@${deal.opponent.username}` : 'Offen'}
+                {deal.opponent ? `@${deal.opponent.username}` : t('components.statusOpen')}
               </span>
-              {!compact && <span style={{ fontSize:9, color:'#555' }}>Lv. {deal.opponent?.level || '?'}</span>}
+              {!compact && <span style={{ fontSize:9, color:'#555' }}>Lv.{deal.opponent?.level || '?'}</span>}
             </div>
           </div>
 
@@ -218,7 +213,7 @@ export default function DealCard({
           {deal.stake && (
             <div style={{ textAlign:'center', marginBottom: compact ? 6 : 8 }}>
               <span style={{ fontSize: compact ? 12 : 13, color:'#F59E0B', fontWeight:600 }}>
-                🎯 Einsatz: {deal.stake}
+                {t('components.stakeLabel')}: {deal.stake}
               </span>
             </div>
           )}
@@ -226,7 +221,7 @@ export default function DealCard({
           {/* Footer */}
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
             <span style={{ fontSize:11, color:'#555' }}>⏱ {timeAgo(deal.created_at)}</span>
-            {deal.is_public && <span style={{ fontSize:10, color:'#444' }}>🌐 Öffentlich</span>}
+            {deal.is_public && <span style={{ fontSize:10, color:'#444' }}>🌐 {t('components.public')}</span>}
           </div>
         </div>
 

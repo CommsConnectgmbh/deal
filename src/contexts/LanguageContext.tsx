@@ -1,8 +1,19 @@
 'use client'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
-type Lang = 'de' | 'en'
+export type Lang = 'de' | 'en' | 'fr' | 'es' | 'it' | 'ru' | 'ar' | 'hi'
 type Messages = Record<string, any>
+
+export const LANGUAGES: { code: Lang; label: string; flag: string }[] = [
+  { code: 'de', label: 'Deutsch',   flag: '🇩🇪' },
+  { code: 'en', label: 'English',   flag: '🇬🇧' },
+  { code: 'fr', label: 'Français',  flag: '🇫🇷' },
+  { code: 'es', label: 'Español',   flag: '🇪🇸' },
+  { code: 'it', label: 'Italiano',  flag: '🇮🇹' },
+  { code: 'ru', label: 'Русский',   flag: '🇷🇺' },
+  { code: 'ar', label: 'العربية',   flag: '🇸🇦' },
+  { code: 'hi', label: 'हिन्दी',     flag: '🇮🇳' },
+]
 
 const LanguageContext = createContext<{
   lang: Lang
@@ -16,15 +27,31 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const stored = localStorage.getItem('db_lang') as Lang | null
-    const initial = stored || 'de'
+    const valid: Lang[] = ['de', 'en', 'fr', 'es', 'it', 'ru', 'ar', 'hi']
+    const initial = stored && valid.includes(stored) ? stored : 'de'
     setLangState(initial)
     loadMessages(initial)
   }, [])
 
+  // Keep <html lang="..."> in sync
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = lang
+    }
+  }, [lang])
+
   const loadMessages = async (l: Lang) => {
-    const msgs = l === 'de'
-      ? await import('../../messages/de.json')
-      : await import('../../messages/en.json')
+    let msgs: any
+    switch (l) {
+      case 'en': msgs = await import('../../messages/en.json'); break
+      case 'fr': msgs = await import('../../messages/fr.json'); break
+      case 'es': msgs = await import('../../messages/es.json'); break
+      case 'it': msgs = await import('../../messages/it.json'); break
+      case 'ru': msgs = await import('../../messages/ru.json'); break
+      case 'ar': msgs = await import('../../messages/ar.json'); break
+      case 'hi': msgs = await import('../../messages/hi.json'); break
+      default:   msgs = await import('../../messages/de.json'); break
+    }
     setMessages(msgs.default)
   }
 

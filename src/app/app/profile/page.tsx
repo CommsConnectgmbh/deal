@@ -7,6 +7,7 @@ import { getEquippedCard, type EquippedCard } from '@/lib/card-helpers'
 import CoinIcon from '@/components/CoinIcon'
 import ProfileImage from '@/components/ProfileImage'
 import ProfileImageLightbox from '@/components/ProfileImageLightbox'
+import { useLang } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
 
 /* ─── Helpers ─── */
@@ -64,6 +65,7 @@ interface RivalData { rival_id: string; total_deals: number; profiles?: { userna
 export default function ProfilePage() {
   const { profile, signOut } = useAuth()
   const router = useRouter()
+  const { t } = useLang()
 
   const [followerCount, setFollowerCount] = useState(0)
   const [followingCount, setFollowingCount] = useState(0)
@@ -77,6 +79,8 @@ export default function ProfilePage() {
   const [dealsLoading, setDealsLoading] = useState(true)
   const [equippedCard, setEquippedCard] = useState<EquippedCard | null>(null)
   const [globalRank, setGlobalRank] = useState(0)
+  const [editingStatus, setEditingStatus] = useState(false)
+  const [statusDraft, setStatusDraft] = useState('')
 
   const loadProfileImages = useCallback(async () => {
     if (!profile) return
@@ -160,7 +164,7 @@ export default function ProfilePage() {
 
       {/* ═══ HEADER ═══ */}
       <div style={{ padding: '0 20px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'var(--text-primary)', letterSpacing: 2 }}>PROFIL</h1>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'var(--text-primary)', letterSpacing: 2 }}>{t('profile.title').toUpperCase()}</h1>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button onClick={() => router.push('/app/discover')} style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 16, padding: '6px 10px' }}>
             {'\u{1F50D}'}
@@ -185,16 +189,52 @@ export default function ProfilePage() {
           )}
         </div>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 20, color: 'var(--text-primary)', marginBottom: 2 }}>{profile?.display_name || profile?.username}</h2>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>@{profile?.username}</p>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>@{profile?.username}</p>
+
+        {/* Status text */}
+        {editingStatus ? (
+          <input
+            autoFocus
+            maxLength={60}
+            value={statusDraft}
+            onChange={e => setStatusDraft(e.target.value)}
+            onBlur={async () => {
+              setEditingStatus(false)
+              const trimmed = statusDraft.trim()
+              if (trimmed !== (profile?.status_text || '')) {
+                await supabase.from('profiles').update({ status_text: trimmed || null, status_updated_at: new Date().toISOString() }).eq('id', profile!.id)
+              }
+            }}
+            onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+            placeholder={t('profile.statusPlaceholder')}
+            style={{
+              background: 'transparent', border: 'none', borderBottom: '1px solid var(--gold-primary)',
+              color: 'rgba(255,255,255,0.7)', fontStyle: 'italic', fontFamily: 'var(--font-body)',
+              fontSize: 12, textAlign: 'center', outline: 'none', width: '80%', maxWidth: 260,
+              padding: '4px 0', marginBottom: 8,
+            }}
+          />
+        ) : (
+          <p
+            onClick={() => { setStatusDraft(profile?.status_text || ''); setEditingStatus(true) }}
+            style={{
+              fontSize: 12, color: profile?.status_text ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.25)',
+              fontStyle: 'italic', fontFamily: 'var(--font-body)', cursor: 'pointer',
+              marginBottom: 8, padding: '2px 0',
+            }}
+          >
+            {profile?.status_text || t('profile.setStatus')}
+          </p>
+        )}
 
         {/* Follower / Following */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
           <button onClick={() => router.push('/app/profile/followers')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-primary)', fontFamily: 'var(--font-body)', fontSize: 13 }}>
-            <strong>{followerCount}</strong> <span style={{ color: 'var(--text-muted)' }}>Follower</span>
+            <strong>{followerCount}</strong> <span style={{ color: 'var(--text-muted)' }}>{t('rivals.followers')}</span>
           </button>
           <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{'\u00B7'}</span>
           <button onClick={() => router.push('/app/profile/following')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-primary)', fontFamily: 'var(--font-body)', fontSize: 13 }}>
-            <strong>{followingCount}</strong> <span style={{ color: 'var(--text-muted)' }}>Folge ich</span>
+            <strong>{followingCount}</strong> <span style={{ color: 'var(--text-muted)' }}>{t('rivals.following')}</span>
           </button>
         </div>
 
@@ -210,7 +250,7 @@ export default function ProfilePage() {
               const url = `https://app.deal-buddy.app/app/profile/${profile?.username}`
               if (navigator.share) {
                 navigator.share({ title: `@${profile?.username} auf DealBuddy`, text: `${rank.icon} ${rank.title} \u2022 ${wins}W/${losses}L \u2022 K/D: ${kdRatio} \u2022 ${'\u{1F525}'}${streak} Streak`, url })
-              } else { navigator.clipboard.writeText(url); alert('Link kopiert!') }
+              } else { navigator.clipboard.writeText(url); alert(t('profile.linkCopied')) }
             }}
             style={{
               flex: 1, padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
@@ -221,7 +261,7 @@ export default function ProfilePage() {
               boxShadow: '0 4px 12px rgba(245,158,11,0.25)',
             }}
           >
-            {'\u{1F4E4}'} PROFIL TEILEN
+            {'\u{1F4E4}'} {t('profile.shareProfile').toUpperCase()}
           </button>
           <button onClick={() => router.push('/app/invite')} style={{
             flex: 1, padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
@@ -230,7 +270,7 @@ export default function ProfilePage() {
             fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           }}>
-            {'\u{1F381}'} EINLADEN
+            {'\u{1F381}'} {t('profile.invite').toUpperCase()}
           </button>
         </div>
 
@@ -242,7 +282,7 @@ export default function ProfilePage() {
           fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
         }}>
-          {'\u{1F6CD}\u{FE0F}'} SHOP
+          {'\u{1F6CD}\u{FE0F}'} {t('nav.shop').toUpperCase()}
         </button>
       </div>
 
@@ -254,7 +294,7 @@ export default function ProfilePage() {
             display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer',
             padding: '16px 0', marginBottom: 12,
           }}>
-            <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 3, color: 'var(--gold-primary)', marginBottom: 14 }}>BATTLE CARD</p>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 3, color: 'var(--gold-primary)', marginBottom: 14 }}>{t('profile.battleCard').toUpperCase()}</p>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <AvatarFrame
                 frameType={(profile?.active_frame as any) || 'none'}
@@ -276,7 +316,7 @@ export default function ProfilePage() {
               padding: '16px 0', marginBottom: 12,
             }}
           >
-            <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 3, color: 'var(--gold-primary)', marginBottom: 16 }}>BATTLE CARD</p>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 3, color: 'var(--gold-primary)', marginBottom: 16 }}>{t('profile.battleCard').toUpperCase()}</p>
             <div style={{
               width: 140, height: 200, borderRadius: 16,
               background: 'linear-gradient(135deg, rgba(205,127,50,0.15), rgba(205,127,50,0.05))',
@@ -285,7 +325,7 @@ export default function ProfilePage() {
               gap: 12, marginBottom: 16,
             }}>
               <span style={{ fontSize: 44 }}>{'\u{1F3B4}'}</span>
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: 8, letterSpacing: 2, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Noch keine Karte</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 8, letterSpacing: 2, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t('profile.noCard')}</span>
             </div>
             <button style={{
               padding: '14px 32px', borderRadius: 12, border: 'none',
@@ -294,7 +334,7 @@ export default function ProfilePage() {
               fontWeight: 700, letterSpacing: 2, cursor: 'pointer',
               boxShadow: '0 4px 16px rgba(245,158,11,0.35)',
             }}>
-              KARTE ERSTELLEN
+              {t('profile.createCard').toUpperCase()}
             </button>
           </div>
         )}
@@ -302,17 +342,17 @@ export default function ProfilePage() {
         {/* ═══ STATS ═══ */}
         <div style={sectionStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--text-muted)' }}>STATISTIKEN</p>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--text-muted)' }}>{t('profile.stats').toUpperCase()}</p>
             <span style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 1, color: 'var(--gold-primary)' }}>#{globalRank}</span>
           </div>
 
           {/* Stat grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
             {[
+              { label: 'SCORE', val: profile?.reliability_score != null ? `${Math.round((profile.reliability_score as number) * 100)}%` : '—', color: profile?.reliability_color === 'green' ? '#22C55E' : profile?.reliability_color === 'yellow' ? '#EAB308' : profile?.reliability_color === 'red' ? '#EF4444' : 'var(--text-muted)' },
               { label: 'DEALS', val: dealsTotal, color: 'var(--status-info)' },
               { label: 'WIN%', val: `${winRate}%`, color: '#4ade80' },
               { label: 'STREAK', val: streak, color: 'var(--status-warning)', icon: '\u{1F525}' },
-              { label: 'ZUVERL.', val: profile?.reliability_score != null ? `${Math.round((profile.reliability_score as number) * 100)}%` : '—', color: profile?.reliability_color === 'green' ? '#22C55E' : profile?.reliability_color === 'yellow' ? '#EAB308' : profile?.reliability_color === 'red' ? '#EF4444' : 'var(--text-muted)' },
               { label: 'COINS', val: profile?.coins ?? 0, color: 'var(--gold-primary)', isCoin: true },
             ].map(s => (
               <div key={s.label} onClick={s.isCoin ? () => router.push('/app/shop?section=coins') : undefined} style={{
@@ -330,17 +370,17 @@ export default function ProfilePage() {
 
           {/* Rival + Member since */}
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'var(--font-body)', textAlign: 'center' }}>
-            Rivale: <strong style={{ color: 'var(--gold-primary)' }}>{topRival?.profiles?.username ? `@${(topRival.profiles as any).username}` : '-'}</strong>
-            {' \u00B7 '}Bester Streak: <strong style={{ color: 'var(--text-primary)' }}>{streakData?.longest_streak ?? streak}</strong>
-            {' \u00B7 '}{daysSince(createdAt)}d dabei
+            {t('profile.rival')}: <strong style={{ color: 'var(--gold-primary)' }}>{topRival?.profiles?.username ? `@${(topRival.profiles as any).username}` : '-'}</strong>
+            {' \u00B7 '}{t('profile.bestStreak')}: <strong style={{ color: 'var(--text-primary)' }}>{streakData?.longest_streak ?? streak}</strong>
+            {' \u00B7 '}{daysSince(createdAt)}{t('profile.daysActive')}
           </div>
         </div>
 
         {/* ═══ SEASON 1 + BATTLE PASS (combined) ═══ */}
         <div style={sectionStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--text-muted)' }}>SEASON 1</p>
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 10, color: 'var(--gold-primary)' }}>Level {level}</span>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--text-muted)' }}>{t('battlepass.season').toUpperCase()}</p>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 10, color: 'var(--gold-primary)' }}>{t('profile.level')} {level}</span>
           </div>
 
           {/* XP bar */}
@@ -351,7 +391,7 @@ export default function ProfilePage() {
 
           {/* Streak + Calendar row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--status-warning)' }}>{'\u{1F525}'} {streakData?.current_streak ?? streak} Tage Streak</span>
+            <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--status-warning)' }}>{'\u{1F525}'} {streakData?.current_streak ?? streak} {t('profile.dayStreak')}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4, marginBottom: 16 }}>
             {DAY_LABELS.map((day, i) => {
@@ -374,7 +414,7 @@ export default function ProfilePage() {
           {/* ── Battle Pass (integrated) ── */}
           <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--gold-primary)' }}>BATTLE PASS</p>
+              <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--gold-primary)' }}>{t('profile.battlePass').toUpperCase()}</p>
               <span style={{ fontFamily: 'var(--font-display)', fontSize: 8, color: profile?.battle_pass_premium ? 'var(--gold-primary)' : 'var(--text-muted)', padding: '3px 8px', borderRadius: 8, background: profile?.battle_pass_premium ? 'var(--gold-subtle)' : 'var(--bg-overlay)', border: `1px solid ${profile?.battle_pass_premium ? 'var(--gold-glow)' : 'var(--border-subtle)'}` }}>
                 {profile?.battle_pass_premium ? 'PREMIUM' : 'FREE'}
               </span>
@@ -395,7 +435,7 @@ export default function ProfilePage() {
               ))}
             </div>
             <button onClick={() => router.push('/app/battlepass')} style={{ width: '100%', marginTop: 8, padding: 7, borderRadius: 8, border: '1px solid var(--gold-glow)', background: 'var(--gold-subtle)', color: 'var(--gold-primary)', fontFamily: 'var(--font-display)', fontSize: 9, letterSpacing: 2, cursor: 'pointer' }}>
-              BATTLE PASS {'\u{203A}'}
+              {t('profile.battlePass').toUpperCase()} {'\u{203A}'}
             </button>
           </div>
         </div>
@@ -403,8 +443,8 @@ export default function ProfilePage() {
         {/* ═══ MEINE DEALS ═══ */}
         <div style={sectionStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--text-muted)' }}>MEINE DEALS</p>
-            <button onClick={() => router.push('/app/deals')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gold-primary)', fontFamily: 'var(--font-display)', fontSize: 9, letterSpacing: 1 }}>ALLE {'\u{203A}'}</button>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 2, color: 'var(--text-muted)' }}>{t('profile.myDeals').toUpperCase()}</p>
+            <button onClick={() => router.push('/app/deals')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gold-primary)', fontFamily: 'var(--font-display)', fontSize: 9, letterSpacing: 1 }}>{t('profile.seeAll').toUpperCase()} {'\u{203A}'}</button>
           </div>
 
           {dealsLoading ? (
@@ -414,14 +454,14 @@ export default function ProfilePage() {
           ) : myDeals.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 20 }}>
               <p style={{ fontSize: 24, marginBottom: 6 }}>{'\u{2694}\u{FE0F}'}</p>
-              <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text-secondary)' }}>Noch keine Deals — fordere jemanden heraus!</p>
+              <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text-secondary)' }}>{t('profile.noDealsYet')}</p>
             </div>
           ) : (
             <>
               {(['active', 'open', 'pending', 'pending_confirmation', 'completed'] as const).map(status => {
                 const statusDeals = myDeals.filter((d: any) => d.status === status)
                 if (statusDeals.length === 0) return null
-                const statusLabels: Record<string, string> = { active: 'AKTIV', open: 'OFFEN', pending: 'EINGELADEN', pending_confirmation: 'BEST\u00C4TIGUNG', completed: 'ABGESCHLOSSEN' }
+                const statusLabels: Record<string, string> = { active: t('profile.statusActive').toUpperCase(), open: t('profile.statusOpen').toUpperCase(), pending: t('profile.statusPending').toUpperCase(), pending_confirmation: t('profile.statusConfirmation').toUpperCase(), completed: t('profile.statusCompleted').toUpperCase() }
                 const statusColors: Record<string, string> = { active: '#4ade80', open: '#FFB800', pending: '#f97316', pending_confirmation: '#a78bfa', completed: '#60a5fa' }
                 return (
                   <div key={status} style={{ marginBottom: 8 }}>
@@ -439,7 +479,7 @@ export default function ProfilePage() {
                           <ProfileImage size={28} avatarUrl={otherUser?.avatar_url} name={otherUser?.display_name || otherUser?.username || '?'} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{deal.title}</p>
-                            <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>vs @{otherUser?.username || 'Offen'}</p>
+                            <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>vs @{otherUser?.username || t('deals.status.open')}</p>
                           </div>
                           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{'\u{203A}'}</span>
                         </div>
@@ -459,7 +499,7 @@ export default function ProfilePage() {
           color: 'var(--status-error)', fontFamily: 'var(--font-display)',
           fontSize: 10, letterSpacing: 2, cursor: 'pointer', opacity: 0.7,
         }}>
-          LOGOUT
+          {t('auth.logout').toUpperCase()}
         </button>
       </div>
 

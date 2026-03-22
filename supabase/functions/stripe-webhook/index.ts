@@ -30,6 +30,20 @@ serve(async (req) => {
       return new Response('Missing metadata', { status: 400 })
     }
 
+    // IDEMPOTENCY: Check if this session was already processed
+    const { data: existingTx } = await supabase
+      .from('stripe_transactions')
+      .select('status')
+      .eq('session_id', session.id)
+      .single()
+
+    if (existingTx?.status === 'completed') {
+      console.log('Session already processed, skipping:', session.id)
+      return new Response(JSON.stringify({ received: true, skipped: true }), {
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
     // Update transaction status
     await supabase.from('stripe_transactions').update({
       status: 'completed',
@@ -61,21 +75,16 @@ serve(async (req) => {
     } else if (product_type.startsWith('coin_pack')) {
       const coinsAmount = parseInt(coins || '0', 10)
       if (coinsAmount > 0) {
-        // Credit coins
+        // Credit coins atomically (prevents race conditions)
+        await supabase.rpc('add_coins', { p_user_id: user_id, p_amount: coinsAmount })
+
+        // Ledger entry for audit trail
         await supabase.from('wallet_ledger').insert({
           user_id,
           delta: coinsAmount,
           reason: 'purchase_stripe',
           reference_id: session.id
         })
-
-        await supabase.from('profiles')
-          .update({ coins: supabase.rpc('add_coins', { p_user_id: user_id, p_amount: coinsAmount }) })
-          .eq('id', user_id)
-
-        // Fallback: direct increment via RPC or update
-        const { data: p } = await supabase.from('profiles').select('coins').eq('id', user_id).single()
-        await supabase.from('profiles').update({ coins: (p?.coins || 0) + coinsAmount }).eq('id', user_id)
 
         // Notify user
         await supabase.from('notifications').insert({
@@ -86,6 +95,24 @@ serve(async (req) => {
           data: { coins: coinsAmount, product_type }
         })
       }
+    } else if (product_type === 'legendary_box') {
+      // Create reward box for user
+      await supabase.from('reward_box_history').insert({
+        user_id,
+        box_type: 'legendary',
+        source: 'stripe_purchase',
+        opened: false,
+        reference_id: session.id
+      })
+
+      // Notify user
+      await supabase.from('notifications').insert({
+        user_id,
+        type: 'reward_received',
+        title: '🎁 Legendary Mystery Box erhalten!',
+        body: 'Öffne deine Box im Shop und entdecke deinen Reward!',
+        data: { product_type }
+      })
     }
   }
 

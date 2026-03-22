@@ -1,5 +1,5 @@
 'use client'
-import { useReducer, useRef, useEffect, Suspense } from 'react'
+import { useReducer, useRef, useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
@@ -7,6 +7,8 @@ import { uploadDealMedia } from '@/lib/mediaUpload'
 import { triggerPush } from '@/lib/sendPushNotification'
 import { trackDealCreated, trackDealSent, trackScreenView } from '@/lib/analytics'
 import ProfileImage from '@/components/ProfileImage'
+import MediaEditor from '@/components/MediaEditor'
+import { useLang } from '@/contexts/LanguageContext'
 
 import {
   createDealReducer,
@@ -24,12 +26,12 @@ import OpponentSearch from '@/components/create-deal/OpponentSearch'
 import TeamBuilder from '@/components/create-deal/TeamBuilder'
 
 /* --- Quick templates (fallback when DB templates not loaded yet) --- */
-const QUICK_TEMPLATES = [
-  { label: 'Wer schafft mehr\u2026', value: 'Wer schafft mehr ' },
-  { label: 'Wer hat recht?', value: 'Wer hat recht: ' },
-  { label: '[Team] vs [Team]', value: ' vs ' },
-  { label: 'Wer kommt zuerst\u2026', value: 'Wer kommt zuerst zu ' },
-  { label: 'Verlierer muss\u2026', value: 'Der Verlierer muss ' },
+const QUICK_TEMPLATE_KEYS = [
+  { labelKey: 'deals.templateWhoDoesMore', valueKey: 'deals.templateWhoDoesMoreVal' },
+  { labelKey: 'deals.templateWhoIsRight', valueKey: 'deals.templateWhoIsRightVal' },
+  { labelKey: 'deals.templateTeamVsTeam', valueKey: 'deals.templateTeamVsTeamVal' },
+  { labelKey: 'deals.templateWhoFirst', valueKey: 'deals.templateWhoFirstVal' },
+  { labelKey: 'deals.templateLoserMust', valueKey: 'deals.templateLoserMustVal' },
 ]
 
 const inputStyle: React.CSSProperties = {
@@ -45,8 +47,10 @@ function CreateDealContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { profile } = useAuth()
+  const { t } = useLang()
   const [state, dispatch] = useReducer(createDealReducer, initialState)
   const mediaRef = useRef<HTMLInputElement>(null)
+  const [showEditor, setShowEditor] = useState(false)
   const [showAdvanced, setShowAdvanced] = useReducerCompat(false)
 
   // Track screen view
@@ -120,9 +124,9 @@ function CreateDealContent() {
   const ctaText = () => {
     if (state.uploadProgress) return state.uploadProgress
     if (state.loading) return '...'
-    if (!state.opponent && state.mode !== 'team') return 'CHALLENGE VER\u00D6FFENTLICHEN \u26A1'
-    if (state.mode === 'team') return 'TEAM CHALLENGE STARTEN \u2694\uFE0F'
-    return 'CHALLENGE STARTEN \u2694\uFE0F'
+    if (!state.opponent && state.mode !== 'team') return `${t('deals.publishChallenge')} \u26A1`
+    if (state.mode === 'team') return `${t('deals.startTeamChallenge')} \u2694\uFE0F`
+    return `${t('deals.startChallenge')} \u2694\uFE0F`
   }
 
   /* --- Submit --- */
@@ -158,10 +162,10 @@ function CreateDealContent() {
             if (myScorePct === null || myScorePct < opponentProfile.opponent_min_reliability) {
               dispatch({ type: 'SET_LOADING', loading: false })
               alert(
-                `Dieser Spieler akzeptiert nur Gegner mit Zuverlässigkeit ≥ ${opponentProfile.opponent_min_reliability}%.`
-                + (myScorePct === null
-                  ? ' Du hast noch keinen Score (mind. 5 Deals nötig).'
-                  : ` Dein Score: ${myScorePct}%.`)
+                t('deals.opponentFilterAlert').replace('{min}', String(opponentProfile.opponent_min_reliability))
+                + ' ' + (myScorePct === null
+                  ? t('deals.opponentFilterNoScore')
+                  : t('deals.opponentFilterYourScore').replace('{score}', String(myScorePct)))
               )
               return
             }
@@ -180,6 +184,7 @@ function CreateDealContent() {
         is_public: state.visibility !== 'private',
         status: state.opponent ? 'pending' : 'open',
         opponent_id: state.opponent?.id || null,
+        creator_side: state.creatorSide,
       }
       if (state.deadline) insertData.deadline = new Date(state.deadline).toISOString()
 
@@ -192,18 +197,18 @@ function CreateDealContent() {
 
       // Upload media
       if (state.mediaFile) {
-        dispatch({ type: 'SET_UPLOAD_PROGRESS', progress: 'Wird hochgeladen... 0%' })
+        dispatch({ type: 'SET_UPLOAD_PROGRESS', progress: t('deals.uploading').replace('{percent}', '0') })
         try {
           const { url, type } = await uploadDealMedia(state.mediaFile, newDeal.id, profile.id, (percent) => {
-            dispatch({ type: 'SET_UPLOAD_PROGRESS', progress: percent < 100 ? `Wird hochgeladen... ${percent}%` : 'Wird gespeichert...' })
+            dispatch({ type: 'SET_UPLOAD_PROGRESS', progress: percent < 100 ? t('deals.uploading').replace('{percent}', String(percent)) : t('deals.saving') })
           })
-          dispatch({ type: 'SET_UPLOAD_PROGRESS', progress: 'Wird gespeichert...' })
+          dispatch({ type: 'SET_UPLOAD_PROGRESS', progress: t('deals.saving') })
           await supabase.from('bets').update({ media_url: url, media_type: type }).eq('id', newDeal.id)
           dispatch({ type: 'SET_UPLOAD_PROGRESS', progress: null })
         } catch (uploadErr: any) {
           console.error('Media upload error:', uploadErr)
           dispatch({ type: 'SET_UPLOAD_PROGRESS', progress: null })
-          dispatch({ type: 'SET_MEDIA_ERROR', error: `Upload fehlgeschlagen: ${uploadErr?.message || 'Unbekannter Fehler'}. Deal wurde ohne Medien erstellt.` })
+          dispatch({ type: 'SET_MEDIA_ERROR', error: t('deals.uploadFailed').replace('{error}', uploadErr?.message || 'Unknown error') })
         }
       }
 
@@ -234,8 +239,8 @@ function CreateDealContent() {
       if (state.opponent?.id && state.opponent.id !== profile.id) {
         triggerPush(
           state.opponent.id,
-          '\u2694\uFE0F Neue Herausforderung!',
-          `@${profile.username} fordert dich heraus!`,
+          `\u2694\uFE0F ${t('deals.newChallengeNotifTitle')}`,
+          t('deals.newChallengeNotifBody').replace('{username}', profile.username),
           `/app/deals/${newDeal.id}`
         )
       }
@@ -283,8 +288,8 @@ function CreateDealContent() {
   }
 
   /* --- Media handling --- */
-  const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB (Supabase Storage Limit)
-  const MAX_VIDEO_DURATION = 300 // 5 Minuten
+  const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20 MB (Instagram Reels-style)
+  const MAX_VIDEO_DURATION = 90 // 90 Sekunden (wie Instagram Reels)
 
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
@@ -295,7 +300,7 @@ function CreateDealContent() {
     // File size check
     if (f.size > MAX_FILE_SIZE) {
       const sizeMB = Math.round(f.size / 1024 / 1024)
-      dispatch({ type: 'SET_MEDIA_ERROR', error: `Datei zu groß (${sizeMB} MB). Maximum: 50 MB.` })
+      dispatch({ type: 'SET_MEDIA_ERROR', error: t('deals.fileTooLarge').replace('{size}', String(sizeMB)) })
       return
     }
 
@@ -322,7 +327,7 @@ function CreateDealContent() {
           URL.revokeObjectURL(objectUrl)
           const mins = Math.floor(video.duration / 60)
           const secs = Math.round(video.duration % 60)
-          dispatch({ type: 'SET_MEDIA_ERROR', error: `Video zu lang (${mins}:${secs.toString().padStart(2, '0')}). Maximum: 5 Minuten.` })
+          dispatch({ type: 'SET_MEDIA_ERROR', error: t('deals.videoTooLong').replace('{duration}', `${mins}:${secs.toString().padStart(2, '0')}`) })
           return
         }
         accept()
@@ -392,7 +397,7 @@ function CreateDealContent() {
                       <span style={{ fontSize: 20, color: 'var(--gold-primary)' }}>?</span>
                     </div>
                     <span style={{ fontSize: 10, color: 'var(--gold-primary)' }}>
-                      Gegner w{'\u00E4'}hlen
+                      {t('deals.chooseOpponent')}
                     </span>
                   </>
                 )}
@@ -437,7 +442,7 @@ function CreateDealContent() {
                   TEAM VS TEAM
                 </p>
                 <p style={{ color: 'var(--text-secondary)', fontSize: 12, lineHeight: 1.5, margin: 0 }}>
-                  Teams konfigurierst du in Schritt 3
+                  {t('deals.teamConfigStep3')}
                 </p>
               </div>
             )}
@@ -454,10 +459,10 @@ function CreateDealContent() {
                   fontFamily: 'var(--font-display)', fontSize: 13,
                   color: 'var(--gold-primary)', letterSpacing: 1, marginBottom: 6, margin: '0 0 6px',
                 }}>
-                  OFFENE CHALLENGE
+                  {t('deals.openChallenge').toUpperCase()}
                 </p>
                 <p style={{ color: 'var(--text-secondary)', fontSize: 12, lineHeight: 1.5, margin: 0 }}>
-                  Jeder kann dieser Challenge beitreten
+                  {t('deals.anyoneCanJoin')}
                 </p>
               </div>
             )}
@@ -478,7 +483,7 @@ function CreateDealContent() {
                 fontSize: 12, fontWeight: 700, letterSpacing: 3,
               }}
             >
-              {canGoToChallenge ? 'WEITER \u2192' : state.mode === '1v1' ? 'GEGNER W\u00C4HLEN' : 'WEITER \u2192'}
+              {canGoToChallenge ? `${t('deals.navNext')} \u2192` : state.mode === '1v1' ? t('deals.selectOpponent') : `${t('deals.navNext')} \u2192`}
             </button>
           </>
         )}
@@ -499,10 +504,10 @@ function CreateDealContent() {
               display: 'flex', gap: 6, overflowX: 'auto',
               paddingBottom: 4, scrollbarWidth: 'none',
             }}>
-              {QUICK_TEMPLATES.map((tpl, i) => (
+              {QUICK_TEMPLATE_KEYS.map((tpl, i) => (
                 <button
                   key={i}
-                  onClick={() => dispatch({ type: 'SET_FIELD', field: 'title', value: tpl.value })}
+                  onClick={() => dispatch({ type: 'SET_FIELD', field: 'title', value: t(tpl.valueKey) })}
                   style={{
                     flexShrink: 0, padding: '6px 12px', borderRadius: 20,
                     border: '1px solid var(--border-subtle)',
@@ -511,7 +516,7 @@ function CreateDealContent() {
                     cursor: 'pointer', whiteSpace: 'nowrap',
                   }}
                 >
-                  {tpl.label}
+                  {t(tpl.labelKey)}
                 </button>
               ))}
             </div>
@@ -522,13 +527,13 @@ function CreateDealContent() {
                 display: 'block', fontSize: 10, fontFamily: 'var(--font-display)',
                 letterSpacing: 2, color: 'var(--text-secondary)', marginBottom: 8,
               }}>
-                CHALLENGE *
+                {t('deals.challengeLabel')}
               </label>
               <div style={{ position: 'relative' }}>
                 <input
                   value={state.title}
                   onChange={e => dispatch({ type: 'SET_FIELD', field: 'title', value: e.target.value.slice(0, 60) })}
-                  placeholder="Wer schafft mehr Liegest\u00FCtze?"
+                  placeholder={t('deals.challengePlaceholder')}
                   style={inputStyle}
                   autoFocus
                 />
@@ -547,18 +552,55 @@ function CreateDealContent() {
               onChange={v => dispatch({ type: 'SET_FIELD', field: 'category', value: v })}
             />
 
+            {/* Choose Side */}
+            <div>
+              <label style={{
+                display: 'block', fontSize: 10, fontFamily: 'var(--font-display)',
+                letterSpacing: 2, color: 'var(--text-secondary)', marginBottom: 8,
+              }}>
+                {t('deals.chooseSide')}
+              </label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[
+                  { value: 'yes', labelKey: 'deals.sideYes' },
+                  { value: 'no', labelKey: 'deals.sideNo' },
+                ].map(side => {
+                  const active = state.creatorSide === side.value
+                  return (
+                    <button
+                      key={side.value}
+                      onClick={() => dispatch({ type: 'SET_CREATOR_SIDE', side: active ? null : side.value })}
+                      style={{
+                        flex: 1, padding: '10px 16px', borderRadius: 10,
+                        border: 'none',
+                        background: active ? '#FFB800' : 'rgba(255,255,255,0.06)',
+                        color: active ? '#060606' : 'rgba(255,255,255,0.5)',
+                        fontFamily: 'var(--font-display)',
+                        fontSize: 11, fontWeight: active ? 800 : 400,
+                        letterSpacing: 1,
+                        cursor: 'pointer',
+                        transition: 'background 0.2s, color 0.2s',
+                      }}
+                    >
+                      {t(side.labelKey)}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
             {/* Optional Description */}
             <div>
               <label style={{
                 display: 'block', fontSize: 10, fontFamily: 'var(--font-display)',
                 letterSpacing: 2, color: 'var(--text-secondary)', marginBottom: 8,
               }}>
-                REGELN (OPTIONAL)
+                {t('deals.rulesLabel')}
               </label>
               <textarea
                 value={state.description || ''}
                 onChange={e => dispatch({ type: 'SET_FIELD', field: 'description', value: e.target.value })}
-                placeholder="Beschreibe die Regeln der Challenge..."
+                placeholder={t('deals.rulesPlaceholder')}
                 rows={3}
                 style={{
                   ...inputStyle,
@@ -581,7 +623,7 @@ function CreateDealContent() {
                   fontSize: 11, cursor: 'pointer',
                 }}
               >
-                {'\u2190'} ZUR{'\u00DC'}CK
+                {'\u2190'} {t('deals.navBack')}
               </button>
               <button
                 onClick={goNext}
@@ -598,7 +640,7 @@ function CreateDealContent() {
                   fontSize: 12, fontWeight: 700, letterSpacing: 2,
                 }}
               >
-                {canGoToEinsatz ? 'WEITER \u2192' : 'CHALLENGE EINGEBEN'}
+                {canGoToEinsatz ? `${t('deals.navNext')} \u2192` : t('deals.enterChallenge')}
               </button>
             </div>
           </>
@@ -616,15 +658,15 @@ function CreateDealContent() {
             }}>
               <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4, margin: '0 0 4px' }}>
                 {state.opponent ? (
-                  <>Gegen: <span style={{ color: 'var(--gold-primary)' }}>@{state.opponent.username}</span></>
+                  <>{t('deals.against')} <span style={{ color: 'var(--gold-primary)' }}>@{state.opponent.username}</span></>
                 ) : state.mode === 'team' ? (
                   <span style={{ color: 'var(--gold-primary)' }}>Team vs Team</span>
                 ) : (
-                  <span style={{ color: 'var(--gold-primary)' }}>Offene Challenge</span>
+                  <span style={{ color: 'var(--gold-primary)' }}>{t('deals.openChallenge')}</span>
                 )}
               </p>
               <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: 0 }}>
-                Challenge: <span style={{ color: 'var(--text-primary)' }}>{state.title}</span>
+                {t('deals.challengeColon')} <span style={{ color: 'var(--text-primary)' }}>{state.title}</span>
               </p>
             </div>
 
@@ -646,13 +688,13 @@ function CreateDealContent() {
                 display: 'block', fontSize: 10, fontFamily: 'var(--font-display)',
                 letterSpacing: 2, color: 'var(--text-secondary)', marginBottom: 8,
               }}>
-                SICHTBARKEIT
+                {t('deals.visibility')}
               </label>
               <div style={{ display: 'flex', gap: 6 }}>
                 {[
-                  { value: 'public' as const, icon: '\u{1F310}', label: '\u00D6ffentlich' },
-                  { value: 'friends' as const, icon: '\u{1F465}', label: 'Freunde' },
-                  { value: 'private' as const, icon: '\u{1F512}', label: 'Privat' },
+                  { value: 'public' as const, icon: '\u{1F310}', label: t('deals.visibilityPublic') },
+                  { value: 'friends' as const, icon: '\u{1F465}', label: t('deals.visibilityFriends') },
+                  { value: 'private' as const, icon: '\u{1F512}', label: t('deals.visibilityPrivate') },
                 ].map(v => {
                   const active = state.visibility === v.value
                   return (
@@ -687,7 +729,7 @@ function CreateDealContent() {
                 fontSize: 10, fontFamily: 'var(--font-display)',
                 letterSpacing: 2, color: 'var(--text-secondary)', marginBottom: 8,
               }}>
-                {'\u{1F3AC}'} MEDIEN HINZUF{'\u00DC'}GEN
+                {'\u{1F3AC}'} {t('deals.addMedia')}
               </label>
               {state.mediaPreview ? (
                 <div style={{ position: 'relative', marginBottom: 4 }}>
@@ -702,6 +744,7 @@ function CreateDealContent() {
                   ) : (
                     <img src={state.mediaPreview} alt="" style={{ width: '100%', borderRadius: 12, maxHeight: 220, objectFit: 'cover' }} />
                   )}
+                  {/* Remove button */}
                   <button
                     onClick={() => dispatch({ type: 'SET_MEDIA', file: null, preview: null })}
                     style={{
@@ -715,6 +758,21 @@ function CreateDealContent() {
                   >
                     {'\u2715'}
                   </button>
+                  {/* Edit button */}
+                  <button
+                    onClick={() => setShowEditor(true)}
+                    style={{
+                      position: 'absolute', top: 8, right: 44,
+                      height: 28, borderRadius: 14, paddingLeft: 10, paddingRight: 10,
+                      background: 'rgba(255,184,0,0.85)', border: 'none',
+                      color: '#060606', fontSize: 10, fontWeight: 800,
+                      fontFamily: 'var(--font-display)', letterSpacing: 1,
+                      cursor: 'pointer', display: 'flex',
+                      alignItems: 'center', justifyContent: 'center', gap: 4,
+                    }}
+                  >
+                    {'\u270F\uFE0F'} {t('editor.editMedia')}
+                  </button>
                   <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontSize: 10 }}>{state.mediaFile?.type.startsWith('video/') ? '\u{1F3AC}' : '\u{1F4F8}'}</span>
                     <span style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>
@@ -723,33 +781,56 @@ function CreateDealContent() {
                   </div>
                 </div>
               ) : (
-                <button
-                  onClick={() => mediaRef.current?.click()}
-                  style={{
-                    width: '100%', padding: 20, borderRadius: 14,
-                    border: '2px dashed rgba(255,184,0,0.3)',
-                    background: 'rgba(255,184,0,0.03)',
-                    cursor: 'pointer', textAlign: 'center',
-                    transition: 'border-color 0.2s, background 0.2s',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 6 }}>
-                    <span style={{ fontSize: 26 }}>{'\u{1F4F7}'}</span>
-                    <span style={{ fontSize: 26 }}>{'\u{1F3AC}'}</span>
-                  </div>
-                  <p style={{
-                    fontSize: 11, color: 'var(--gold-primary)', fontFamily: 'var(--font-display)',
-                    fontWeight: 700, letterSpacing: 1.5, margin: '0 0 2px',
-                  }}>
-                    FOTO ODER VIDEO
-                  </p>
-                  <p style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'var(--font-body)', margin: 0 }}>
-                    Max. 50 MB {'\u00B7'} Videos bis 5 Min.
-                  </p>
-                </button>
+                <div style={{ display: 'flex', gap: 10, width: '100%' }}>
+                  {/* Kamera-Button */}
+                  <button
+                    onClick={() => document.getElementById('cameraCaptureInput')?.click()}
+                    style={{
+                      flex: 1, padding: '16px 12px', borderRadius: 14,
+                      border: '2px dashed rgba(255,184,0,0.3)',
+                      background: 'rgba(255,184,0,0.03)',
+                      cursor: 'pointer', textAlign: 'center',
+                      transition: 'border-color 0.2s, background 0.2s',
+                    }}
+                  >
+                    <span style={{ fontSize: 26, display: 'block', marginBottom: 6 }}>{'\u{1F4F7}'}</span>
+                    <p style={{
+                      fontSize: 10, color: 'var(--gold-primary)', fontFamily: 'var(--font-display)',
+                      fontWeight: 700, letterSpacing: 1, margin: 0,
+                    }}>
+                      KAMERA
+                    </p>
+                  </button>
+                  {/* Galerie-Button */}
+                  <button
+                    onClick={() => mediaRef.current?.click()}
+                    style={{
+                      flex: 1, padding: '16px 12px', borderRadius: 14,
+                      border: '2px dashed rgba(255,184,0,0.3)',
+                      background: 'rgba(255,184,0,0.03)',
+                      cursor: 'pointer', textAlign: 'center',
+                      transition: 'border-color 0.2s, background 0.2s',
+                    }}
+                  >
+                    <span style={{ fontSize: 26, display: 'block', marginBottom: 6 }}>{'\u{1F3AC}'}</span>
+                    <p style={{
+                      fontSize: 10, color: 'var(--gold-primary)', fontFamily: 'var(--font-display)',
+                      fontWeight: 700, letterSpacing: 1, margin: 0,
+                    }}>
+                      GALERIE
+                    </p>
+                  </button>
+                </div>
               )}
+              {/* Galerie-Auswahl (ohne capture → zeigt Galerie) */}
               <input
-                ref={mediaRef} type="file" accept="image/*,video/*"
+                ref={mediaRef} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm"
+                style={{ display: 'none' }}
+                onChange={handleMediaSelect}
+              />
+              {/* Kamera-Direktaufnahme (mit capture → öffnet Kamera) */}
+              <input
+                id="cameraCaptureInput" type="file" accept="image/*,video/*" capture="environment"
                 style={{ display: 'none' }}
                 onChange={handleMediaSelect}
               />
@@ -780,7 +861,7 @@ function CreateDealContent() {
                 fontSize: 10, fontFamily: 'var(--font-display)',
                 letterSpacing: 2, color: 'var(--text-secondary)',
               }}>
-                ERWEITERTE OPTIONEN
+                {t('deals.advancedOptions')}
               </span>
               <span style={{
                 fontSize: 14, color: 'var(--text-muted)',
@@ -807,13 +888,13 @@ function CreateDealContent() {
                         display: 'block', fontSize: 10, fontFamily: 'var(--font-display)',
                         letterSpacing: 2, color: 'var(--text-secondary)', marginBottom: 8,
                       }}>
-                        BEITRITTSMODUS
+                        {t('deals.joinMode')}
                       </label>
                       <div style={{ display: 'flex', gap: 6 }}>
                         {[
-                          { value: 'open' as const, label: 'Offen' },
-                          { value: 'approval' as const, label: 'Genehmigung' },
-                          { value: 'invite_only' as const, label: 'Nur Einladung' },
+                          { value: 'open' as const, label: t('deals.joinModeOpen') },
+                          { value: 'approval' as const, label: t('deals.joinModeApproval') },
+                          { value: 'invite_only' as const, label: t('deals.joinModeInviteOnly') },
                         ].map(jm => {
                           const active = state.joinMode === jm.value
                           return (
@@ -838,7 +919,7 @@ function CreateDealContent() {
                           display: 'block', fontSize: 10, fontFamily: 'var(--font-display)',
                           letterSpacing: 2, color: 'var(--text-secondary)', marginBottom: 6,
                         }}>
-                          MAX TEILNEHMER: {state.maxParticipants}
+                          {t('deals.maxParticipants')}: {state.maxParticipants}
                         </label>
                         <input
                           type="range" min={2} max={20} value={state.maxParticipants}
@@ -895,7 +976,7 @@ function CreateDealContent() {
                   opacity: state.uploadProgress ? 0.4 : 1,
                 }}
               >
-                {'\u2190'} ZUR{'\u00DC'}CK
+                {'\u2190'} {t('deals.navBack')}
               </button>
               <button
                 onClick={createDeal}
@@ -928,11 +1009,23 @@ function CreateDealContent() {
                 fontSize: 11, cursor: 'pointer',
               }}
             >
-              ABBRECHEN
+              {t('common.cancel')}
             </button>
           </>
         )}
       </div>
+
+      {/* ═══ MEDIA EDITOR OVERLAY ═══ */}
+      {showEditor && state.mediaFile && (
+        <MediaEditor
+          file={state.mediaFile}
+          onDone={(editedFile, editedPreview) => {
+            dispatch({ type: 'SET_MEDIA', file: editedFile, preview: editedPreview })
+            setShowEditor(false)
+          }}
+          onCancel={() => setShowEditor(false)}
+        />
+      )}
     </div>
   )
 }

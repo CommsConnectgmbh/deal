@@ -22,13 +22,8 @@ const STATUS_COLORS: Record<string, string> = {
   pending_confirmation: '#a78bfa', completed: '#9ca3af',
   cancelled: '#9ca3af', disputed: '#ef4444', frozen: '#6b7280',
 }
-const STATUS_LABELS: Record<string, string> = {
-  open: 'OFFEN', pending: 'EINGELADEN', active: 'AKTIV',
-  pending_confirmation: 'BESTÄTIGUNG', completed: 'ABGESCHLOSSEN',
-  cancelled: 'ABGEBROCHEN', disputed: 'DISPUTE', frozen: 'EINGEFROREN',
-}
 /* ─── Countdown Hook ─── */
-function useCountdown(deadline: string | null | undefined) {
+function useCountdown(deadline: string | null | undefined, t: (key: string) => string) {
   const [remaining, setRemaining] = useState('')
   const [isExpired, setIsExpired] = useState(false)
   const [isUrgent, setIsUrgent] = useState(false)
@@ -36,31 +31,20 @@ function useCountdown(deadline: string | null | undefined) {
     if (!deadline) return
     const tick = () => {
       const diff = new Date(deadline).getTime() - Date.now()
-      if (diff <= 0) { setRemaining('Abgelaufen'); setIsExpired(true); return }
+      if (diff <= 0) { setRemaining(t('deals.expired')); setIsExpired(true); return }
       const d = Math.floor(diff / 86400000)
       const h = Math.floor((diff % 86400000) / 3600000)
       const m = Math.floor((diff % 3600000) / 60000)
       setIsUrgent(diff < 3600000)
-      if (d > 0) setRemaining(`Endet in ${d} ${d === 1 ? 'Tag' : 'Tagen'}`)
-      else if (h > 0) setRemaining(`Noch ${h} ${h === 1 ? 'Stunde' : 'Stunden'}`)
-      else setRemaining(`Noch ${m} Min.`)
+      if (d > 0) setRemaining(t('deals.endsInDays').replace('{n}', String(d)))
+      else if (h > 0) setRemaining(t('deals.hoursLeft').replace('{n}', String(h)))
+      else setRemaining(t('deals.minutesLeft').replace('{n}', String(m)))
     }
     tick()
     const iv = setInterval(tick, 1000)
     return () => clearInterval(iv)
-  }, [deadline])
+  }, [deadline, t])
   return { remaining, isExpired, isUrgent }
-}
-
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const m = Math.floor(diff / 60000)
-  if (m < 1) return 'gerade eben'
-  if (m < 60) return `${m} Min.`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h} Std.`
-  const d = Math.floor(h / 24)
-  return `${d} Tag${d !== 1 ? 'e' : ''}`
 }
 
 const inputStyle: React.CSSProperties = {
@@ -120,7 +104,22 @@ export default function DealDetailPage() {
   const [confirmAcceptCancelOpen, setConfirmAcceptCancelOpen] = useState(false)
   const [confirmHardDeleteOpen, setConfirmHardDeleteOpen] = useState(false)
   const mediaInputRef = useRef<HTMLInputElement>(null)
-  const { remaining: countdownRemaining, isExpired: countdownExpired, isUrgent: countdownUrgent } = useCountdown(deal?.deadline)
+  const timeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime()
+    const m = Math.floor(diff / 60000)
+    if (m < 1) return t('components.timeJustNow')
+    if (m < 60) return t('components.timeMinutes').replace('{n}', String(m))
+    const h = Math.floor(m / 60)
+    if (h < 24) return t('components.timeHours').replace('{n}', String(h))
+    const d = Math.floor(h / 24)
+    return d === 1 ? t('components.timeDaySingular').replace('{n}', String(d)) : t('components.timeDays').replace('{n}', String(d))
+  }
+  const STATUS_LABELS: Record<string, string> = {
+    open: t('deals.status.open'), pending: t('deals.status.pending'), active: t('deals.status.active'),
+    pending_confirmation: t('deals.status.pending_confirmation'), completed: t('deals.status.completed'),
+    cancelled: t('deals.status.cancelled'), disputed: t('deals.status.disputed'), frozen: t('deals.status.frozen'),
+  }
+  const { remaining: countdownRemaining, isExpired: countdownExpired, isUrgent: countdownUrgent } = useCountdown(deal?.deadline, t)
   const [actionToast, setActionToast] = useState<string | null>(null)
   const [actionToastType, setActionToastType] = useState<'success' | 'error'>('success')
   const [fulfillment, setFulfillment] = useState<{
@@ -144,12 +143,12 @@ export default function DealDetailPage() {
     const update = () => {
       const remaining = new Date(dealResult.auto_confirm_at).getTime() - Date.now()
       if (remaining <= 0) {
-        setAutoConfirmCountdown('Auto-Bestätigung fällig')
+        setAutoConfirmCountdown(t('deals.autoConfirmDue'))
         return
       }
       const hours = Math.floor(remaining / 3600000)
       const mins = Math.floor((remaining % 3600000) / 60000)
-      setAutoConfirmCountdown(`Auto-Bestätigung in ${hours}h ${mins}m`)
+      setAutoConfirmCountdown(`${t('deals.autoConfirmDue')} ${hours}h ${mins}m`)
     }
     update()
     const interval = setInterval(update, 60000)
@@ -264,8 +263,8 @@ export default function DealDetailPage() {
       fetchDealMedia()
     } catch (err: any) {
       console.error('Media upload error:', err)
-      setUploadError(err?.message || 'Upload fehlgeschlagen')
-      showActionToast(err?.message || 'Upload fehlgeschlagen', 'error')
+      setUploadError(err?.message || t('deals.uploadFailed'))
+      showActionToast(err?.message || t('deals.uploadFailed'), 'error')
     }
 
     // Wake Lock freigeben
@@ -314,10 +313,10 @@ export default function DealDetailPage() {
       }
       trackDealAccepted(id as string)
       if (navigator.vibrate) navigator.vibrate(10)
-      showActionToast('Deal angenommen! ⚔️')
+      showActionToast(t('deals.dealAcceptedToast'))
       fetchDeal()
     } catch (_err) {
-      showActionToast('Fehler beim Annehmen. Bitte versuche es erneut.', 'error')
+      showActionToast(t('deals.dealAcceptedToast'), 'error')
     }
     setLoading(false)
   }
@@ -351,12 +350,12 @@ export default function DealDetailPage() {
       // Notify the other participant
       const otherId = deal.creator_id === profile.id ? deal.opponent_id : deal.creator_id
       if (otherId) triggerPush(otherId, '🏆 Ergebnis gemeldet', `@${profile.username} hat ein Ergebnis vorgeschlagen`, `/app/deals/${id}`)
-      showActionToast('Ergebnis gemeldet')
+      showActionToast(t('deals.resultReported'))
       setPendingWinnerId(null)
       fetchDeal()
       fetchProofs()
     } catch (_err) {
-      showActionToast('Fehler beim Melden', 'error')
+      showActionToast(t('deals.resultReported'), 'error')
     }
     setLoading(false)
   }
@@ -407,11 +406,11 @@ export default function DealDetailPage() {
         const otherId = deal.creator_id === profile.id ? deal.opponent_id : deal.creator_id
         if (otherId) triggerPush(otherId, '⚔️ Dispute!', `@${profile.username} hat das Ergebnis angefochten`, `/app/deals/${id}`)
       }
-      showActionToast('Dispute eingereicht')
+      showActionToast(t('deals.disputeSubmitted'))
       fetchDeal()
       fetchProofs()
     } catch (_err) {
-      showActionToast('Fehler beim Dispute', 'error')
+      showActionToast(t('deals.disputeSubmitted'), 'error')
     }
     setLoading(false)
   }
@@ -423,10 +422,10 @@ export default function DealDetailPage() {
       const { error } = await supabase.from('bets').update({ title: editForm.title, stake: editForm.stake }).eq('id', id)
       if (error) throw error
       setEditOpen(false)
-      showActionToast('Deal aktualisiert')
+      showActionToast(t('deals.dealUpdated'))
       fetchDeal()
     } catch (_err) {
-      showActionToast('Fehler beim Speichern', 'error')
+      showActionToast(t('deals.dealUpdated'), 'error')
     }
     setLoading(false)
   }
@@ -438,7 +437,7 @@ export default function DealDetailPage() {
       if (error) throw error
       router.back()
     } catch (_err) {
-      showActionToast('Fehler beim Abbrechen', 'error')
+      showActionToast(t('deals.dealCancelled'), 'error')
       setLoading(false)
     }
   }
@@ -464,11 +463,11 @@ export default function DealDetailPage() {
       if (error) throw error
       // Notify the other participant
       const otherId = deal.creator_id === profile.id ? deal.opponent_id : deal.creator_id
-      if (otherId) triggerPush(otherId, '⏸️ Abbruch angefragt', `@${profile.username} möchte den Deal abbrechen`, `/app/deals/${id}`)
-      showActionToast('Abbruch angefragt')
+      if (otherId) triggerPush(otherId, t('deals.cancelRequestPushTitle'), t('deals.cancelRequestPushBody').replace('{username}', profile.username), `/app/deals/${id}`)
+      showActionToast(t('deals.cancelRequested'))
       fetchDeal()
     } catch (_err) {
-      showActionToast('Fehler bei Abbruch-Anfrage', 'error')
+      showActionToast(t('deals.cancelRequested'), 'error')
     }
     setLoading(false)
   }
@@ -477,10 +476,10 @@ export default function DealDetailPage() {
     try {
       const { error } = await supabase.from('bets').update({ status: 'cancelled', frozen_by: null, freeze_reason: null, frozen_at: null }).eq('id', id)
       if (error) throw error
-      showActionToast('Deal abgebrochen')
+      showActionToast(t('deals.dealCancelled'))
       fetchDeal()
     } catch (_err) {
-      showActionToast('Fehler beim Abbrechen', 'error')
+      showActionToast(t('deals.dealCancelled'), 'error')
     }
     setLoading(false)
   }
@@ -489,10 +488,10 @@ export default function DealDetailPage() {
     try {
       const { error } = await supabase.from('bets').update({ frozen_by: null, freeze_reason: null, frozen_at: null }).eq('id', id)
       if (error) throw error
-      showActionToast('Abbruch abgelehnt')
+      showActionToast(t('deals.cancelRejected'))
       fetchDeal()
     } catch (_err) {
-      showActionToast('Fehler beim Ablehnen', 'error')
+      showActionToast(t('deals.cancelRejected'), 'error')
     }
     setLoading(false)
   }
@@ -523,7 +522,7 @@ export default function DealDetailPage() {
     const url = `https://app.deal-buddy.app/deal/${id}`
     try {
       if (navigator.share) await navigator.share({ title: `DealBuddy: ${deal.title}`, text: deal.title, url })
-      else { await navigator.clipboard.writeText(url); alert('Link kopiert! 🔗') }
+      else { await navigator.clipboard.writeText(url); alert(t('deals.linkCopied')) }
     } catch {}
     setMenuOpen(false)
   }
@@ -640,29 +639,29 @@ export default function DealDetailPage() {
                 {isCreator && (deal.status === 'open' || deal.status === 'pending') && (
                   <button onClick={() => { setMenuOpen(false); setEditForm({ title: deal.title, stake: deal.stake || '' }); setEditOpen(true) }}
                     style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)', fontSize: 13, textAlign: 'left', cursor: 'pointer', display: 'flex', gap: 8, alignItems: 'center' }}>
-                    ✏️ Bearbeiten
+                    {'\u270F\uFE0F'} {t('deals.editBtn')}
                   </button>
                 )}
                 {isCreator && ['open', 'pending'].includes(deal.status) && (
                   <button onClick={() => { setMenuOpen(false); setDeleteOpen(true) }}
                     style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', borderBottom: '1px solid var(--border-subtle)', color: 'var(--status-error)', fontSize: 13, textAlign: 'left', cursor: 'pointer', display: 'flex', gap: 8, alignItems: 'center' }}>
-                    ❌ Abbrechen
+                    {'\u274C'} {t('deals.cancelBtn')}
                   </button>
                 )}
                 {isCreator && deal.status === 'cancelled' && (
                   <button onClick={() => { setMenuOpen(false); setConfirmHardDeleteOpen(true) }}
                     style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', borderBottom: '1px solid var(--border-subtle)', color: 'var(--status-error)', fontSize: 13, textAlign: 'left', cursor: 'pointer', display: 'flex', gap: 8, alignItems: 'center' }}>
-                    🗑️ Endgültig löschen
+                    {'\uD83D\uDDD1\uFE0F'} {t('deals.hardDeleteBtn')}
                   </button>
                 )}
                 <button onClick={() => { setMenuOpen(false); navigator.clipboard.writeText(`https://app.deal-buddy.app/deal/${deal.id}`); }}
                   style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)', fontSize: 13, textAlign: 'left', cursor: 'pointer', display: 'flex', gap: 8, alignItems: 'center' }}>
-                  🔗 Link kopieren
+                  {'\uD83D\uDD17'} {t('deals.copyLink')}
                 </button>
                 {typeof navigator !== 'undefined' && navigator.share && (
                   <button onClick={async () => { setMenuOpen(false); try { await navigator.share({ title: deal.title, url: `https://app.deal-buddy.app/deal/${deal.id}` }) } catch {} }}
                     style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', color: 'var(--text-primary)', fontSize: 13, textAlign: 'left', cursor: 'pointer', display: 'flex', gap: 8, alignItems: 'center' }}>
-                    📤 Teilen
+                    {'\uD83D\uDCE4'} {t('deals.shareBtn')}
                   </button>
                 )}
               </div>
@@ -727,6 +726,16 @@ export default function DealDetailPage() {
               >
                 {creatorWon && '\u{1F451} '}{deal.creator?.display_name || deal.creator?.username || '?'}
               </span>
+              {deal.creator_side && (
+                <span style={{
+                  fontSize: 8, fontWeight: 800, fontFamily: 'var(--font-display)',
+                  letterSpacing: 0.5, padding: '1px 5px', borderRadius: 4,
+                  background: deal.creator_side === 'yes' ? 'rgba(74,222,128,0.2)' : 'rgba(239,68,68,0.2)',
+                  color: deal.creator_side === 'yes' ? '#4ade80' : '#ef4444',
+                }}>
+                  {deal.creator_side === 'yes' ? t('deals.sideYes') : t('deals.sideNo')}
+                </span>
+              )}
               {deal.opponent ? (
                 <>
                   <span style={{ color: 'rgba(255,255,255,0.5)' }}>vs</span>
@@ -738,7 +747,7 @@ export default function DealDetailPage() {
                   </span>
                 </>
               ) : (
-                <span style={{ color: sc }}>· sucht Gegner</span>
+                <span style={{ color: sc }}>{'\u00B7'} {t('deals.searchingOpponent')}</span>
               )}
             </div>
 
@@ -844,7 +853,7 @@ export default function DealDetailPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <div style={{ width: 14, height: 14, border: '2px solid transparent', borderTopColor: 'var(--gold-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                     <span style={{ fontSize: 10, fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: 1 }}>
-                      {uploadStatus || (uploadProgress < 100 ? `${uploadProgress}%` : 'FERTIG')}
+                      {uploadStatus || (uploadProgress < 100 ? `${uploadProgress}%` : t('common.done'))}
                     </span>
                   </div>
                   {/* Progress bar */}
@@ -863,7 +872,7 @@ export default function DealDetailPage() {
                     fontSize: 10, fontFamily: 'var(--font-display)', fontWeight: 700,
                     letterSpacing: 1.5, textTransform: 'uppercase' as const,
                   }}>
-                    {hasMedia ? '+ WEITERE' : 'FOTO / VIDEO HOCHLADEN'}
+                    {hasMedia ? t('common.uploadMore') : t('common.uploadPhotoVideo')}
                   </span>
                 </>
               )}
@@ -880,13 +889,15 @@ export default function DealDetailPage() {
             border: '1px dashed var(--border-subtle)', background: 'var(--bg-elevated)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3,
           }}>
-            <span style={{ fontSize: 9, color: 'var(--text-muted)', fontFamily: 'var(--font-display)', letterSpacing: 1 }}>KEINE MEDIEN</span>
+            <span style={{ fontSize: 9, color: 'var(--text-muted)', fontFamily: 'var(--font-display)', letterSpacing: 1 }}>{t('common.noMedia')}</span>
           </div>
         )
 
         return (
           <div style={{ margin: '6px 16px 0', padding: '10px 12px', background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border-subtle)' }}>
             <input ref={mediaInputRef} type="file" accept="image/*,video/*" style={{ display: 'none' }}
+              onChange={e => { const file = e.target.files?.[0]; if (file) uploadDealMedia(file) }} />
+            <input id="dealCameraInput" type="file" accept="image/*,video/*" capture="environment" style={{ display: 'none' }}
               onChange={e => { const file = e.target.files?.[0]; if (file) uploadDealMedia(file) }} />
             <div style={{ display: 'flex', gap: 0 }}>
               {/* Creator side */}
@@ -904,7 +915,7 @@ export default function DealDetailPage() {
                 <>
                   <div style={{ width: 1, background: 'var(--border-subtle)', margin: '0 8px', alignSelf: 'stretch' }} />
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                    <p style={{ fontSize: 7, fontFamily: 'var(--font-display)', letterSpacing: 2, color: 'var(--text-muted)', textTransform: 'uppercase' as const, margin: 0 }}>@{deal.opponent?.username || 'GEGNER'}</p>
+                    <p style={{ fontSize: 7, fontFamily: 'var(--font-display)', letterSpacing: 2, color: 'var(--text-muted)', textTransform: 'uppercase' as const, margin: 0 }}>@{deal.opponent?.username || t('deals.opponentLabel')}</p>
                     {opponentMedia.length > 0 && (
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
                         {opponentMedia.map(renderCircle)}
@@ -922,7 +933,7 @@ export default function DealDetailPage() {
       {/* ═══ TIME + EXPIRED (compact) ═══ */}
       <div style={{ margin: '4px 16px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
         {deal.deadline && countdownExpired && ['active', 'pending', 'open'].includes(deal.status) && (
-          <span style={{ fontSize: 10, fontFamily: 'var(--font-display)', letterSpacing: 1, color: 'var(--status-error)' }}>ABGELAUFEN</span>
+          <span style={{ fontSize: 10, fontFamily: 'var(--font-display)', letterSpacing: 1, color: 'var(--status-error)' }}>{t('deals.expiredLabel')}</span>
         )}
         <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{timeAgo(deal.created_at)}</span>
       </div>
@@ -932,7 +943,7 @@ export default function DealDetailPage() {
         {/* Accept deal */}
         {((deal.status === 'open' && !isParticipant) || (deal.status === 'pending' && isOpponent)) && (
           <button onClick={accept} disabled={loading} style={{ ...btnPrimary, opacity: loading ? 0.6 : 1 }}>
-            {loading ? '...' : 'DEAL ANNEHMEN \uD83E\uDD1D'}
+            {loading ? '...' : `${t('deals.acceptDeal')} \uD83E\uDD1D`}
           </button>
         )}
 
@@ -940,13 +951,13 @@ export default function DealDetailPage() {
         {(deal.status === 'active' || deal.status === 'pending_confirmation') && cancelRequested && isParticipant && (
           <div style={{ padding: '14px', background: 'rgba(248,113,113,0.06)', borderRadius: 12, border: '1px solid rgba(248,113,113,0.2)' }}>
             {iRequestedCancel ? (
-              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>{'\u23F3'} Abbruch angefragt {'\u2013'} warte auf Zustimmung...</p>
+              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>{'\u23F3'} {t('deals.cancelRequestPending')}</p>
             ) : theyRequestedCancel ? (
               <>
-                <p style={{ textAlign: 'center', color: 'var(--status-error)', fontSize: 13, marginBottom: 12 }}>@{requesterUsername} m{'\u00F6'}chte diesen Deal abbrechen</p>
+                <p style={{ textAlign: 'center', color: 'var(--status-error)', fontSize: 13, marginBottom: 12 }}>@{requesterUsername} {t('deals.wantsToCancel')}</p>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => setConfirmAcceptCancelOpen(true)} style={{ flex: 1, padding: '11px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.35)', background: 'rgba(248,113,113,0.1)', color: 'var(--status-error)', fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 1, cursor: 'pointer' }}>ABBRUCH AKZEPTIEREN</button>
-                  <button onClick={rejectCancel} style={{ flex: 1, padding: '11px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 1, cursor: 'pointer' }}>ABLEHNEN</button>
+                  <button onClick={() => setConfirmAcceptCancelOpen(true)} style={{ flex: 1, padding: '11px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.35)', background: 'rgba(248,113,113,0.1)', color: 'var(--status-error)', fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 1, cursor: 'pointer' }}>{t('deals.acceptCancelAction')}</button>
+                  <button onClick={rejectCancel} style={{ flex: 1, padding: '11px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 1, cursor: 'pointer' }}>{t('deals.rejectCancelAction')}</button>
                 </div>
               </>
             ) : null}
@@ -956,8 +967,8 @@ export default function DealDetailPage() {
         {/* Propose winner */}
         {deal.status === 'active' && isParticipant && !cancelRequested && (
           <>
-            <button onClick={() => setProposeOpen(true)} disabled={loading} style={btnPrimary}>ERGEBNIS MELDEN {'\uD83C\uDFC6'}</button>
-            <button onClick={() => setConfirmCancelOpen(true)} disabled={loading} style={{ ...btnOutline, opacity: loading ? 0.6 : 1 }}>{loading ? '...' : 'ABBRUCH ANFRAGEN'}</button>
+            <button onClick={() => setProposeOpen(true)} disabled={loading} style={btnPrimary}>{t('deals.reportResultBtn')} {'\uD83C\uDFC6'}</button>
+            <button onClick={() => setConfirmCancelOpen(true)} disabled={loading} style={{ ...btnOutline, opacity: loading ? 0.6 : 1 }}>{loading ? '...' : t('deals.requestCancelAction')}</button>
           </>
         )}
 
@@ -979,21 +990,21 @@ export default function DealDetailPage() {
             {iProposedWinner ? (
               <div style={{ padding: '16px', background: 'rgba(249,115,22,0.06)', borderRadius: 12, border: '1px solid rgba(249,115,22,0.2)', textAlign: 'center' }}>
                 <p style={{ fontSize: 22, marginBottom: 8 }}>{'\u23F3'}</p>
-                <p style={{ fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 2, color: 'var(--status-warning)', marginBottom: 6 }}>WARTE AUF BEST{'\u00C4'}TIGUNG</p>
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Du hast vorgeschlagen: @{deal.proposed_winner?.username} hat gewonnen</p>
+                <p style={{ fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 2, color: 'var(--status-warning)', marginBottom: 6 }}>{t('deals.waitingConfirmation')}</p>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{t('deals.youProposed')} @{deal.proposed_winner?.username} {t('deals.hasWon')}</p>
               </div>
             ) : theyProposedWinner ? (
               <>
                 <div style={{ padding: '14px', background: 'rgba(249,115,22,0.06)', borderRadius: 12, border: '1px solid rgba(249,115,22,0.2)', textAlign: 'center', marginBottom: 4 }}>
-                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>@{proposerUsername} sagt:</p>
-                  <p style={{ fontSize: 16, color: 'var(--gold-primary)', fontWeight: 700 }}>@{deal.proposed_winner?.username} hat gewonnen</p>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>@{proposerUsername} {t('deals.says')}</p>
+                  <p style={{ fontSize: 16, color: 'var(--gold-primary)', fontWeight: 700 }}>@{deal.proposed_winner?.username} {t('deals.hasWon')}</p>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={confirmWinner} disabled={loading} style={{ flex: 1, padding: '16px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #166534, #16a34a)', color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 1.5, fontWeight: 700 }}>
-                    {loading ? '...' : 'BEST\u00C4TIGEN \u2713'}
+                    {loading ? '...' : `${t('deals.confirmBtn')} \u2713`}
                   </button>
                   <button onClick={disputeWinner} disabled={loading} style={{ flex: 1, padding: '16px', borderRadius: 12, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.08)', color: 'var(--status-error)', fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 1.5, cursor: 'pointer' }}>
-                    DISPUTE {'\u2717'}
+                    {t('deals.disputeBtn')} {'\u2717'}
                   </button>
                 </div>
               </>
@@ -1006,10 +1017,10 @@ export default function DealDetailPage() {
           <>
             <div style={{ padding: '14px', background: 'rgba(239,68,68,0.06)', borderRadius: 12, border: '1px solid rgba(239,68,68,0.2)', textAlign: 'center' }}>
               <p style={{ fontSize: 20, marginBottom: 6 }}>{'\u2694\uFE0F'}</p>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 2, color: 'var(--status-error)', marginBottom: 4 }}>STREIT</p>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Einigt euch, wer gewonnen hat</p>
+              <p style={{ fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 2, color: 'var(--status-error)', marginBottom: 4 }}>{t('deals.disputeTitle')}</p>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{t('deals.disputedText')}</p>
             </div>
-            <button onClick={() => setResolveOpen(true)} style={{ ...btnPrimary, background: 'linear-gradient(135deg, #991b1b, var(--status-error))' }}>STREIT L{'\u00D6'}SEN {'\u2694\uFE0F'}</button>
+            <button onClick={() => setResolveOpen(true)} style={{ ...btnPrimary, background: 'linear-gradient(135deg, #991b1b, var(--status-error))' }}>{t('deals.resolveDisputeBtn')} {'\u2694\uFE0F'}</button>
           </>
         )}
       </div>
@@ -1033,7 +1044,7 @@ export default function DealDetailPage() {
           ))}
           <p style={{ fontSize: iAmWinner ? 32 : 20, marginBottom: 6, position: 'relative', zIndex: 1 }}>{'\uD83D\uDC51'}</p>
           <p style={{ fontSize: iAmWinner ? 18 : 14, color: 'var(--gold-primary)', fontFamily: iAmWinner ? 'var(--font-display)' : 'inherit', fontWeight: iAmWinner ? 700 : 400, letterSpacing: iAmWinner ? 2 : 0, position: 'relative', zIndex: 1 }}>
-            {iAmWinner ? 'DU HAST GEWONNEN!' : `@${winnerUsername} hat gewonnen!`}
+            {iAmWinner ? t('deals.youWon') : `@${winnerUsername} ${t('deals.wonExclaim')}`}
           </p>
           {iAmWinner && (
             <style>{`
@@ -1062,18 +1073,18 @@ export default function DealDetailPage() {
           <div style={{ margin: '8px 16px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
             <button onClick={() => router.push(`/app/deals/create?rematch=${deal.id}`)}
               style={{ width: '100%', padding: 16, borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))', color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700, letterSpacing: 2, boxShadow: '0 4px 20px rgba(255,184,0,0.25)' }}>
-              REVANCHE {'\u2694\uFE0F'}
+              {t('deals.revanche')} {'\u2694\uFE0F'}
             </button>
             {isWinner && (
               <button onClick={() => setShowShareCard(true)}
                 style={{ width: '100%', padding: 16, borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #166534, #22c55e)', color: '#fff', fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700, letterSpacing: 2, boxShadow: '0 4px 20px rgba(34,197,94,0.3)' }}>
-                SIEG TEILEN {'\uD83C\uDFC6'}
+                {t('deals.shareVictory')} {'\uD83C\uDFC6'}
               </button>
             )}
             {typeof window !== 'undefined' && navigator.share && (
               <button onClick={async () => { try { await navigator.share({ title: `DealBuddy: ${deal.title}`, text: isWinner ? 'Ich hab gewonnen! \uD83C\uDFC6' : `${effectiveWinnerId === deal.creator_id ? deal.creator?.username : deal.opponent?.username} hat gewonnen!`, url: `https://app.deal-buddy.app/deal/${deal.id}` }) } catch {} }}
                 style={{ width: '100%', padding: 14, borderRadius: 12, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: 'var(--font-display)', fontSize: 11, cursor: 'pointer', letterSpacing: 1.5 }}>
-                TEILEN {'\uD83D\uDCE4'}
+                {t('deals.shareLabel')} {'\uD83D\uDCE4'}
               </button>
             )}
           </div>
@@ -1088,10 +1099,10 @@ export default function DealDetailPage() {
             border: '1px solid rgba(255,184,0,0.2)',
           }}>
             <p style={{ fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 1, color: 'var(--gold-primary)', marginBottom: 6 }}>
-              EINSATZ ERHALTEN?
+              {t('deals.fulfillmentCheck')}
             </p>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'var(--font-body)', lineHeight: 1.5, marginBottom: 14 }}>
-              Hat dein Gegner den Einsatz eingelöst?
+              {t('deals.fulfillmentQuestion')}
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
@@ -1103,7 +1114,7 @@ export default function DealDetailPage() {
                   color: '#fff', fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 700, letterSpacing: 1,
                 }}
               >
-                ✅ JA, ERHALTEN
+                {'\u2705'} {t('deals.fulfillmentYes')}
               </button>
               <button
                 onClick={() => handleFulfillment('unfulfilled')}
@@ -1114,7 +1125,7 @@ export default function DealDetailPage() {
                   color: '#fff', fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 700, letterSpacing: 1,
                 }}
               >
-                ❌ NEIN
+                {'\u274C'} {t('deals.fulfillmentNo')}
               </button>
             </div>
           </div>
@@ -1126,7 +1137,7 @@ export default function DealDetailPage() {
             textAlign: 'center',
           }}>
             <span style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 1, color: '#22C55E' }}>
-              ✅ EINSATZ ALS ERHALTEN BESTÄTIGT
+              {'\u2705'} {t('deals.fulfillmentConfirmed')}
             </span>
           </div>
         )}
@@ -1137,7 +1148,7 @@ export default function DealDetailPage() {
             textAlign: 'center',
           }}>
             <span style={{ fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 1, color: '#EF4444' }}>
-              ❌ EINSATZ NICHT ERHALTEN
+              {'\u274C'} {t('deals.fulfillmentDenied')}
             </span>
           </div>
         )}
@@ -1193,7 +1204,7 @@ export default function DealDetailPage() {
       {/* Proofs section */}
       {proofs.length > 0 && (
         <div style={{ margin: '12px 16px 0' }}>
-          <p style={{ fontFamily: 'var(--font-display)', fontSize: 9, letterSpacing: 3, color: 'var(--text-secondary)', marginBottom: 10 }}>BEWEISE</p>
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: 9, letterSpacing: 3, color: 'var(--text-secondary)', marginBottom: 10 }}>{t('common.proofs')}</p>
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
             {proofs.map(p => (
               <div key={p.id} onClick={() => setProofPreview({ url: p.media_url, type: p.media_type || 'image' })} style={{
@@ -1210,7 +1221,7 @@ export default function DealDetailPage() {
                 )}
                 <div style={{ padding: '4px 6px', background: 'var(--bg-base)' }}>
                   <p style={{ fontSize: 8, fontFamily: 'var(--font-display)', letterSpacing: 1, color: p.proof_type === 'winner_proof' ? 'var(--gold-primary)' : 'var(--status-error)' }}>
-                    {p.proof_type === 'winner_proof' ? 'BEWEIS' : 'GEGEN'}
+                    {p.proof_type === 'winner_proof' ? t('common.proof') : t('common.counter')}
                   </p>
                 </div>
               </div>
@@ -1268,17 +1279,17 @@ export default function DealDetailPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-end', zIndex: 200 }} onClick={() => { setProposeOpen(false); setResolveOpen(false) }}>
           <div style={{ width: '100%', maxWidth: 430, margin: '0 auto', background: 'var(--bg-surface)', borderRadius: '20px 20px 0 0', border: '1px solid var(--border-subtle)', padding: '24px 20px 48px' }} onClick={e => e.stopPropagation()}>
             <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--gold-primary)', textAlign: 'center', marginBottom: 6 }}>
-              {resolveOpen ? 'Streit lösen' : 'Wer hat gewonnen?'}
+              {resolveOpen ? t('deals.resolveDisputeBtn') : t('deals.proposeWinnerTitle')}
             </h3>
-            <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 24 }}>Wähle den Gewinner</p>
+            <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 24 }}>{t('deals.chooseWinner')}</p>
             {[deal.creator, deal.opponent].filter(Boolean).map((p: any) => (
               <button key={p.id} onClick={() => proposeWinner(p.id)} disabled={loading}
                 style={{ width: '100%', padding: 18, borderRadius: 12, border: '1px solid var(--border-subtle)', background: p.id === profile?.id ? 'var(--gold-subtle)' : 'var(--bg-overlay)', color: 'var(--gold-primary)', fontFamily: 'var(--font-display)', fontSize: 13, letterSpacing: 2, marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
                 <ProfileImage size={28} avatarUrl={p.avatar_url} name={p.username} />
-                {p.id === profile?.id ? `ICH (@${p.username})` : `@${p.username}`}
+                {p.id === profile?.id ? `${t('deals.meLabel')} (@${p.username})` : `@${p.username}`}
               </button>
             ))}
-            <button onClick={() => { setProposeOpen(false); setResolveOpen(false) }} style={btnOutline}>ABBRECHEN</button>
+            <button onClick={() => { setProposeOpen(false); setResolveOpen(false) }} style={btnOutline}>{t('common.cancel')}</button>
           </div>
         </div>
       )}
@@ -1287,13 +1298,13 @@ export default function DealDetailPage() {
       {editOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-end', zIndex: 200 }} onClick={() => setEditOpen(false)}>
           <div style={{ width: '100%', maxWidth: 430, margin: '0 auto', background: 'var(--bg-surface)', borderRadius: '20px 20px 0 0', border: '1px solid var(--border-subtle)', padding: '24px 20px 48px' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--gold-primary)', textAlign: 'center', marginBottom: 24 }}>DEAL BEARBEITEN</h3>
-            <label style={{ display: 'block', fontSize: 10, fontFamily: 'var(--font-display)', letterSpacing: 2, color: 'var(--text-muted)', marginBottom: 8 }}>TITEL</label>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--gold-primary)', textAlign: 'center', marginBottom: 24 }}>{t('deals.editTitle')}</h3>
+            <label style={{ display: 'block', fontSize: 10, fontFamily: 'var(--font-display)', letterSpacing: 2, color: 'var(--text-muted)', marginBottom: 8 }}>{t('deals.titleLabel')}</label>
             <input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} style={inputStyle} />
-            <label style={{ display: 'block', fontSize: 10, fontFamily: 'var(--font-display)', letterSpacing: 2, color: 'var(--text-muted)', marginBottom: 8, marginTop: 16 }}>EINSATZ</label>
+            <label style={{ display: 'block', fontSize: 10, fontFamily: 'var(--font-display)', letterSpacing: 2, color: 'var(--text-muted)', marginBottom: 8, marginTop: 16 }}>{t('deals.stakeLabel')}</label>
             <input value={editForm.stake} onChange={e => setEditForm(f => ({ ...f, stake: e.target.value }))} style={inputStyle} />
-            <button onClick={editDeal} disabled={loading} style={{ ...btnPrimary, marginTop: 20 }}>{loading ? '...' : 'SPEICHERN'}</button>
-            <button onClick={() => setEditOpen(false)} style={{ ...btnOutline, marginTop: 10 }}>ABBRECHEN</button>
+            <button onClick={editDeal} disabled={loading} style={{ ...btnPrimary, marginTop: 20 }}>{loading ? '...' : t('deals.saveBtn')}</button>
+            <button onClick={() => setEditOpen(false)} style={{ ...btnOutline, marginTop: 10 }}>{t('common.cancel')}</button>
           </div>
         </div>
       )}
@@ -1302,11 +1313,11 @@ export default function DealDetailPage() {
       {deleteOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-end', zIndex: 200 }} onClick={() => setDeleteOpen(false)}>
           <div style={{ width: '100%', maxWidth: 430, margin: '0 auto', background: 'var(--bg-surface)', borderRadius: '20px 20px 0 0', border: '1px solid var(--border-subtle)', padding: '24px 20px 48px' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--status-error)', textAlign: 'center', marginBottom: 8 }}>DEAL ABBRECHEN?</h3>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--status-error)', textAlign: 'center', marginBottom: 8 }}>{t('deals.cancelConfirmTitle')}</h3>
             <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 14, marginBottom: 8 }}>{deal.title}</p>
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12, marginBottom: 24 }}>Der Deal wird abgebrochen.</p>
-            <button onClick={deleteDeal} style={{ width: '100%', padding: 16, borderRadius: 12, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: 'var(--status-error)', fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: 2, cursor: 'pointer', marginBottom: 10 }}>ABBRECHEN BESTÄTIGEN</button>
-            <button onClick={() => setDeleteOpen(false)} style={btnOutline}>ZURÜCK</button>
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12, marginBottom: 24 }}>{t('deals.cancelConfirmText')}</p>
+            <button onClick={deleteDeal} style={{ width: '100%', padding: 16, borderRadius: 12, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: 'var(--status-error)', fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: 2, cursor: 'pointer', marginBottom: 10 }}>{t('deals.confirmCancelBtn')}</button>
+            <button onClick={() => setDeleteOpen(false)} style={btnOutline}>{t('deals.backBtn')}</button>
           </div>
         </div>
       )}
@@ -1316,11 +1327,11 @@ export default function DealDetailPage() {
       {confirmCancelOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-end', zIndex: 200 }} onClick={() => setConfirmCancelOpen(false)}>
           <div style={{ width: '100%', maxWidth: 430, margin: '0 auto', background: 'var(--bg-surface)', borderRadius: '20px 20px 0 0', border: '1px solid var(--border-subtle)', padding: '24px 20px 48px' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: '#f97316', textAlign: 'center', marginBottom: 8 }}>ABBRUCH ANFRAGEN?</h3>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: '#f97316', textAlign: 'center', marginBottom: 8 }}>{t('deals.requestCancelTitle')}</h3>
             <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 14, marginBottom: 8 }}>{deal?.title}</p>
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12, marginBottom: 24 }}>Dein Gegner muss dem Abbruch zustimmen.</p>
-            <button onClick={() => { setConfirmCancelOpen(false); requestCancel() }} style={{ width: '100%', padding: 16, borderRadius: 12, border: '1px solid rgba(249,115,22,0.3)', background: 'rgba(249,115,22,0.1)', color: '#f97316', fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: 2, cursor: 'pointer', marginBottom: 10 }}>JA, ABBRUCH ANFRAGEN</button>
-            <button onClick={() => setConfirmCancelOpen(false)} style={btnOutline}>ZURÜCK</button>
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12, marginBottom: 24 }}>{t('deals.requestCancelText')}</p>
+            <button onClick={() => { setConfirmCancelOpen(false); requestCancel() }} style={{ width: '100%', padding: 16, borderRadius: 12, border: '1px solid rgba(249,115,22,0.3)', background: 'rgba(249,115,22,0.1)', color: '#f97316', fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: 2, cursor: 'pointer', marginBottom: 10 }}>{t('deals.requestCancelBtn')}</button>
+            <button onClick={() => setConfirmCancelOpen(false)} style={btnOutline}>{t('deals.backBtn')}</button>
           </div>
         </div>
       )}
@@ -1329,11 +1340,11 @@ export default function DealDetailPage() {
       {confirmAcceptCancelOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-end', zIndex: 200 }} onClick={() => setConfirmAcceptCancelOpen(false)}>
           <div style={{ width: '100%', maxWidth: 430, margin: '0 auto', background: 'var(--bg-surface)', borderRadius: '20px 20px 0 0', border: '1px solid var(--border-subtle)', padding: '24px 20px 48px' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--status-error)', textAlign: 'center', marginBottom: 8 }}>ABBRUCH AKZEPTIEREN?</h3>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--status-error)', textAlign: 'center', marginBottom: 8 }}>{t('deals.acceptCancelTitle')}</h3>
             <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 14, marginBottom: 8 }}>{deal?.title}</p>
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12, marginBottom: 24 }}>Der Deal wird endgültig abgebrochen. Diese Aktion kann nicht rückgängig gemacht werden.</p>
-            <button onClick={() => { setConfirmAcceptCancelOpen(false); acceptCancel() }} style={{ width: '100%', padding: 16, borderRadius: 12, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: 'var(--status-error)', fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: 2, cursor: 'pointer', marginBottom: 10 }}>JA, ABBRUCH AKZEPTIEREN</button>
-            <button onClick={() => setConfirmAcceptCancelOpen(false)} style={btnOutline}>ZURÜCK</button>
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12, marginBottom: 24 }}>{t('deals.acceptCancelText')}</p>
+            <button onClick={() => { setConfirmAcceptCancelOpen(false); acceptCancel() }} style={{ width: '100%', padding: 16, borderRadius: 12, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: 'var(--status-error)', fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: 2, cursor: 'pointer', marginBottom: 10 }}>{t('deals.acceptCancelBtn')}</button>
+            <button onClick={() => setConfirmAcceptCancelOpen(false)} style={btnOutline}>{t('deals.backBtn')}</button>
           </div>
         </div>
       )}
@@ -1342,11 +1353,11 @@ export default function DealDetailPage() {
       {confirmHardDeleteOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-end', zIndex: 200 }} onClick={() => setConfirmHardDeleteOpen(false)}>
           <div style={{ width: '100%', maxWidth: 430, margin: '0 auto', background: 'var(--bg-surface)', borderRadius: '20px 20px 0 0', border: '1px solid var(--border-subtle)', padding: '24px 20px 48px' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--status-error)', textAlign: 'center', marginBottom: 8 }}>ENDGÜLTIG LÖSCHEN?</h3>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--status-error)', textAlign: 'center', marginBottom: 8 }}>{t('deals.hardDeleteTitle')}</h3>
             <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 14, marginBottom: 8 }}>{deal?.title}</p>
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12, marginBottom: 24 }}>Der Deal wird unwiderruflich gelöscht. Alle Daten gehen verloren.</p>
-            <button onClick={() => { setConfirmHardDeleteOpen(false); hardDelete() }} style={{ width: '100%', padding: 16, borderRadius: 12, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: 'var(--status-error)', fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: 2, cursor: 'pointer', marginBottom: 10 }}>JA, ENDGÜLTIG LÖSCHEN</button>
-            <button onClick={() => setConfirmHardDeleteOpen(false)} style={btnOutline}>ZURÜCK</button>
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12, marginBottom: 24 }}>{t('deals.hardDeleteText')}</p>
+            <button onClick={() => { setConfirmHardDeleteOpen(false); hardDelete() }} style={{ width: '100%', padding: 16, borderRadius: 12, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: 'var(--status-error)', fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: 2, cursor: 'pointer', marginBottom: 10 }}>{t('deals.hardDeleteConfirmBtn')}</button>
+            <button onClick={() => setConfirmHardDeleteOpen(false)} style={btnOutline}>{t('deals.backBtn')}</button>
           </div>
         </div>
       )}

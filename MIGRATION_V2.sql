@@ -190,6 +190,11 @@ INSERT INTO cosmetics (id, name, description, item_type, rarity, coin_price, is_
 ON CONFLICT (id) DO NOTHING;
 
 -- ─── 11. UPDATE BATTLE PASS REWARDS (Full 30 tiers) ─
+-- First: expand the reward_type check constraint to allow card_skin
+ALTER TABLE battle_pass_rewards DROP CONSTRAINT IF EXISTS battle_pass_rewards_reward_type_check;
+ALTER TABLE battle_pass_rewards ADD CONSTRAINT battle_pass_rewards_reward_type_check
+  CHECK (reward_type IN ('coins', 'xp', 'frame', 'badge', 'title', 'card_skin', 'cosmetic', 'avatar_item'));
+
 -- Clear old rewards and insert complete set
 DELETE FROM battle_pass_rewards WHERE season_id = 1;
 

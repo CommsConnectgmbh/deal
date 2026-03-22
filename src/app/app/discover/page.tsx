@@ -4,7 +4,9 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLang } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
-import AvatarDisplay, { AvatarConfig } from '@/components/AvatarDisplay'
+import ProfileImage from '@/components/ProfileImage'
+import { triggerPush } from '@/lib/sendPushNotification'
+import { trackFollowUser, trackUnfollowUser, trackShareClicked, trackInviteSent, trackScreenView } from '@/lib/analytics'
 
 interface UserResult {
   id: string
@@ -18,13 +20,13 @@ interface UserResult {
   following_count: number
   followStatus: 'none' | 'pending' | 'accepted'
   mutualCount?: number
-  avatarConfig?: AvatarConfig | null
+  avatar_url?: string | null
   primary_archetype?: string
 }
 
 export default function DiscoverPage() {
   const { profile } = useAuth()
-  const { lang } = useLang()
+  const { t, lang } = useLang()
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<UserResult[]>([])
@@ -38,6 +40,8 @@ export default function DiscoverPage() {
     setShareToast(true)
     setTimeout(() => setShareToast(false), 2500)
   }, [])
+
+  useEffect(() => { trackScreenView('discover') }, [])
 
   useEffect(() => {
     if (profile) fetchSuggestions()
@@ -77,7 +81,7 @@ export default function DiscoverPage() {
       if (candidateIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, username, display_name, level, wins, deals_total, is_private, follower_count, following_count, primary_archetype')
+          .select('id, username, display_name, level, wins, deals_total, is_private, follower_count, following_count, primary_archetype, avatar_url')
           .in('id', candidateIds)
           .limit(15)
 
@@ -107,7 +111,7 @@ export default function DiscoverPage() {
     if (suggestedUsers.length < 5) {
       const { data: topUsers } = await supabase
         .from('profiles')
-        .select('id, username, display_name, level, wins, deals_total, is_private, follower_count, following_count, primary_archetype')
+        .select('id, username, display_name, level, wins, deals_total, is_private, follower_count, following_count, primary_archetype, avatar_url')
         .not('id', 'in', `(${excludeIds.join(",")})`)
         .order('deals_total', { ascending: false })
         .limit(10)
@@ -121,20 +125,6 @@ export default function DiscoverPage() {
       }
     }
 
-    // Load avatar configs
-    if (suggestedUsers.length > 0) {
-      const { data: configs } = await supabase
-        .from('avatar_config')
-        .select('user_id, body, hair, outfit, accessory')
-        .in('user_id', suggestedUsers.map(u => u.id))
-
-      const configMap: Record<string, AvatarConfig> = {}
-      for (const c of (configs || [])) {
-        configMap[c.user_id] = { body: c.body, hair: c.hair, outfit: c.outfit, accessory: c.accessory }
-      }
-      suggestedUsers = suggestedUsers.map(u => ({ ...u, avatarConfig: configMap[u.id] || null }))
-    }
-
     setSuggestions(suggestedUsers)
   }
 
@@ -143,31 +133,26 @@ export default function DiscoverPage() {
     setSearching(true)
     const { data } = await supabase
       .from('profiles')
-      .select('id, username, display_name, level, wins, deals_total, is_private, follower_count, following_count, primary_archetype')
+      .select('id, username, display_name, level, wins, deals_total, is_private, follower_count, following_count, primary_archetype, avatar_url')
       .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
       .neq('id', profile!.id)
       .limit(20)
 
     if (data) {
       const ids = data.map((u: any) => u.id)
-      const [followRes, configRes] = await Promise.all([
-        supabase.from('follows').select('following_id, status').eq('follower_id', profile!.id).in('following_id', ids),
-        supabase.from('avatar_config').select('user_id, body, hair, outfit, accessory').in('user_id', ids),
-      ])
+      const { data: followRes } = await supabase
+        .from('follows')
+        .select('following_id, status')
+        .eq('follower_id', profile!.id)
+        .in('following_id', ids)
 
       const followMap: Record<string, string> = {}
-      for (const f of (followRes.data || [])) followMap[f.following_id] = f.status
-
-      const configMap: Record<string, AvatarConfig> = {}
-      for (const c of (configRes.data || [])) {
-        configMap[c.user_id] = { body: c.body, hair: c.hair, outfit: c.outfit, accessory: c.accessory }
-      }
+      for (const f of (followRes || [])) followMap[f.following_id] = f.status
 
       setResults(data.map((u: any) => ({
         ...u,
         followStatus: (followMap[u.id] as any) || 'none',
         mutualCount: 0,
-        avatarConfig: configMap[u.id] || null,
       })))
     }
     setSearching(false)
@@ -182,29 +167,43 @@ export default function DiscoverPage() {
   const follow = async (userId: string, isPrivate: boolean) => {
     if (!profile) return
     setFollowLoading(userId)
-    const status = isPrivate ? 'pending' : 'accepted'
-    await supabase.from('follows').upsert({
-      follower_id: profile.id,
-      following_id: userId,
-      status,
-    }, { onConflict: 'follower_id,following_id' })
+    try {
+      const status = isPrivate ? 'pending' : 'accepted'
+      const { error: followError } = await supabase.from('follows').upsert({
+        follower_id: profile.id,
+        following_id: userId,
+        status,
+      }, { onConflict: 'follower_id,following_id' })
 
-    // Notify the target user
-    await supabase.from('notifications').insert({
-      user_id: userId,
-      type: isPrivate ? 'follow_request' : 'follow_accepted',
-      title: isPrivate
-        ? (lang === 'de' ? 'Neue Follower-Anfrage' : 'New Follow Request')
-        : (lang === 'de' ? 'Neuer Follower' : 'New Follower'),
-      body: `@${profile.username} ${isPrivate ? (lang === 'de' ? 'möchte dir folgen' : 'wants to follow you') : (lang === 'de' ? 'folgt dir jetzt' : 'is now following you')}`,
-      reference_id: profile.id,
-    })
+      if (followError) {
+        console.error('Follow error:', followError)
+        setFollowLoading(null)
+        return
+      }
 
-    const update = (list: UserResult[]) =>
-      list.map(u => u.id === userId ? { ...u, followStatus: status as any } : u)
-    setResults(update)
-    setSuggestions(update)
-    setFollowLoading(null)
+      trackFollowUser(userId)
+
+      // Notify the target user (non-blocking)
+      supabase.from('notifications').insert({
+        user_id: userId,
+        type: isPrivate ? 'follow_request' : 'follow_accepted',
+        title: isPrivate ? t('discover.followRequest') : t('discover.newFollower'),
+        body: `@${profile.username} ${isPrivate ? t('discover.wantsToFollow') : t('discover.nowFollowing')}`,
+        reference_id: profile.id,
+      }).then(() => {})
+
+      // Push (non-blocking)
+      triggerPush(userId, `👥 ${t('discover.newFollower')}`, `@${profile.username} ${t('discover.nowFollowing')}`, `/app/profile/${profile.username}`)
+
+      const update = (list: UserResult[]) =>
+        list.map(u => u.id === userId ? { ...u, followStatus: status as any } : u)
+      setResults(update)
+      setSuggestions(update)
+    } catch (err) {
+      console.error('Follow failed:', err)
+    } finally {
+      setFollowLoading(null)
+    }
   }
 
   const unfollow = async (userId: string) => {
@@ -213,6 +212,7 @@ export default function DiscoverPage() {
     await supabase.from('follows').delete()
       .eq('follower_id', profile.id)
       .eq('following_id', userId)
+    trackUnfollowUser(userId)
     const update = (list: UserResult[]) =>
       list.map(u => u.id === userId ? { ...u, followStatus: 'none' as any } : u)
     setResults(update)
@@ -222,18 +222,20 @@ export default function DiscoverPage() {
 
   const handleShare = async () => {
     const shareUrl = `https://app.deal-buddy.app/join?ref=${profile?.username}`
-    const shareText = lang === 'de'
-      ? `Komm zu DealBuddy – das Spiel für Deal-Profis! 🤝 ${shareUrl}`
-      : `Join me on DealBuddy – the game for deal makers! 🤝 ${shareUrl}`
+    const shareText = `${t('discover.inviteText')} 🤝 ${shareUrl}`
 
     if (navigator.share) {
       try {
         await navigator.share({ title: 'DealBuddy', text: shareText, url: shareUrl })
+        trackInviteSent('native_share')
+        trackShareClicked('invite', 'native_share')
         return
       } catch {}
     }
     try {
       await navigator.clipboard.writeText(shareUrl)
+      trackInviteSent('copy_link')
+      trackShareClicked('invite', 'copy_link')
       showShareToast()
     } catch {}
   }
@@ -245,9 +247,9 @@ export default function DiscoverPage() {
         <button
           onClick={() => unfollow(user.id)}
           disabled={loading}
-          style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(240,236,228,0.4)', fontFamily: 'Cinzel, serif', fontSize: 9, letterSpacing: 1, cursor: 'pointer' }}
+          style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: 'var(--font-display)', fontSize: 9, letterSpacing: 1, cursor: 'pointer' }}
         >
-          {loading ? '···' : lang === 'de' ? 'ENTFOLGEN' : 'UNFOLLOW'}
+          {loading ? '···' : t('discover.unfollow')}
         </button>
       )
     }
@@ -255,9 +257,9 @@ export default function DiscoverPage() {
       return (
         <button
           disabled
-          style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(255,184,0,0.2)', background: 'rgba(255,184,0,0.06)', color: 'rgba(255,184,0,0.5)', fontFamily: 'Cinzel, serif', fontSize: 9, letterSpacing: 1 }}
+          style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(255,184,0,0.2)', background: 'var(--gold-subtle)', color: 'rgba(255,184,0,0.5)', fontFamily: 'var(--font-display)', fontSize: 9, letterSpacing: 1 }}
         >
-          {lang === 'de' ? 'ANGEFRAGT' : 'PENDING'}
+          {t('discover.pending')}
         </button>
       )
     }
@@ -265,38 +267,33 @@ export default function DiscoverPage() {
       <button
         onClick={() => follow(user.id, user.is_private)}
         disabled={loading}
-        style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #CC8800, #FFB800)', color: '#000', fontFamily: 'Cinzel, serif', fontSize: 9, fontWeight: 700, letterSpacing: 1, cursor: 'pointer' }}
+        style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))', color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 9, fontWeight: 700, letterSpacing: 1, cursor: 'pointer' }}
       >
-        {loading ? '···' : lang === 'de' ? 'FOLGEN' : 'FOLLOW'}
+        {loading ? '···' : t('discover.follow')}
       </button>
     )
   }
 
   const UserCard = ({ user }: { user: UserResult }) => (
-    <div style={{ background: '#111', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-      <div
+    <div style={{ background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border-subtle)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+      <ProfileImage
+        size={44}
+        avatarUrl={user.avatar_url}
+        name={user.username}
         onClick={() => router.push(`/app/profile/${user.username}`)}
-        style={{ flexShrink: 0, cursor: 'pointer' }}
-      >
-        <AvatarDisplay
-          config={user.avatarConfig || null}
-          archetype={user.primary_archetype || 'founder'}
-          size={44}
-          initials={(user.display_name || user.username || 'U').slice(0, 2).toUpperCase()}
-        />
-      </div>
+      />
       <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => router.push(`/app/profile/${user.username}`)}>
-        <p style={{ fontSize: 14, color: '#f0ece4', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <p style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {user.display_name || user.username}
         </p>
-        <p style={{ fontSize: 11, color: 'rgba(240,236,228,0.4)', marginTop: 1 }}>
+        <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 1 }}>
           @{user.username} · Lv.{user.level}
           {(user.mutualCount || 0) > 0 && (
-            <span style={{ color: '#FFB800', marginLeft: 6 }}>· {user.mutualCount} {lang === 'de' ? 'gem.' : 'mutual'}</span>
+            <span style={{ color: 'var(--gold-primary)', marginLeft: 6 }}>· {user.mutualCount} {t('discover.mutual')}</span>
           )}
         </p>
-        <p style={{ fontSize: 10, color: 'rgba(240,236,228,0.25)', marginTop: 1 }}>
-          {user.follower_count || 0} {lang === 'de' ? 'Follower' : 'followers'}
+        <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>
+          {user.follower_count || 0} {t('discover.followers')}
         </p>
       </div>
       <FollowButton user={user} />
@@ -306,71 +303,71 @@ export default function DiscoverPage() {
   const displayList = query.trim() ? results : suggestions
 
   return (
-    <div style={{ minHeight: '100dvh', background: '#060606', paddingTop: 60, paddingBottom: 100 }}>
+    <div style={{ minHeight: '100dvh', background: 'var(--bg-base)', paddingTop: 60, paddingBottom: 100 }}>
 
       {/* Share toast */}
       {shareToast && (
-        <div style={{ position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)', background: 'linear-gradient(135deg, #CC8800, #FFB800)', borderRadius: 12, padding: '10px 20px', zIndex: 300, whiteSpace: 'nowrap', boxShadow: '0 8px 24px rgba(255,184,0,0.3)' }}>
-          <span style={{ fontFamily: 'Cinzel, serif', fontSize: 12, color: '#000', fontWeight: 700 }}>
-            {lang === 'de' ? '🔗 Link kopiert!' : '🔗 Link copied!'}
+        <div style={{ position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)', background: 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))', borderRadius: 12, padding: '10px 20px', zIndex: 300, whiteSpace: 'nowrap', boxShadow: '0 8px 24px rgba(255,184,0,0.3)' }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 12, color: 'var(--text-inverse)', fontWeight: 700 }}>
+            🔗 {t('discover.linkCopied')}
           </span>
         </div>
       )}
 
       {/* Header */}
       <div style={{ padding: '0 20px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: 'rgba(240,236,228,0.5)', cursor: 'pointer', fontSize: 20, padding: 0 }}>←</button>
-        <h1 className="font-display" style={{ fontSize: 20, color: '#f0ece4', flex: 1 }}>
-          {lang === 'de' ? 'ENTDECKEN' : 'DISCOVER'}
+        <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 20, padding: 0 }}>←</button>
+        <h1 className="font-display" style={{ fontSize: 20, color: 'var(--text-primary)', flex: 1 }}>
+          {t('discover.title').toUpperCase()}
         </h1>
         {/* Share / Invite button */}
         <button
           onClick={handleShare}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 20, background: 'rgba(255,184,0,0.08)', border: '1px solid rgba(255,184,0,0.25)', color: '#FFB800', fontFamily: 'Cinzel, serif', fontSize: 9, letterSpacing: 1, cursor: 'pointer' }}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 20, background: 'var(--gold-subtle)', border: '1px solid rgba(255,184,0,0.25)', color: 'var(--gold-primary)', fontFamily: 'var(--font-display)', fontSize: 9, letterSpacing: 1, cursor: 'pointer' }}
         >
-          📨 {lang === 'de' ? 'EINLADEN' : 'INVITE'}
+          📨 {t('discover.inviteFriends').split(' ')[0]}
         </button>
       </div>
 
       {/* Search bar */}
       <div style={{ margin: '0 16px 20px', position: 'relative' }}>
-        <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 16, color: 'rgba(240,236,228,0.3)' }}>🔍</span>
+        <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 16, color: 'var(--text-muted)' }}>🔍</span>
         <input
           value={query}
           onChange={e => handleQuery(e.target.value)}
-          placeholder={lang === 'de' ? 'Nutzer suchen…' : 'Search users…'}
-          style={{ width: '100%', padding: '13px 16px 13px 42px', background: '#111', border: '1px solid rgba(255,184,0,0.15)', borderRadius: 12, color: '#f0ece4', fontSize: 15, fontFamily: 'Crimson Text, serif', outline: 'none', boxSizing: 'border-box' }}
+          placeholder={t('discover.search')}
+          style={{ width: '100%', padding: '13px 16px 13px 42px', background: 'var(--bg-surface)', border: '1px solid rgba(255,184,0,0.15)', borderRadius: 12, color: 'var(--text-primary)', fontSize: 15, fontFamily: 'Crimson Text, serif', outline: 'none', boxSizing: 'border-box' }}
         />
         {searching && (
-          <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'rgba(240,236,228,0.4)' }}>···</span>
+          <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--text-secondary)' }}>···</span>
         )}
       </div>
 
       <div style={{ padding: '0 16px' }}>
         {!query.trim() && (
-          <p style={{ fontFamily: 'Cinzel, serif', fontSize: 9, letterSpacing: 3, color: 'rgba(240,236,228,0.4)', marginBottom: 12 }}>
-            {lang === 'de' ? 'VORSCHLÄGE' : 'SUGGESTED'}
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: 9, letterSpacing: 3, color: 'var(--text-secondary)', marginBottom: 12 }}>
+            {t('discover.suggested')}
           </p>
         )}
         {query.trim() && results.length === 0 && !searching && (
           <div style={{ textAlign: 'center', padding: '40px 20px' }}>
             <p style={{ fontSize: 32, marginBottom: 12 }}>🔍</p>
-            <p style={{ fontSize: 14, color: 'rgba(240,236,228,0.4)' }}>
-              {lang === 'de' ? 'Keine Nutzer gefunden.' : 'No users found.'}
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
+              {t('discover.noUsersFound')}
             </p>
           </div>
         )}
         {suggestions.length === 0 && !query.trim() && (
           <div style={{ textAlign: 'center', padding: '40px 20px' }}>
             <p style={{ fontSize: 32, marginBottom: 12 }}>👋</p>
-            <p style={{ fontSize: 14, color: 'rgba(240,236,228,0.4)', marginBottom: 16 }}>
-              {lang === 'de' ? 'Lade Freunde ein und entdecke neue Rivalen!' : 'Invite friends and discover new rivals!'}
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
+              {t('discover.inviteDesc')}
             </p>
             <button
               onClick={handleShare}
-              style={{ padding: '12px 28px', borderRadius: 20, background: 'linear-gradient(135deg, #CC8800, #FFB800)', border: 'none', color: '#000', fontFamily: 'Cinzel, serif', fontSize: 10, fontWeight: 700, letterSpacing: 1, cursor: 'pointer' }}
+              style={{ padding: '12px 28px', borderRadius: 20, background: 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))', border: 'none', color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 700, letterSpacing: 1, cursor: 'pointer' }}
             >
-              📨 {lang === 'de' ? 'FREUNDE EINLADEN' : 'INVITE FRIENDS'}
+              📨 {t('discover.inviteFriends')}
             </button>
           </div>
         )}

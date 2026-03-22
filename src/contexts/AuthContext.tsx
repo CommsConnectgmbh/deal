@@ -37,6 +37,7 @@ interface Profile {
   equipped_card_image_url?: string | null
   reliability_score?: number | null
   reliability_color?: string | null
+  status_text?: string | null
 }
 
 interface AuthCtx {

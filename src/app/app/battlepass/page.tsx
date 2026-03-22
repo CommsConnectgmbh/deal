@@ -1,8 +1,11 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
+import CoinIcon from '@/components/CoinIcon'
+import { trackBattlePassOpened, trackBattlePassRewardClaimed, trackScreenView } from '@/lib/analytics'
+import { useLang } from '@/contexts/LanguageContext'
 
 interface BPReward {
   season_id: number
@@ -25,17 +28,17 @@ const REWARD_ICONS: Record<string, string> = {
   title: '🏷️', avatar_item: '👤', xp: '⭐',
 }
 const REWARD_COLORS: Record<string, string> = {
-  frame: '#60a5fa', badge: '#c084fc', card_skin: '#34d399',
-  coins: '#FFB800', title: '#f97316', avatar_item: '#a78bfa', xp: '#FFB800',
+  frame: 'var(--status-info)', badge: '#c084fc', card_skin: '#34d399',
+  coins: 'var(--gold-primary)', title: 'var(--status-warning)', avatar_item: 'var(--rarity-epic)', xp: 'var(--gold-primary)',
 }
 const MILESTONE_TIERS = [5, 10, 15, 20, 25, 30]
-const MILESTONE_LORE: Record<number, string> = {
-  5:  'Dein erster Schritt zur Legende.',
-  10: 'Die Rivalität wächst.',
-  15: 'Respekt wird verdient, nicht geschenkt.',
-  20: 'Auf dem Weg zur Unsterblichkeit.',
-  25: 'Fast am Gipfel. Gib nicht auf.',
-  30: 'LEGENDE. Du hast Season 1 gemeistert.',
+const MILESTONE_LORE_KEYS: Record<number, string> = {
+  5:  'battlepass.milestoneLore5',
+  10: 'battlepass.milestoneLore10',
+  15: 'battlepass.milestoneLore15',
+  20: 'battlepass.milestoneLore20',
+  25: 'battlepass.milestoneLore25',
+  30: 'battlepass.milestoneLore30',
 }
 
 // Season countdown (hardcoded Season 1 end)
@@ -48,15 +51,18 @@ function getDaysLeft() {
 export default function BattlePassPage() {
   const { profile, refreshProfile } = useAuth()
   const router = useRouter()
+  const { t } = useLang()
 
   const [rewards, setRewards]   = useState<BPReward[]>([])
   const [userBP,  setUserBP]    = useState<UserBP | null>(null)
   const [claiming, setClaiming] = useState<string | null>(null)
-  const [toast,   setToast]     = useState<string | null>(null)
+  const [toast,   setToast]     = useState<React.ReactNode | null>(null)
   const [milestoneModal, setMilestoneModal] = useState<number | null>(null)
   const [claimAnim, setClaimAnim] = useState<string | null>(null)
   const sliderRef  = useRef<HTMLDivElement>(null)
   const SEASON_ID  = 1
+
+  useEffect(() => { trackScreenView('battlepass'); trackBattlePassOpened() }, [])
 
   useEffect(() => {
     if (profile) { fetchRewards(); fetchUserBP() }
@@ -125,16 +131,18 @@ export default function BattlePassPage() {
       await supabase.from('user_battlepass')
         .update({ claimed_rewards: newClaimed })
         .eq('user_id', profile!.id).eq('season_id', SEASON_ID)
+      trackBattlePassRewardClaimed(reward.level)
       setUserBP(prev => prev ? { ...prev, claimed_rewards: newClaimed } : prev)
       setClaimAnim(key)
       setTimeout(() => setClaimAnim(null), 800)
-      const label = reward.reward_type === 'coins'
-        ? `🪙 +${reward.reward_amount} Coins erhalten!`
-        : `🎁 ${reward.reward_value?.replace(/_/g,' ')} freigeschaltet!`
-      setToast(label)
+      if (reward.reward_type === 'coins') {
+        setToast(<><CoinIcon size={14} /> +{reward.reward_amount} {t('battlepass.coinsReceived')}</>)
+      } else {
+        setToast(<>🎁 {reward.reward_value?.replace(/_/g,' ')} {t('battlepass.unlocked')}</>)
+      }
       setTimeout(() => setToast(null), 3000)
       await refreshProfile()
-    } catch (e) { console.error(e) }
+    } catch (_e) { /* claim error */ }
     setClaiming(null)
   }
 
@@ -153,8 +161,8 @@ export default function BattlePassPage() {
       <div style={{ display:'flex', flexDirection:'column', gap:6, alignItems:'center', flexShrink:0, width:cardW }}>
         {/* Tier number */}
         <div style={{
-          fontSize: isMile ? 11 : 9, fontFamily:'Cinzel,serif', fontWeight:700,
-          color: isMile ? '#FFB800' : isPast ? '#4ade80' : isCurr ? '#FFB800' : '#444',
+          fontSize: isMile ? 11 : 9, fontFamily:'var(--font-display)', fontWeight:700,
+          color: isMile ? 'var(--gold-primary)' : isPast ? 'var(--status-active)' : isCurr ? 'var(--gold-primary)' : '#444',
           letterSpacing:1,
         }}>
           {isMile ? `✦ TIER ${tier}` : `T${tier}`}
@@ -176,7 +184,7 @@ export default function BattlePassPage() {
     isPast: boolean; isCurr: boolean; isPremium?: boolean
   }) => {
     if (!reward) {
-      return <div style={{ width: isMile ? 104 : 84, height: isMile ? 120 : 100, borderRadius:10, background:'#0A0A0A', border:'1px solid #1a1a1a', opacity:0.3 }} />
+      return <div style={{ width: isMile ? 104 : 84, height: isMile ? 120 : 100, borderRadius:10, background:'var(--bg-base)', border:'1px solid var(--bg-elevated)', opacity:0.3 }} />
     }
     const earned   = isEarned(reward)
     const claimed  = isClaimed(reward)
@@ -191,11 +199,11 @@ export default function BattlePassPage() {
           width: isMile ? 104 : 84,
           height: isMile ? 120 : 100,
           borderRadius: 12,
-          border: isCurr && !isPremium ? `2px solid #FFB800` :
+          border: isCurr && !isPremium ? `2px solid var(--gold-primary)` :
                   claimed             ? `1.5px solid #4ade8055` :
                   earned              ? `1.5px solid ${rColor}55` :
                   isPremium && !userBP?.premium_unlocked ? `1px dashed #33333380` :
-                                        `1px solid #1a1a1a`,
+                                        `1px solid var(--bg-elevated)`,
           background: isMile && earned && !claimed ? `${rColor}12` :
                       claimed          ? `rgba(74,222,128,0.06)` :
                       earned           ? `${rColor}08` :
@@ -203,7 +211,7 @@ export default function BattlePassPage() {
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', gap: 6, cursor: earned && !claimed ? 'pointer' : 'default',
           position: 'relative', overflow: 'hidden',
-          boxShadow: isCurr && !isPremium ? `0 0 16px #FFB80044` :
+          boxShadow: isCurr && !isPremium ? `0 0 16px rgba(255,184,0,0.27)` :
                      isMile && earned && !claimed ? `0 0 12px ${rColor}33` : 'none',
           transition: 'all 0.2s',
           animation: isAnimating ? 'claimPop 0.8s ease' : 'none',
@@ -226,7 +234,7 @@ export default function BattlePassPage() {
         {isCurr && !isPremium && (
           <div style={{
             position:'absolute', inset:-2, borderRadius:13,
-            border:'2px solid #FFB800',
+            border:'2px solid var(--gold-primary)',
             animation:'pulse 1.5s ease-in-out infinite',
             opacity:0.5, pointerEvents:'none',
           }} />
@@ -243,11 +251,11 @@ export default function BattlePassPage() {
         {/* Label */}
         <span style={{
           fontSize: 8, textAlign:'center', lineHeight:1.2, padding:'0 4px',
-          color: claimed ? '#4ade80' : earned ? rColor : '#444',
-          fontFamily: 'Cinzel,serif',
+          color: claimed ? 'var(--status-active)' : earned ? rColor : '#444',
+          fontFamily: 'var(--font-display)',
         }}>
           {reward.reward_type === 'coins'
-            ? `${reward.reward_amount}🪙`
+            ? <>{reward.reward_amount}<CoinIcon size={10} /></>
             : (reward.reward_value || reward.reward_type).replace(/_/g,' ').slice(0,12)}
         </span>
 
@@ -255,9 +263,9 @@ export default function BattlePassPage() {
         {earned && !claimed && (
           <div style={{
             background: isPremium && !userBP?.premium_unlocked ? 'transparent' :
-                        `linear-gradient(135deg, #CC8800, #FFB800)`,
+                        `linear-gradient(135deg, var(--gold-dim), var(--gold-primary))`,
             borderRadius:6, padding:'2px 8px',
-            fontSize:8, fontWeight:700, color:'#000', fontFamily:'Cinzel,serif',
+            fontSize:8, fontWeight:700, color:'var(--text-inverse)', fontFamily:'var(--font-display)',
           }}>
             {claiming === key ? '...' : 'CLAIM'}
           </div>
@@ -275,7 +283,7 @@ export default function BattlePassPage() {
   }
 
   return (
-    <div style={{ minHeight:'100dvh', background:'#060606', color:'#F0ECE4', paddingBottom:40 }}>
+    <div style={{ minHeight:'100dvh', background:'var(--bg-base)', color:'var(--text-primary)', paddingBottom:40 }}>
       {/* CSS Animations */}
       <style>{`
         @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:0.9} }
@@ -284,39 +292,39 @@ export default function BattlePassPage() {
 
       {/* Toast */}
       {toast && (
-        <div style={{ position:'fixed', top:80, left:'50%', transform:'translateX(-50%)', background:'linear-gradient(135deg,#CC8800,#FFB800)', borderRadius:12, padding:'10px 20px', zIndex:300, whiteSpace:'nowrap', boxShadow:'0 8px 24px rgba(255,184,0,0.3)' }}>
-          <span style={{ fontFamily:'Cinzel,serif', fontSize:12, color:'#000', fontWeight:700 }}>{toast}</span>
+        <div style={{ position:'fixed', top:80, left:'50%', transform:'translateX(-50%)', background:'linear-gradient(135deg,var(--gold-dim),var(--gold-primary))', borderRadius:12, padding:'10px 20px', zIndex:300, whiteSpace:'nowrap', boxShadow:'0 8px 24px rgba(255,184,0,0.3)' }}>
+          <span style={{ fontFamily:'var(--font-display)', fontSize:12, color:'var(--text-inverse)', fontWeight:700 }}>{toast}</span>
         </div>
       )}
 
       {/* Header */}
       <div style={{ padding:'56px 20px 0', display:'flex', alignItems:'center', gap:12 }}>
-        <button onClick={() => router.back()} style={{ background:'none', border:'none', color:'#666', cursor:'pointer', fontSize:22, padding:0 }}>‹</button>
+        <button onClick={() => router.back()} style={{ background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer', fontSize:22, padding:0 }}>‹</button>
         <div style={{ flex:1 }}>
-          <p style={{ fontFamily:'Cinzel,serif', fontSize:10, letterSpacing:3, color:'#FFB80088', marginBottom:2 }}>SEASON 1 · THE FOUNDERS ERA</p>
-          <h1 style={{ fontFamily:'Cinzel,serif', fontSize:20, color:'#F0ECE4', fontWeight:700 }}>BATTLE PASS</h1>
+          <p style={{ fontFamily:'var(--font-display)', fontSize:10, letterSpacing:3, color:'rgba(255,184,0,0.53)', marginBottom:2 }}>SEASON 1 · THE FOUNDERS ERA</p>
+          <h1 style={{ fontFamily:'var(--font-display)', fontSize:20, color:'var(--text-primary)', fontWeight:700 }}>BATTLE PASS</h1>
         </div>
         <div style={{ textAlign:'right' }}>
-          <p style={{ fontSize:10, color:'#555', marginBottom:2 }}>Endet in</p>
-          <p style={{ fontFamily:'Cinzel,serif', fontSize:14, color:'#FFB800', fontWeight:700 }}>{getDaysLeft()}T</p>
+          <p style={{ fontSize:10, color:'var(--text-muted)', marginBottom:2 }}>{t('battlepass.endsIn')}</p>
+          <p style={{ fontFamily:'var(--font-display)', fontSize:14, color:'var(--gold-primary)', fontWeight:700 }}>{getDaysLeft()}{t('battlepass.days')}</p>
         </div>
       </div>
 
       {/* XP Progress */}
-      <div style={{ margin:'16px 16px 0', background:'#111', borderRadius:14, border:'1px solid rgba(255,184,0,0.1)', padding:'14px 16px' }}>
+      <div style={{ margin:'16px 16px 0', background:'var(--bg-surface)', borderRadius:14, border:'1px solid rgba(255,184,0,0.1)', padding:'14px 16px' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
-          <span style={{ fontFamily:'Cinzel,serif', fontSize:11, letterSpacing:2, color:'#888' }}>
+          <span style={{ fontFamily:'var(--font-display)', fontSize:11, letterSpacing:2, color:'var(--text-muted)' }}>
             TIER {currentTier}
           </span>
-          <span style={{ fontFamily:'Cinzel,serif', fontSize:11, color:'#FFB800' }}>
+          <span style={{ fontFamily:'var(--font-display)', fontSize:11, color:'var(--gold-primary)' }}>
             {xpInTier} / 500 XP → Tier {currentTier + 1}
           </span>
         </div>
-        <div style={{ height:6, background:'#1a1a1a', borderRadius:3, overflow:'hidden' }}>
-          <div style={{ height:'100%', width:`${xpProgress}%`, background:'linear-gradient(90deg,#CC8800,#FFB800)', borderRadius:3, transition:'width 0.6s ease' }} />
+        <div style={{ height:6, background:'var(--bg-elevated)', borderRadius:3, overflow:'hidden' }}>
+          <div style={{ height:'100%', width:`${xpProgress}%`, background:'linear-gradient(90deg,var(--gold-dim),var(--gold-primary))', borderRadius:3, transition:'width 0.6s ease' }} />
         </div>
         <p style={{ fontSize:11, color:'#444', marginTop:6 }}>
-          Gesamt-Saison-XP: <span style={{ color:'#FFB80088' }}>{userBP?.season_xp || 0}</span>
+          {t('battlepass.totalSeasonXp')}: <span style={{ color:'rgba(255,184,0,0.53)' }}>{userBP?.season_xp || 0}</span>
         </p>
       </div>
 
@@ -324,26 +332,26 @@ export default function BattlePassPage() {
       {!userBP?.premium_unlocked && (
         <div style={{ margin:'12px 16px 0', background:'linear-gradient(135deg,rgba(255,184,0,0.06),rgba(255,229,102,0.03))', borderRadius:14, border:'1px solid rgba(255,184,0,0.15)', padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
           <div>
-            <p style={{ fontFamily:'Cinzel,serif', fontSize:13, color:'#FFB800', marginBottom:4 }}>⭐ PREMIUM FREISCHALTEN</p>
-            <p style={{ fontSize:12, color:'#555', marginBottom:4 }}>Exklusive Rewards auf allen 30 Tiers</p>
-            <p style={{ fontSize:16, color:'#FFB800', fontWeight:700 }}>€9,99</p>
+            <p style={{ fontFamily:'var(--font-display)', fontSize:13, color:'var(--gold-primary)', marginBottom:4 }}>⭐ {t('battlepass.unlockPremiumTitle')}</p>
+            <p style={{ fontSize:12, color:'var(--text-muted)', marginBottom:4 }}>{t('battlepass.exclusiveRewards')}</p>
+            <p style={{ fontSize:16, color:'var(--gold-primary)', fontWeight:700 }}>€9,99</p>
           </div>
           <button
             onClick={() => router.push('/app/shop?section=premium')}
-            style={{ flexShrink:0, padding:'12px 16px', borderRadius:10, border:'none', cursor:'pointer', background:'linear-gradient(135deg,#CC8800,#FFB800)', color:'#000', fontFamily:'Cinzel,serif', fontSize:10, fontWeight:700, letterSpacing:1 }}
-          >FREISCHALTEN</button>
+            style={{ flexShrink:0, padding:'12px 16px', borderRadius:10, border:'none', cursor:'pointer', background:'linear-gradient(135deg,var(--gold-dim),var(--gold-primary))', color:'var(--text-inverse)', fontFamily:'var(--font-display)', fontSize:10, fontWeight:700, letterSpacing:1 }}
+          >{t('battlepass.unlock')}</button>
         </div>
       )}
 
       {/* Track Labels */}
       <div style={{ display:'flex', justifyContent:'center', gap:32, padding:'20px 16px 10px' }}>
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <div style={{ width:8, height:8, borderRadius:'50%', background:'#4ade80' }} />
-          <span style={{ fontFamily:'Cinzel,serif', fontSize:9, color:'#666', letterSpacing:1 }}>FREE TRACK</span>
+          <div style={{ width:8, height:8, borderRadius:'50%', background:'var(--status-active)' }} />
+          <span style={{ fontFamily:'var(--font-display)', fontSize:9, color:'var(--text-muted)', letterSpacing:1 }}>FREE TRACK</span>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <div style={{ width:8, height:8, borderRadius:'50%', background:'#FFB800' }} />
-          <span style={{ fontFamily:'Cinzel,serif', fontSize:9, color: userBP?.premium_unlocked ? '#FFB800' : '#444', letterSpacing:1 }}>⭐ PREMIUM TRACK</span>
+          <div style={{ width:8, height:8, borderRadius:'50%', background:'var(--gold-primary)' }} />
+          <span style={{ fontFamily:'var(--font-display)', fontSize:9, color: userBP?.premium_unlocked ? 'var(--gold-primary)' : '#444', letterSpacing:1 }}>⭐ PREMIUM TRACK</span>
         </div>
       </div>
 
@@ -363,10 +371,10 @@ export default function BattlePassPage() {
 
       {/* Legend */}
       <div style={{ margin:'0 16px', display:'flex', gap:12, flexWrap:'wrap' }}>
-        {[['✦ Milestone', '#FFB800'], ['✅ Geclaimt', '#4ade80'], ['🔒 Gesperrt', '#444']].map(([label, color]) => (
+        {[['✦ ' + t('battlepass.milestone'), 'var(--gold-primary)'], ['✅ ' + t('battlepass.legendClaimed'), 'var(--status-active)'], ['🔒 ' + t('battlepass.legendLocked'), '#444']].map(([label, color]) => (
           <div key={label} style={{ display:'flex', alignItems:'center', gap:4 }}>
             <span style={{ fontSize:10 }}>{(label as string).split(' ')[0]}</span>
-            <span style={{ fontFamily:'Cinzel,serif', fontSize:9, color: color as string }}>{(label as string).split(' ').slice(1).join(' ')}</span>
+            <span style={{ fontFamily:'var(--font-display)', fontSize:9, color: color as string }}>{(label as string).split(' ').slice(1).join(' ')}</span>
           </div>
         ))}
       </div>
@@ -374,15 +382,15 @@ export default function BattlePassPage() {
       {/* Milestone Modal */}
       {milestoneModal && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.88)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:300, padding:'0 24px' }} onClick={() => setMilestoneModal(null)}>
-          <div style={{ background:'#111', borderRadius:20, border:'1.5px solid rgba(255,184,0,0.3)', padding:'32px 24px', textAlign:'center', maxWidth:320, width:'100%' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontFamily:'Cinzel,serif', fontSize:32, color:'#FFB800', marginBottom:8 }}>✦</div>
-            <p style={{ fontFamily:'Cinzel,serif', fontSize:18, color:'#FFB800', marginBottom:16, letterSpacing:2 }}>TIER {milestoneModal}</p>
-            <p style={{ fontSize:15, color:'#F0ECE4', fontStyle:'italic', lineHeight:1.6, marginBottom:24 }}>
-              "{MILESTONE_LORE[milestoneModal]}"
+          <div style={{ background:'var(--bg-surface)', borderRadius:20, border:'1.5px solid var(--gold-glow)', padding:'32px 24px', textAlign:'center', maxWidth:320, width:'100%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontFamily:'var(--font-display)', fontSize:32, color:'var(--gold-primary)', marginBottom:8 }}>✦</div>
+            <p style={{ fontFamily:'var(--font-display)', fontSize:18, color:'var(--gold-primary)', marginBottom:16, letterSpacing:2 }}>TIER {milestoneModal}</p>
+            <p style={{ fontSize:15, color:'var(--text-primary)', fontStyle:'italic', lineHeight:1.6, marginBottom:24 }}>
+              "{t(MILESTONE_LORE_KEYS[milestoneModal])}"
             </p>
             <button onClick={() => setMilestoneModal(null)}
-              style={{ padding:'10px 24px', borderRadius:10, border:'1px solid #333', background:'transparent', color:'#888', fontFamily:'Cinzel,serif', fontSize:11, cursor:'pointer' }}>
-              SCHLIESSEN
+              style={{ padding:'10px 24px', borderRadius:10, border:'1px solid #333', background:'transparent', color:'var(--text-muted)', fontFamily:'var(--font-display)', fontSize:11, cursor:'pointer' }}>
+              {t('battlepass.close')}
             </button>
           </div>
         </div>

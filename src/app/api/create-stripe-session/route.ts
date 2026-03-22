@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 const PRODUCTS: Record<string, { name: string; amount: number; coins?: number; description: string }> = {
+  // V11 coin packs (updated tiers)
   coin_pack_xs: {
     name: 'DealBuddy – 500 Buddy Coins',
     amount: 299,
@@ -15,22 +16,28 @@ const PRODUCTS: Record<string, { name: string; amount: number; coins?: number; d
     description: '500 Buddy Coins für die DealBuddy App'
   },
   coin_pack_sm: {
-    name: 'DealBuddy – 2.000 Buddy Coins',
-    amount: 999,
-    coins: 2000,
-    description: '2.000 Buddy Coins für die DealBuddy App'
+    name: 'DealBuddy – 1.200 Buddy Coins',
+    amount: 599,
+    coins: 1200,
+    description: '1.200 Buddy Coins für die DealBuddy App'
   },
   coin_pack_md: {
-    name: 'DealBuddy – 4.500 Buddy Coins',
-    amount: 1999,
-    coins: 4500,
-    description: '4.500 Buddy Coins für die DealBuddy App'
+    name: 'DealBuddy – 2.500 Buddy Coins',
+    amount: 999,
+    coins: 2500,
+    description: '2.500 Buddy Coins für die DealBuddy App'
   },
   coin_pack_lg: {
-    name: 'DealBuddy – 12.000 Buddy Coins',
-    amount: 4999,
-    coins: 12000,
-    description: '12.000 Buddy Coins für die DealBuddy App'
+    name: 'DealBuddy – 6.000 Buddy Coins',
+    amount: 1999,
+    coins: 6000,
+    description: '6.000 Buddy Coins für die DealBuddy App'
+  },
+  coin_pack_xl: {
+    name: 'DealBuddy – 15.000 Buddy Coins',
+    amount: 3999,
+    coins: 15000,
+    description: '15.000 Buddy Coins für die DealBuddy App'
   },
   premium_pass: {
     name: 'DealBuddy – Premium Battle Pass Season 1',
@@ -51,6 +58,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 })
   }
 
+  // Auth: verify user from JWT
+  const authHeader = req.headers.get('authorization')
+  if (!authHeader) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const supabaseAuth = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  const token = authHeader.replace('Bearer ', '')
+  const { data: { user: authUser }, error: authError } = await supabaseAuth.auth.getUser(token)
+  if (authError || !authUser) {
+    return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+  }
+
   // Use fetch-based HTTP client – works reliably in Vercel serverless
   const stripe = new Stripe(key, {
     httpClient: Stripe.createFetchHttpClient(),
@@ -58,10 +81,11 @@ export async function POST(req: NextRequest) {
   })
 
   try {
-    const { product_type, user_id } = await req.json()
+    const { product_type } = await req.json()
+    const user_id = authUser.id // Always use authenticated user's ID
 
-    if (!product_type || !user_id) {
-      return NextResponse.json({ error: 'Missing product_type or user_id' }, { status: 400 })
+    if (!product_type) {
+      return NextResponse.json({ error: 'Missing product_type' }, { status: 400 })
     }
 
     const product = PRODUCTS[product_type]
