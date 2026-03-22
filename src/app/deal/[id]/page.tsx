@@ -39,26 +39,32 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     return { title: 'Deal nicht gefunden | DealBuddy' }
   }
 
-  const creatorName = (deal.creator as any)?.display_name || (deal.creator as any)?.username || 'Jemand'
+  const creator = deal.creator as any
+  const creatorName = creator?.display_name || creator?.username || 'Jemand'
   const opponentName = (deal.opponent as any)?.display_name || (deal.opponent as any)?.username || null
-  const vs = opponentName ? `${creatorName} vs ${opponentName}` : `${creatorName} sucht einen Gegner`
-  const statusLabel = STATUS_LABELS[deal.status] || deal.status
-  const description = `${vs} · Einsatz: ${deal.stake} · Status: ${statusLabel}`
+  const ogTitle = `${creatorName} hat dich zu einem Deal herausgefordert!`
+  const ogDescription = deal.stake || 'Ehre'
 
   return {
     title: `${deal.title} | DealBuddy`,
-    description,
+    description: opponentName
+      ? `${creatorName} vs ${opponentName} · Einsatz: ${deal.stake}`
+      : `${creatorName} sucht einen Gegner · Einsatz: ${deal.stake}`,
     openGraph: {
-      title: `⚔️ ${deal.title}`,
-      description,
+      title: ogTitle,
+      description: ogDescription,
       type: 'website',
       url: `https://app.deal-buddy.app/deal/${id}`,
       siteName: 'DealBuddy',
+      images: creator?.avatar_url
+        ? [{ url: creator.avatar_url, width: 512, height: 512, alt: `${creatorName} Battle Card` }]
+        : [{ url: 'https://app.deal-buddy.app/opengraph-image', width: 1200, height: 630, alt: 'DealBuddy' }],
     },
     twitter: {
-      card: 'summary',
-      title: `⚔️ ${deal.title}`,
-      description,
+      card: 'summary_large_image',
+      title: ogTitle,
+      description: ogDescription,
+      images: creator?.avatar_url ? [creator.avatar_url] : ['https://app.deal-buddy.app/opengraph-image'],
     },
   }
 }

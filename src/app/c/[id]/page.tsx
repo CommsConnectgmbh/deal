@@ -38,22 +38,27 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const amount = challenge.creator_amount
     ? `${(challenge.creator_amount / 100).toFixed(0)}€`
     : challenge.stake || 'Ehre'
-  const description = `${creatorName} fordert dich heraus! Einsatz: ${amount}`
+  const ogTitle = `${creatorName} hat dich zu einem Deal herausgefordert!`
+  const ogDescription = amount
 
   return {
     title: `${challenge.title} | DealBuddy Challenge`,
-    description,
+    description: `${creatorName} fordert dich heraus! Einsatz: ${amount}`,
     openGraph: {
-      title: `⚔️ ${challenge.title}`,
-      description,
+      title: ogTitle,
+      description: ogDescription,
       type: 'website',
-      url: `https://dealbuddy.app/c/${id}`,
+      url: `https://app.deal-buddy.app/c/${id}`,
       siteName: 'DealBuddy',
+      images: creator?.avatar_url
+        ? [{ url: creator.avatar_url, width: 512, height: 512, alt: `${creatorName} Battle Card` }]
+        : [{ url: 'https://app.deal-buddy.app/opengraph-image', width: 1200, height: 630, alt: 'DealBuddy' }],
     },
     twitter: {
-      card: 'summary',
-      title: `⚔️ ${challenge.title}`,
-      description,
+      card: 'summary_large_image',
+      title: ogTitle,
+      description: ogDescription,
+      images: creator?.avatar_url ? [creator.avatar_url] : ['https://app.deal-buddy.app/opengraph-image'],
     },
   }
 }
