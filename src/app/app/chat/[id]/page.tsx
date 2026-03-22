@@ -407,17 +407,21 @@ export default function ChatConversationPage() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
   }
 
-  /* ── Render helpers ── */
+  /* ── Windowing: only render last 100 messages to avoid DOM bloat ── */
+  const RENDER_WINDOW = 100
+  const visibleMessages = messages.length > RENDER_WINDOW ? messages.slice(-RENDER_WINDOW) : messages
+
+  /* ── Render helpers (operate on visibleMessages) ── */
   const shouldShowDate = (idx: number): boolean => {
     if (idx === 0) return true
-    const prev = new Date(messages[idx - 1].created_at)
-    const curr = new Date(messages[idx].created_at)
+    const prev = new Date(visibleMessages[idx - 1].created_at)
+    const curr = new Date(visibleMessages[idx].created_at)
     return prev.toDateString() !== curr.toDateString()
   }
 
   const shouldShowTime = (idx: number): boolean => {
     if (idx === 0) return true
-    return new Date(messages[idx].created_at).getTime() - new Date(messages[idx - 1].created_at).getTime() > 300000
+    return new Date(visibleMessages[idx].created_at).getTime() - new Date(visibleMessages[idx - 1].created_at).getTime() > 300000
   }
 
   return (
@@ -485,14 +489,14 @@ export default function ChatConversationPage() {
               </button>
             )}
 
-            {messages.length === 0 ? (
+            {visibleMessages.length === 0 ? (
               <div style={{ textAlign: 'center', paddingTop: 60 }}>
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: 'Crimson Text, serif' }}>
                   {t('chat.noMessages')}
                 </p>
               </div>
             ) : (
-              messages.map((msg, i) => {
+              visibleMessages.map((msg, i) => {
                 const isMine = msg.sender_id === profile?.id
                 const showDate = shouldShowDate(i)
                 const showTime = shouldShowTime(i)

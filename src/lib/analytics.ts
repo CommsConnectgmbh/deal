@@ -1,42 +1,55 @@
 // PostHog Analytics – DealBuddy Event Tracking
 // Kostenlos bis 1M Events/Monat auf EU Cloud
-import posthog from 'posthog-js'
-
+// posthog-js is lazy-loaded to avoid blocking initial page load (~350KB savings)
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY || ''
 const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com'
 
 let initialized = false
+let posthogInstance: any = null
+let loadingPromise: Promise<any> | null = null
+
+function getPostHog(): Promise<any> {
+  if (posthogInstance) return Promise.resolve(posthogInstance)
+  if (loadingPromise) return loadingPromise
+  loadingPromise = import('posthog-js').then((mod) => {
+    posthogInstance = mod.default
+    return posthogInstance
+  })
+  return loadingPromise
+}
 
 export function initAnalytics() {
   if (initialized || !POSTHOG_KEY || typeof window === 'undefined') return
-  posthog.init(POSTHOG_KEY, {
-    api_host: POSTHOG_HOST,
-    capture_pageview: true,
-    capture_pageleave: true,
-    persistence: 'localStorage',
-    autocapture: true,
-    // DSGVO: Cookie-less tracking
-    disable_cookie: true,
-    disable_session_recording: true,
-  })
   initialized = true
+  getPostHog().then((posthog) => {
+    posthog.init(POSTHOG_KEY, {
+      api_host: POSTHOG_HOST,
+      capture_pageview: true,
+      capture_pageleave: true,
+      persistence: 'localStorage',
+      autocapture: true,
+      // DSGVO: Cookie-less tracking
+      disable_cookie: true,
+      disable_session_recording: true,
+    })
+  })
 }
 
 export function identifyUser(userId: string, properties?: Record<string, unknown>) {
   if (!POSTHOG_KEY) return
-  posthog.identify(userId, properties)
+  getPostHog().then((posthog) => posthog.identify(userId, properties))
 }
 
 export function resetUser() {
   if (!POSTHOG_KEY) return
-  posthog.reset()
+  getPostHog().then((posthog) => posthog.reset())
 }
 
 // ─── Event Tracking Helper ──────────────────────────────────────────────────
 
 export function track(event: string, properties?: Record<string, unknown>) {
   if (!POSTHOG_KEY) return
-  posthog.capture(event, properties)
+  getPostHog().then((posthog) => posthog.capture(event, properties))
 }
 
 // ─── Pre-defined Events (alle aus dem Fragenkatalog) ────────────────────────

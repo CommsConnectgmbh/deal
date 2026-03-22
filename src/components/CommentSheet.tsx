@@ -198,7 +198,7 @@ export default function CommentSheet({ dealId, open, onClose, onCountChange }: P
         {/* Media preview strip */}
         {mediaPreview && (
           <div style={{ padding: '8px 16px 0', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid var(--border-subtle)' }}>
-            <img src={mediaPreview} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
+            <img src={mediaPreview} alt="" loading="lazy" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
             <span style={{ fontSize: 11, color: 'var(--text-secondary)', flex: 1 }}>{t('components.imageAttached')}</span>
             <button onClick={() => { setMediaFile(null); setMediaPreview(null) }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 16, cursor: 'pointer' }}>✕</button>
           </div>

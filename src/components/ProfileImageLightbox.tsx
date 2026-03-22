@@ -161,6 +161,7 @@ export default function ProfileImageLightbox({ open, onClose, images, onImagesCh
             <img
               src={currentImage.public_url}
               alt="Profile"
+              loading="lazy"
               style={{
                 maxWidth: '100%', maxHeight: 'calc(100vh - 220px)', borderRadius: 10,
                 objectFit: 'contain', display: 'block',

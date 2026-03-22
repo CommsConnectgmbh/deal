@@ -345,7 +345,7 @@ export default function PackReveal({ cards, packType, onClose, onEquip }: PackRe
                   position: 'relative',
                 }}>
                   {currentCard.image_url ? (
-                    <img src={currentCard.image_url} alt={currentCard.name}
+                    <img src={currentCard.image_url} alt={currentCard.name} loading="lazy"
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   ) : (
@@ -475,7 +475,7 @@ export default function PackReveal({ cards, packType, onClose, onEquip }: PackRe
                     overflow: 'hidden', position: 'relative',
                   }}>
                     {c.image_url ? (
-                      <img src={c.image_url} alt={c.name}
+                      <img src={c.image_url} alt={c.name} loading="lazy"
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
                     ) : (
