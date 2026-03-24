@@ -7,12 +7,14 @@ import { supabase } from '@/lib/supabase'
 import ProfileImage from '@/components/ProfileImage'
 import { triggerPush } from '@/lib/sendPushNotification'
 import CommentSheet from '@/components/CommentSheet'
-import ProofUploadSheet from '@/components/ProofUploadSheet'
+import dynamic from 'next/dynamic'
 import ShareCardGenerator from '@/components/ShareCardGenerator'
 import WinCardShare from '@/components/WinCardShare'
 import CoinIcon from '@/components/CoinIcon'
 import InteractionBar from '@/components/InteractionBar'
-import DealBetWidget from '@/components/DealBetWidget'
+
+const ProofUploadSheet = dynamic(() => import('@/components/ProofUploadSheet'), { ssr: false })
+const DealBetWidget = dynamic(() => import('@/components/DealBetWidget'), { ssr: false })
 import WinCelebrationModal from '@/components/WinCelebrationModal'
 import { trackDealAccepted, trackResultSubmitted, trackResultConfirmed, trackScreenView, trackShareClicked } from '@/lib/analytics'
 import { uploadDealMedia as uploadDealMediaUtil } from '@/lib/mediaUpload'

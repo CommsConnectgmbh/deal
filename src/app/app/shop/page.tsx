@@ -5,10 +5,12 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useLang } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
 import { trackShopOpened, trackStripeCheckoutStarted, trackItemPurchased, trackFramePurchased, trackPackOpened, trackScreenView } from '@/lib/analytics'
+import dynamic from 'next/dynamic'
 import CoinIcon from '@/components/CoinIcon'
-import PackReveal from '@/components/PackReveal'
-import CardRevealAnimation from '@/components/CardRevealAnimation'
-import EquipCelebration from '@/components/EquipCelebration'
+
+const PackReveal = dynamic(() => import('@/components/PackReveal'), { ssr: false })
+const CardRevealAnimation = dynamic(() => import('@/components/CardRevealAnimation'), { ssr: false })
+const EquipCelebration = dynamic(() => import('@/components/EquipCelebration'), { ssr: false })
 import FrameShopCard from '@/components/FrameShopCard'
 import {
   fetchAllFrameDefinitions, fetchFrameProgress, fetchUserOwnedFrames,

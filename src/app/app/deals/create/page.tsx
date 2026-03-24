@@ -132,12 +132,17 @@ function CreateDealContent() {
   }
   const validateStake = (v: string): string => {
     if (!v.trim()) return t('deals.stakeLabel') + ' ' + t('auth.errorUsernameRequired').toLowerCase()
+    const num = Number(v.trim())
+    if (!isNaN(num)) {
+      if (num < 1) return 'Min. 1'
+      if (num > 10000) return 'Max. 10.000'
+    }
     if (v.trim().length < 2) return 'Min. 2 Zeichen'
     return ''
   }
   const canGoToChallenge = state.mode !== '1v1' || state.opponent !== null
   const canGoToEinsatz = state.title.trim().length >= 3
-  const canSubmit = state.title.trim().length >= 3 && state.stake.trim().length >= 2
+  const canSubmit = state.title.trim().length >= 3 && state.stake.trim().length >= 2 && !validateTitle(state.title) && !validateStake(state.stake)
 
   /* --- Dynamic CTA text --- */
   const uploadPercent = state.uploadProgress?.match(/(\d+)%/)?.[1]

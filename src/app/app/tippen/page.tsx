@@ -260,7 +260,31 @@ export default function TippenPage() {
     return true
   })
 
+  const validateFormName = (v: string): string => {
+    if (!v.trim()) return t('tippen.name') + ' required'
+    if (v.trim().length < 3) return 'Min. 3 Zeichen'
+    if (v.trim().length > 50) return 'Max. 50 Zeichen'
+    return ''
+  }
+  const validateMaxMembers = (v: string): string => {
+    const n = parseInt(v)
+    if (isNaN(n)) return 'Muss eine Zahl sein'
+    if (n < 2) return 'Min. 2'
+    if (n > 100) return 'Max. 100'
+    return ''
+  }
+
+  const [formNameErr, setFormNameErr] = useState('')
+  const [formMaxMembersErr, setFormMaxMembersErr] = useState('')
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const [leaving, setLeaving] = useState<string | null>(null)
+
   const handleCreate = async () => {
+    const nameErr = validateFormName(formName)
+    const membersErr = validateMaxMembers(formMaxMembers)
+    setFormNameErr(nameErr)
+    setFormMaxMembersErr(membersErr)
+    if (nameErr || membersErr) return
     if (!user || !formName.trim()) return
     setCreating(true)
     setCreateError('')
@@ -421,6 +445,7 @@ export default function TippenPage() {
   }
 
   const handleDeleteGroup = async (groupId: string) => {
+    setDeleting(groupId)
     setActionLoading(true)
     try {
       await supabase.from('tip_groups').update({ status: 'deleted' }).eq('id', groupId)
@@ -429,11 +454,13 @@ export default function TippenPage() {
       fetchGroups()
     } finally {
       setActionLoading(false)
+      setDeleting(null)
     }
   }
 
   const handleLeaveGroup = async (groupId: string) => {
     if (!user) return
+    setLeaving(groupId)
     setActionLoading(true)
     try {
       await supabase.from('tip_group_members').delete().eq('group_id', groupId).eq('user_id', user.id)
@@ -441,6 +468,7 @@ export default function TippenPage() {
       fetchGroups()
     } finally {
       setActionLoading(false)
+      setLeaving(null)
     }
   }
 
@@ -579,14 +607,14 @@ export default function TippenPage() {
                         }}>
                           {t('tippen.cancel')}
                         </button>
-                        <button onClick={() => handleDeleteGroup(g.id)} disabled={actionLoading} style={{
+                        <button onClick={() => handleDeleteGroup(g.id)} disabled={deleting === g.id || actionLoading} style={{
                           flex: 1, padding: '10px',
                           background: 'var(--status-error)', border: 'none', borderRadius: 10,
                           color: '#fff', fontSize: 11, fontFamily: 'var(--font-display)',
-                          fontWeight: 700, cursor: actionLoading ? 'not-allowed' : 'pointer', letterSpacing: 1,
-                          opacity: actionLoading ? 0.6 : 1,
+                          fontWeight: 700, cursor: (deleting === g.id || actionLoading) ? 'not-allowed' : 'pointer', letterSpacing: 1,
+                          opacity: (deleting === g.id || actionLoading) ? 0.6 : 1,
                         }}>
-                          {actionLoading ? '...' : t('tippen.yesDelete')}
+                          {deleting === g.id ? '...' : t('tippen.yesDelete')}
                         </button>
                       </div>
                     </div>
@@ -766,9 +794,9 @@ export default function TippenPage() {
                                 </button>
                               ) : (
                                 <button onClick={(e) => { e.stopPropagation(); if (confirm(t('tippen.leaveConfirm'))) { handleLeaveGroup(g.id) } }}
-                                  disabled={actionLoading}
-                                  style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', color: 'var(--status-error)', fontSize: 13, textAlign: 'left', cursor: actionLoading ? 'not-allowed' : 'pointer', opacity: actionLoading ? 0.6 : 1 }}>
-                                  {'\uD83D\uDEAA'} {t('tippen.leave')}
+                                  disabled={leaving === g.id || actionLoading}
+                                  style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', color: 'var(--status-error)', fontSize: 13, textAlign: 'left', cursor: (leaving === g.id || actionLoading) ? 'not-allowed' : 'pointer', opacity: (leaving === g.id || actionLoading) ? 0.6 : 1 }}>
+                                  {leaving === g.id ? '...' : `${'\uD83D\uDEAA'} ${t('tippen.leave')}`}
                                 </button>
                               )}
                             </div>
@@ -1086,16 +1114,18 @@ export default function TippenPage() {
             </label>
             <input
               value={formName}
-              onChange={(e) => setFormName(e.target.value)}
+              onChange={(e) => { setFormName(e.target.value); if (formNameErr) setFormNameErr(validateFormName(e.target.value)) }}
+              onBlur={() => formName && setFormNameErr(validateFormName(formName))}
               placeholder={formCategory === 'custom' ? t('tippen.namePlaceholderCustom') : t('tippen.namePlaceholderFootball')}
-              maxLength={60}
+              maxLength={50}
               style={{
                 width: '100%', padding: '12px 14px', background: 'var(--bg-surface)',
-                border: '1px solid var(--border-subtle)', borderRadius: 10, marginBottom: 16,
+                border: `1px solid ${formNameErr ? 'var(--status-error)' : 'var(--border-subtle)'}`, borderRadius: 10, marginBottom: formNameErr ? 4 : 16,
                 color: 'var(--text-primary)', fontSize: 14, fontFamily: 'var(--font-body)',
                 outline: 'none', boxSizing: 'border-box',
               }}
             />
+            {formNameErr && <p style={{ color: 'var(--status-error)', fontSize: 11, margin: '0 0 12px' }}>{formNameErr}</p>}
 
             {/* Hint for custom */}
             {formCategory === 'custom' && (
@@ -1224,16 +1254,18 @@ export default function TippenPage() {
             </label>
             <input
               value={formMaxMembers}
-              onChange={(e) => setFormMaxMembers(e.target.value.replace(/\D/g, ''))}
+              onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setFormMaxMembers(v); if (formMaxMembersErr) setFormMaxMembersErr(validateMaxMembers(v)) }}
+              onBlur={() => setFormMaxMembersErr(validateMaxMembers(formMaxMembers))}
               type="text"
               inputMode="numeric"
               style={{
                 width: '100%', padding: '12px 14px', background: 'var(--bg-surface)',
-                border: '1px solid var(--border-subtle)', borderRadius: 10, marginBottom: 20,
+                border: `1px solid ${formMaxMembersErr ? 'var(--status-error)' : 'var(--border-subtle)'}`, borderRadius: 10, marginBottom: formMaxMembersErr ? 4 : 20,
                 color: 'var(--text-primary)', fontSize: 14, fontFamily: 'var(--font-body)',
                 outline: 'none', boxSizing: 'border-box',
               }}
             />
+            {formMaxMembersErr && <p style={{ color: 'var(--status-error)', fontSize: 11, margin: '0 0 16px' }}>{formMaxMembersErr}</p>}
 
             {createError && (
               <p style={{ color: 'var(--status-error)', fontSize: 13, marginBottom: 12 }}>{createError}</p>
@@ -1242,7 +1274,7 @@ export default function TippenPage() {
             {/* Submit */}
             <button
               onClick={handleCreate}
-              disabled={creating || !formName.trim()}
+              disabled={creating || !formName.trim() || formName.trim().length < 3}
               style={{
                 width: '100%', padding: '14px 0',
                 background: formName.trim()

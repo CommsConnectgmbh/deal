@@ -622,7 +622,8 @@ export default function ChatConversationPage() {
           position: 'fixed', bottom: 130, left: '50%', transform: 'translateX(-50%)',
           width: '100%', maxWidth: 430, background: 'var(--bg-surface)',
           borderTop: '1px solid var(--gold-glow)',
-          padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, zIndex: 51,
+          padding: '8px 16px', paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
+          display: 'flex', alignItems: 'center', gap: 10, zIndex: 51,
         }}>
           <div style={{ flex: 1, borderLeft: '3px solid var(--gold-primary)', paddingLeft: 10, overflow: 'hidden' }}>
             <p style={{ fontSize: 10, color: 'var(--gold-primary)', margin: 0, fontWeight: 600 }}>{t('chat.reply')}</p>

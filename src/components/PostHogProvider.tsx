@@ -7,7 +7,10 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
   const { user, profile } = useAuth()
 
   useEffect(() => {
-    initAnalytics()
+    const timer = setTimeout(() => {
+      initAnalytics()
+    }, 3000)
+    return () => clearTimeout(timer)
   }, [])
 
   useEffect(() => {
