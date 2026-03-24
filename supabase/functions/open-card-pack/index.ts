@@ -126,6 +126,17 @@ serve(async (req) => {
 
     const ownedCardIds = new Set((existingCards || []).map(c => c.card_id))
 
+    // ── Load user DNA for card matching ──────────────────────────
+    const { data: userDna } = await supabase
+      .from('user_avatar_dna')
+      .select('gender, origin, hair, age')
+      .eq('user_id', user.id)
+      .single()
+
+    // Fallback: if no DNA set yet, skip filtering (legacy users)
+    const dnaGender = userDna?.gender || null
+    const dnaAge = userDna?.age || null
+
     // ── Roll cards ────────────────────────────────────────────────
     const totalWeight = lootTable.reduce((sum: number, l: any) => sum + l.weight, 0)
     const cards: any[] = []
@@ -163,55 +174,59 @@ serve(async (req) => {
         rolledRarity = rollRarity(lootTable, totalWeight)
       }
 
-      // Find an available (unclaimed) card of this rarity — atomic claim
-      // Use random offset to distribute picks across the catalog
-      const { count: availableCount } = await supabase
-        .from('card_catalog')
-        .select('*', { count: 'exact', head: true })
-        .eq('rarity', rolledRarity)
-        .eq('is_claimed', false)
-        .eq('is_available', true)
-
+      // Find an available (unclaimed) card of this rarity — DNA-matched
+      // Fallback hierarchy: gender+age → gender only → any card
       let card: any = null
-      if (availableCount && availableCount > 0) {
-        const offset = Math.floor(Math.random() * Math.min(availableCount, 10))
-        // Atomic claim: UPDATE ... WHERE is_claimed = false LIMIT 1
-        // This avoids TOCTOU — only one request can claim this card
-        const { data: claimedRows } = await supabase.rpc('claim_card_atomic', {
-          p_rarity: rolledRarity,
-          p_offset: offset,
-        }).catch(() => ({ data: null }))
 
-        if (claimedRows && claimedRows.length > 0) {
-          card = claimedRows[0]
-        } else {
-          // Fallback: try regular SELECT + atomic UPDATE with is_claimed check
-          const { data: availableCard } = await supabase
+      // Helper: try to claim a card from a filtered query
+      const tryClaimFromQuery = async (query: any): Promise<any> => {
+        const { data: candidates } = await query
+          .eq('is_claimed', false)
+          .eq('is_available', true)
+          .limit(5)
+
+        if (!candidates || candidates.length === 0) return null
+
+        // Pick random candidate from results
+        const shuffled = candidates.sort(() => Math.random() - 0.5)
+        for (const candidate of shuffled) {
+          const { data: updated, error: claimErr } = await supabase
             .from('card_catalog')
-            .select('*')
-            .eq('rarity', rolledRarity)
-            .eq('is_claimed', false)
-            .eq('is_available', true)
-            .limit(5)
-            .order('created_at', { ascending: true })
+            .update({ is_claimed: true })
+            .eq('id', candidate.id)
+            .eq('is_claimed', false) // Atomic: only succeeds if still unclaimed
+            .select()
 
-          if (availableCard && availableCard.length > 0) {
-            // Try to claim each card atomically until one succeeds
-            for (const candidate of availableCard) {
-              const { data: updated, error: claimErr } = await supabase
-                .from('card_catalog')
-                .update({ is_claimed: true })
-                .eq('id', candidate.id)
-                .eq('is_claimed', false) // Atomic: only succeeds if still unclaimed
-                .select()
-
-              if (!claimErr && updated && updated.length > 0) {
-                card = updated[0]
-                break
-              }
-            }
-          }
+          if (!claimErr && updated && updated.length > 0) return updated[0]
         }
+        return null
+      }
+
+      // Tier 1: Exact match — gender + age + rarity
+      if (dnaGender && dnaAge) {
+        card = await tryClaimFromQuery(
+          supabase.from('card_catalog').select('*')
+            .eq('rarity', rolledRarity)
+            .eq('gender', dnaGender)
+            .eq('age', dnaAge)
+        )
+      }
+
+      // Tier 2: Gender only
+      if (!card && dnaGender) {
+        card = await tryClaimFromQuery(
+          supabase.from('card_catalog').select('*')
+            .eq('rarity', rolledRarity)
+            .eq('gender', dnaGender)
+        )
+      }
+
+      // Tier 3: Any unclaimed card of this rarity (fallback)
+      if (!card) {
+        card = await tryClaimFromQuery(
+          supabase.from('card_catalog').select('*')
+            .eq('rarity', rolledRarity)
+        )
       }
 
       if (card) {
