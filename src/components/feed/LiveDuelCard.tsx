@@ -42,7 +42,7 @@ export default function LiveDuelCard({
   const opponentName = deal.opponent?.display_name || deal.opponent?.username || '?'
 
   return (
-    <div data-deal-card={deal.id} style={{ marginBottom: 32, position: 'relative', paddingTop: 10, paddingBottom: 16, borderBottom: '1px solid rgba(255,184,0,0.12)' }}>
+    <div data-deal-card={deal.id} style={{ marginBottom: 28, position: 'relative', paddingTop: 10, paddingBottom: 20, borderBottom: '1px solid rgba(255,184,0,0.12)' }}>
 
       {/* ═══ 3-DOT MENU — top right ═══ */}
       <div style={{ position: 'absolute', top: 14, right: 10, zIndex: 8 }}>
@@ -169,7 +169,7 @@ export default function LiveDuelCard({
       {isMine && (
         <button onClick={(e) => { e.stopPropagation(); goToDeal() }}
           style={{
-            position: 'absolute', bottom: -14, right: 16, zIndex: 5,
+            position: 'absolute', bottom: 6, right: 16, zIndex: 5,
             padding: '5px 10px 4px',
             background: 'linear-gradient(135deg, rgba(40,160,80,0.95), rgba(74,222,128,0.9))',
             color: '#060606', fontFamily: 'var(--font-display)',
