@@ -27,7 +27,8 @@ export default function ImprintPage() {
           <p style={{ margin: '12px 0', padding: '16px', background: 'rgba(255,184,0,0.06)', borderRadius: 10, borderLeft: '3px solid #FFB800' }}>
             <strong style={{ fontSize: 16 }}>Comms Connect GmbH</strong><br /><br />
             Vertreten durch: Rainer Roloff<br /><br />
-            [Adresse einf&uuml;gen]<br />
+            Tal 30<br />
+            80331 M&uuml;nchen<br />
             Deutschland
           </p>
         </Section>
@@ -36,7 +37,7 @@ export default function ImprintPage() {
           <table style={{ borderCollapse: 'collapse', width: '100%' }}>
             <tbody>
               <Row label="E-Mail" value={<a href="mailto:info@deal-buddy.app" style={{ color: '#FFB800' }}>info@deal-buddy.app</a>} />
-              <Row label="Telefon" value="[Telefonnummer einf&uuml;gen]" />
+              <Row label="Telefon" value="+49 89 4522 1556" />
               <Row label="Website" value={<a href="https://deal-buddy.app" target="_blank" rel="noopener noreferrer" style={{ color: '#FFB800' }}>deal-buddy.app</a>} />
             </tbody>
           </table>
@@ -47,7 +48,7 @@ export default function ImprintPage() {
             Umsatzsteuer-Identifikationsnummer gem&auml;&szlig; &sect; 27 a Umsatzsteuergesetz:
           </p>
           <p style={{ marginTop: 8, fontWeight: 600, color: '#fff' }}>
-            [USt-IdNr einf&uuml;gen]
+            DE451966748
           </p>
         </Section>
 
@@ -55,7 +56,13 @@ export default function ImprintPage() {
           <p style={{ margin: '12px 0', padding: '16px', background: 'rgba(255,184,0,0.06)', borderRadius: 10, borderLeft: '3px solid #FFB800' }}>
             <strong>Rainer Roloff</strong><br />
             Comms Connect GmbH<br />
-            [Adresse einf&uuml;gen]
+            Tal 30, 80331 M&uuml;nchen
+          </p>
+        </Section>
+
+        <Section title="Handelsregister">
+          <p>
+            HRB 295951, Amtsgericht M&uuml;nchen
           </p>
         </Section>
 
