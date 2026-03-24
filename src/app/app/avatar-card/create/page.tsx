@@ -93,7 +93,7 @@ export default function AvatarCardCreate() {
       if (fetchErr) throw fetchErr
 
       await refreshProfile()
-      trackProfileCreated(profile?.username || '')
+      trackProfileCreated(user?.email || '')
 
       // Show card reveal animation
       setRevealCard(card)
