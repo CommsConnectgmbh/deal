@@ -38,7 +38,7 @@ export default function OpenChallengeCard({
   const opponentName = deal.opponent?.display_name || deal.opponent?.username || null
 
   return (
-    <div data-deal-card={deal.id} style={{ marginBottom: 20, position: 'relative', paddingTop: 10 }}>
+    <div data-deal-card={deal.id} style={{ marginBottom: 32, position: 'relative', paddingTop: 10, paddingBottom: 16, borderBottom: '1px solid rgba(255,184,0,0.12)' }}>
 
       {/* ═══ 3-DOT MENU — top right ═══ */}
       <div style={{ position: 'absolute', top: 14, right: 10, zIndex: 8 }}>
