@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import { track } from '@/lib/analytics'
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
 
@@ -58,6 +59,9 @@ export async function subscribeToPush(userId: string): Promise<boolean> {
       }),
     })
 
+    if (res.ok) {
+      track('push_enabled', { user_id: userId })
+    }
     return res.ok
   } catch (err) {
     console.error('Push subscription failed:', err)

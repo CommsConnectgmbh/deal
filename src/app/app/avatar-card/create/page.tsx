@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import CardRevealAnimation from '@/components/CardRevealAnimation'
+import { trackProfileCreated } from '@/lib/analytics'
 
 /* ── Attribute options (4 steps — matching pre-generated card DNA) ─── */
 
@@ -92,6 +93,7 @@ export default function AvatarCardCreate() {
       if (fetchErr) throw fetchErr
 
       await refreshProfile()
+      trackProfileCreated(profile?.username || '')
 
       // Show card reveal animation
       setRevealCard(card)

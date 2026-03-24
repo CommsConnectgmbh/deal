@@ -6,6 +6,7 @@ import { useLang } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
 import ProfileImage from '@/components/ProfileImage'
 import CommentSheet from '@/components/CommentSheet'
+import { trackScreenView, track } from '@/lib/analytics'
 
 /* ─── Types ─── */
 interface BlitzVideo {
@@ -52,6 +53,9 @@ export default function BlitzPage() {
   const isSwiping = useRef(false)
   const swipeOffset = useRef(0)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  /* ─── Track page view ─── */
+  useEffect(() => { trackScreenView('blitz') }, [])
 
   /* ─── Load videos ─── */
   useEffect(() => {
@@ -150,6 +154,7 @@ export default function BlitzPage() {
       if (!video) return
       if (idx === currentIndex) {
         video.currentTime = 0
+        track('blitz_video_viewed', { video_id: videos[idx]?.id })
         // Always start muted for autoplay, then apply user mute preference
         video.muted = true
         const playPromise = video.play()

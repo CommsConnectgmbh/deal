@@ -4,7 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLang } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
-import { trackShopOpened, trackStripeCheckoutStarted, trackItemPurchased, trackFramePurchased, trackPackOpened, trackScreenView } from '@/lib/analytics'
+import { trackShopOpened, trackStripeCheckoutStarted, trackItemPurchased, trackFramePurchased, trackPackOpened, trackScreenView, trackCoinsPurchased } from '@/lib/analytics'
 import dynamic from 'next/dynamic'
 import CoinIcon from '@/components/CoinIcon'
 
@@ -145,7 +145,10 @@ export default function ShopPage() {
 
       if (res.ok) {
         const { fulfilled, coins } = await res.json()
-        if (fulfilled) console.log(`[Fallback] ${coins} coins fulfilled via API`)
+        if (fulfilled) {
+          console.log(`[Fallback] ${coins} coins fulfilled via API`)
+          trackCoinsPurchased(productType, coins)
+        }
       }
     } catch (err) {
       console.error('Fallback fulfillment error:', err)
