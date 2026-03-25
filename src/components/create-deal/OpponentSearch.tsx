@@ -17,16 +17,26 @@ export default function OpponentSearch({ selected, onSelect, onSkipToOpen }: Pro
   const { t } = useLang()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Profile[]>([])
+  const [searched, setSearched] = useState(false)
 
   const search = async (q: string) => {
     setQuery(q)
-    if (!q || !profile) { setResults([]); return }
+    if (!q || !profile) { setResults([]); setSearched(false); return }
     const { data } = await supabase.from('profiles')
       .select('id,username,display_name,level,avatar_url')
       .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
       .neq('id', profile.id)
       .limit(6)
     setResults((data as Profile[]) || [])
+    setSearched(true)
+  }
+
+  const inviteViaWhatsApp = () => {
+    const displayName = profile?.display_name || profile?.username || 'Jemand'
+    const inviteCode = profile?.invite_code || ''
+    const inviteLink = `https://app.deal-buddy.app/auth/register?ref=${inviteCode}`
+    const text = `⚔️ ${displayName} ${t('deals.whatsappInviteText')}\n${inviteLink}`
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
   }
 
   const selectUser = (user: Profile) => {
@@ -123,6 +133,37 @@ export default function OpponentSearch({ selected, onSelect, onSkipToOpen }: Pro
             }}
           >
             {'\u2715'}
+          </button>
+        </div>
+      )}
+
+      {/* WhatsApp invite when no results found */}
+      {searched && results.length === 0 && query.length > 0 && !selected && (
+        <div style={{
+          marginTop: 12, padding: 16,
+          background: 'var(--bg-surface)', borderRadius: 12,
+          border: '1px solid var(--border-subtle)',
+          textAlign: 'center',
+        }}>
+          <p style={{
+            color: 'var(--text-secondary)', fontSize: 13,
+            fontFamily: 'var(--font-body)', margin: '0 0 12px',
+          }}>
+            {t('deals.noOpponentFound')}
+          </p>
+          <button
+            onClick={inviteViaWhatsApp}
+            style={{
+              width: '100%', padding: '14px',
+              borderRadius: 12, border: 'none', cursor: 'pointer',
+              background: 'linear-gradient(135deg, #128C7E, #25D366)',
+              color: '#fff',
+              fontFamily: 'var(--font-display)',
+              fontSize: 13, fontWeight: 700, letterSpacing: 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}
+          >
+            💬 {t('deals.inviteViaWhatsapp')}
           </button>
         </div>
       )}
