@@ -4,14 +4,16 @@ import type { Metadata } from 'next'
 import ChallengePreviewClient from './ChallengePreviewClient'
 
 /* ─── Server-side Supabase (service role for public access) ─── */
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
+}
 
 /* ─── Fetch challenge data ─── */
 async function getChallenge(id: string) {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabaseAdmin()
     .from('bets')
     .select(`
       id, title, description, stake, status, bet_deadline, expires_at, created_at,

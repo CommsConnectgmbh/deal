@@ -4,10 +4,12 @@ import type { Metadata } from 'next'
 import DealPreviewClient from './DealPreviewClient'
 
 /* ─── Server-side Supabase (service role for public access) ─── */
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
+}
 
 /* ─── Status labels ─── */
 const STATUS_LABELS: Record<string, string> = {
@@ -18,7 +20,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 /* ─── Fetch deal data ─── */
 async function getDeal(id: string) {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabaseAdmin()
     .from('bets')
     .select(`
       id, title, stake, status, deadline, created_at, is_public,
