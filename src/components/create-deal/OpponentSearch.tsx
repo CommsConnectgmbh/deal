@@ -137,35 +137,22 @@ export default function OpponentSearch({ selected, onSelect, onSkipToOpen }: Pro
         </div>
       )}
 
-      {/* WhatsApp invite when no results found */}
-      {searched && results.length === 0 && query.length > 0 && !selected && (
-        <div style={{
-          marginTop: 12, padding: 16,
-          background: 'var(--bg-surface)', borderRadius: 12,
-          border: '1px solid var(--border-subtle)',
-          textAlign: 'center',
-        }}>
-          <p style={{
-            color: 'var(--text-secondary)', fontSize: 13,
-            fontFamily: 'var(--font-body)', margin: '0 0 12px',
-          }}>
-            {t('deals.noOpponentFound')}
-          </p>
-          <button
-            onClick={inviteViaWhatsApp}
-            style={{
-              width: '100%', padding: '14px',
-              borderRadius: 12, border: 'none', cursor: 'pointer',
-              background: 'linear-gradient(135deg, #128C7E, #25D366)',
-              color: '#fff',
-              fontFamily: 'var(--font-display)',
-              fontSize: 13, fontWeight: 700, letterSpacing: 1,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            }}
-          >
-            💬 {t('deals.inviteViaWhatsapp')}
-          </button>
-        </div>
+      {/* WhatsApp invite — always visible when no opponent selected */}
+      {!selected && (
+        <button
+          onClick={inviteViaWhatsApp}
+          style={{
+            width: '100%', marginTop: 16, padding: '14px',
+            borderRadius: 12, border: 'none', cursor: 'pointer',
+            background: 'linear-gradient(135deg, #128C7E, #25D366)',
+            color: '#fff',
+            fontFamily: 'var(--font-display)',
+            fontSize: 13, fontWeight: 700, letterSpacing: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          }}
+        >
+          💬 {t('deals.inviteViaWhatsapp')}
+        </button>
       )}
 
       {/* Open challenge option */}
