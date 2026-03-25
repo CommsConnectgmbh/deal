@@ -167,22 +167,6 @@ export default function HomePage() {
       ])
     }
     init()
-    // Register service worker with auto-update
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
-        .then((reg) => {
-          // Check for updates every 5 min (60s was too aggressive)
-          setInterval(() => reg.update().catch(() => {}), 300000)
-        })
-        .catch(() => {})
-
-      // Listen for SW update message → reload page
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data?.type === 'SW_UPDATED') {
-          window.location.reload()
-        }
-      })
-    }
   }, [profile])
 
   // Skeleton timeout: show empty state after 3s of loading (was 5s – too slow)
