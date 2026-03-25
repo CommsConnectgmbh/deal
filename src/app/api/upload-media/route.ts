@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAdmin = createClient(
-  SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  return { client: createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY!), url }
+}
 
 /**
  * POST — returns a signed upload URL so the client can upload
@@ -14,6 +13,7 @@ const supabaseAdmin = createClient(
  */
 export async function POST(req: NextRequest) {
   try {
+    const { client: supabaseAdmin, url: SUPABASE_URL } = getSupabaseAdmin()
     // Verify auth
     const authHeader = req.headers.get('authorization')
     if (!authHeader?.startsWith('Bearer ')) {

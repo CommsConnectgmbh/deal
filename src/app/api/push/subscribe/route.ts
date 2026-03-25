@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 /** Extract and verify user from Authorization header */
 async function getAuthUser(req: Request) {
@@ -12,7 +14,7 @@ async function getAuthUser(req: Request) {
   if (!authHeader) return null
 
   const token = authHeader.replace('Bearer ', '')
-  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token)
+  const { data: { user }, error } = await getSupabaseAdmin().auth.getUser(token)
   if (error || !user) return null
   return user
 }
@@ -32,7 +34,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing subscription' }, { status: 400 })
     }
 
-    const { error } = await supabaseAdmin
+    const { error } = await getSupabaseAdmin()
       .from('push_subscriptions')
       .upsert({
         user_id: user.id,
@@ -64,7 +66,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    await supabaseAdmin
+    await getSupabaseAdmin()
       .from('push_subscriptions')
       .delete()
       .eq('user_id', user.id)
