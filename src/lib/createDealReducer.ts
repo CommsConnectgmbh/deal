@@ -27,12 +27,10 @@ export interface TeamConfig {
 }
 
 export type DealMode = '1v1' | 'team' | 'open_challenge'
-export type DealStep = 'gegner' | 'challenge' | 'einsatz'
 export type Visibility = 'private' | 'friends' | 'public'
 export type JoinMode = 'open' | 'approval' | 'invite_only'
 
 export interface CreateDealState {
-  step: DealStep
   mode: DealMode
   title: string
   stake: string
@@ -51,7 +49,7 @@ export interface CreateDealState {
   opponent: Profile | null
   teamA: TeamConfig
   teamB: TeamConfig
-  creatorSide: string | null
+  showOpponentModal: boolean
   templateId: string | null
   parentDealId: string | null
   loading: boolean
@@ -59,9 +57,9 @@ export interface CreateDealState {
 
 export type CreateDealAction =
   | { type: 'SET_MODE'; mode: DealMode }
-  | { type: 'SET_STEP'; step: DealStep }
   | { type: 'SET_FIELD'; field: keyof CreateDealState; value: any }
   | { type: 'SET_OPPONENT'; opponent: Profile | null }
+  | { type: 'SET_SHOW_OPPONENT_MODAL'; show: boolean }
   | { type: 'SET_MEDIA'; file: File | null; preview: string | null }
   | { type: 'SET_MEDIA_ERROR'; error: string | null }
   | { type: 'SET_UPLOAD_PROGRESS'; progress: string | null }
@@ -69,7 +67,6 @@ export type CreateDealAction =
   | { type: 'REMOVE_TEAM_MEMBER'; side: 'a' | 'b'; userId: string }
   | { type: 'SET_TEAM_NAME'; side: 'a' | 'b'; name: string }
   | { type: 'SET_TEAM_COLOR'; side: 'a' | 'b'; color: string }
-  | { type: 'SET_CREATOR_SIDE'; side: string | null }
   | { type: 'APPLY_TEMPLATE'; template: DealTemplate }
   | { type: 'APPLY_REMATCH'; deal: any }
   | { type: 'APPLY_CLONE'; deal: any }
@@ -77,7 +74,6 @@ export type CreateDealAction =
   | { type: 'RESET' }
 
 export const initialState: CreateDealState = {
-  step: 'gegner',
   mode: '1v1',
   title: '',
   stake: '',
@@ -96,7 +92,7 @@ export const initialState: CreateDealState = {
   opponent: null,
   teamA: { name: 'Team A', color: '#FFB800', members: [] },
   teamB: { name: 'Team B', color: '#3B82F6', members: [] },
-  creatorSide: null,
+  showOpponentModal: false,
   templateId: null,
   parentDealId: null,
   loading: false,
@@ -107,14 +103,14 @@ export function createDealReducer(state: CreateDealState, action: CreateDealActi
     case 'SET_MODE':
       return { ...state, mode: action.mode }
 
-    case 'SET_STEP':
-      return { ...state, step: action.step }
-
     case 'SET_FIELD':
       return { ...state, [action.field]: action.value }
 
     case 'SET_OPPONENT':
       return { ...state, opponent: action.opponent }
+
+    case 'SET_SHOW_OPPONENT_MODAL':
+      return { ...state, showOpponentModal: action.show }
 
     case 'SET_MEDIA':
       return { ...state, mediaFile: action.file, mediaPreview: action.preview, mediaError: null }
@@ -149,9 +145,6 @@ export function createDealReducer(state: CreateDealState, action: CreateDealActi
       return { ...state, [key]: { ...state[key], color: action.color } }
     }
 
-    case 'SET_CREATOR_SIDE':
-      return { ...state, creatorSide: action.side }
-
     case 'APPLY_TEMPLATE':
       return {
         ...state,
@@ -170,8 +163,6 @@ export function createDealReducer(state: CreateDealState, action: CreateDealActi
         category: action.deal.category || 'custom',
         opponent: action.deal.opponent || action.deal.creator || null,
         parentDealId: action.deal.id,
-        creatorSide: null,
-        step: 'einsatz',
       }
 
     case 'APPLY_CLONE':
@@ -181,7 +172,6 @@ export function createDealReducer(state: CreateDealState, action: CreateDealActi
         stake: action.deal.stake || '',
         category: action.deal.category || 'custom',
         parentDealId: action.deal.id,
-        step: 'challenge',
       }
 
     case 'SET_LOADING':
