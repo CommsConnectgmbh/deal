@@ -4,6 +4,10 @@ on:
   push:
     branches: [master, main]
 
+env:
+  VERCEL_ORG_ID: commsconnectgmbhs-projects
+  VERCEL_PROJECT_ID: prj_kYfsoYYWDb8KkTx6SwwvHx13j0UH
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
