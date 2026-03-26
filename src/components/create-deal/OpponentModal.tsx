@@ -45,8 +45,8 @@ export default function OpponentModal({ show, onSelect, onClose }: Props) {
         .eq('status', 'accepted')
 
       const friendIds = new Set<string>()
-      following?.forEach(f => friendIds.add(f.following_id))
-      followers?.forEach(f => friendIds.add(f.follower_id))
+      following?.forEach((f: any) => friendIds.add(f.following_id))
+      followers?.forEach((f: any) => friendIds.add(f.follower_id))
 
       if (friendIds.size === 0) {
         setFriends([])
