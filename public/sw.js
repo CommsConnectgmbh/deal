@@ -1,5 +1,5 @@
 // DealBuddy Service Worker — v2 (auto-update)
-const SW_VERSION = 'v7-2026-03-26'
+const SW_VERSION = 'v9-2026-03-27'
 
 self.addEventListener('install', (event) => {
   // Immediately activate new SW, don't wait for old tabs to close
@@ -49,7 +49,7 @@ self.addEventListener('push', (event) => {
   )
 })
 
-// Handle notification click → open/focus app
+// Handle notification click -> open/focus app
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const url = event.notification.data?.url || '/app/home'
