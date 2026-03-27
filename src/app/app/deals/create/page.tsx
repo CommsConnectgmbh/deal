@@ -529,26 +529,145 @@ function CreateDealContent() {
           </div>
         </div>
 
+        {/* ── VISIBILITY (always visible) ── */}
+        <div>
+          <label style={{
+            display: 'block', fontSize: 10, fontFamily: 'var(--font-display)',
+            letterSpacing: 2, color: 'var(--text-secondary)', marginBottom: 8,
+          }}>
+            {t('deals.visibility')}
+          </label>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[
+              { value: 'public' as const, icon: '\u{1F310}', label: t('deals.visibilityPublic') },
+              { value: 'friends' as const, icon: '\u{1F465}', label: t('deals.visibilityFriends') },
+              { value: 'private' as const, icon: '\u{1F512}', label: t('deals.visibilityPrivate') },
+            ].map(v => {
+              const active = state.visibility === v.value
+              return (
+                <button
+                  key={v.value}
+                  onClick={() => dispatch({ type: 'SET_FIELD', field: 'visibility', value: v.value })}
+                  style={{
+                    flex: 1, padding: '10px 8px', borderRadius: 10,
+                    border: active ? '1.5px solid var(--gold-primary)' : '1px solid var(--border-subtle)',
+                    background: active ? 'rgba(255,184,0,0.06)' : 'var(--bg-surface)',
+                    cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>{v.icon}</span>
+                  <span style={{
+                    fontSize: 9, fontFamily: 'var(--font-display)',
+                    letterSpacing: 1, color: active ? 'var(--gold-primary)' : 'var(--text-muted)',
+                  }}>
+                    {v.label}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* ── MEDIA UPLOAD (single button) ── */}
+        <div>
+          {state.mediaPreview ? (
+            <div style={{ position: 'relative' }}>
+              {state.mediaFile?.type.startsWith('video/') ? (
+                <video
+                  src={state.mediaPreview}
+                  controls playsInline muted
+                  style={{ width: '100%', borderRadius: 12, maxHeight: 220, objectFit: 'contain', background: '#000' }}
+                />
+              ) : (
+                <img src={state.mediaPreview} alt="" style={{ width: '100%', borderRadius: 12, maxHeight: 220, objectFit: 'cover' }} />
+              )}
+              <button
+                onClick={() => dispatch({ type: 'SET_MEDIA', file: null, preview: null })}
+                style={{
+                  position: 'absolute', top: 8, right: 8,
+                  width: 28, height: 28, borderRadius: '50%',
+                  background: 'rgba(0,0,0,0.7)', border: 'none',
+                  color: 'var(--text-primary)', fontSize: 14,
+                  cursor: 'pointer', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                {'\u2715'}
+              </button>
+              <button
+                onClick={() => setShowEditor(true)}
+                style={{
+                  position: 'absolute', top: 8, right: 44,
+                  height: 28, borderRadius: 14, paddingLeft: 10, paddingRight: 10,
+                  background: 'rgba(255,184,0,0.85)', border: 'none',
+                  color: '#060606', fontSize: 10, fontWeight: 800,
+                  fontFamily: 'var(--font-display)', letterSpacing: 1,
+                  cursor: 'pointer', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', gap: 4,
+                }}
+              >
+                {'\u270F\uFE0F'} {t('editor.editMedia')}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => mediaRef.current?.click()}
+              style={{
+                width: '100%', padding: '14px 16px', borderRadius: 12,
+                border: '1.5px dashed rgba(255,184,0,0.3)',
+                background: 'rgba(255,184,0,0.03)',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}
+            >
+              <span style={{ fontSize: 18 }}>{'\u{1F4F7}'}</span>
+              <span style={{
+                fontSize: 11, color: 'var(--gold-primary)', fontFamily: 'var(--font-display)',
+                fontWeight: 700, letterSpacing: 1,
+              }}>
+                FOTO / VIDEO
+              </span>
+            </button>
+          )}
+          <input
+            ref={mediaRef} type="file" accept="image/*,video/*"
+            style={{ display: 'none' }}
+            onChange={handleMediaSelect}
+          />
+          {state.mediaError && (
+            <div style={{
+              marginTop: 8, padding: '10px 14px', borderRadius: 10,
+              background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+            }}>
+              <p style={{ color: '#EF4444', fontSize: 12, margin: 0, fontFamily: 'var(--font-body)' }}>
+                {state.mediaError}
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* ── ADVANCED OPTIONS (accordion) ── */}
         <div>
           <button
             onClick={() => setShowAdvanced(!showAdvanced)}
             style={{
-              width: '100%', padding: '12px 16px', borderRadius: 10,
-              border: '1px solid var(--border-subtle)',
-              background: 'var(--bg-surface)',
+              width: '100%', padding: '14px 16px', borderRadius: 12,
+              border: showAdvanced ? '1.5px solid var(--gold-primary)' : '1.5px solid rgba(255,184,0,0.25)',
+              background: showAdvanced ? 'rgba(255,184,0,0.06)' : 'rgba(255,184,0,0.02)',
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}
           >
             <span style={{
-              fontSize: 10, fontFamily: 'var(--font-display)',
-              letterSpacing: 2, color: 'var(--text-secondary)',
+              fontSize: 11, fontFamily: 'var(--font-display)',
+              letterSpacing: 2, color: 'var(--gold-primary)',
+              display: 'flex', alignItems: 'center', gap: 8,
             }}>
-              ERWEITERTE OPTIONEN
+              {'\u2699\uFE0F'} ERWEITERTE OPTIONEN
             </span>
             <span style={{
-              fontSize: 14, color: 'var(--text-muted)',
+              fontSize: 14, color: 'var(--gold-primary)',
               transform: showAdvanced ? 'rotate(180deg)' : 'rotate(0deg)',
               transition: 'transform 0.2s ease',
             }}>
@@ -577,46 +696,6 @@ function CreateDealContent() {
                   onChange={v => dispatch({ type: 'SET_FIELD', field: 'deadline', value: v })}
                 />
 
-                {/* Visibility */}
-                <div>
-                  <label style={{
-                    display: 'block', fontSize: 10, fontFamily: 'var(--font-display)',
-                    letterSpacing: 2, color: 'var(--text-secondary)', marginBottom: 8,
-                  }}>
-                    {t('deals.visibility')}
-                  </label>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {[
-                      { value: 'public' as const, icon: '\u{1F310}', label: t('deals.visibilityPublic') },
-                      { value: 'friends' as const, icon: '\u{1F465}', label: t('deals.visibilityFriends') },
-                      { value: 'private' as const, icon: '\u{1F512}', label: t('deals.visibilityPrivate') },
-                    ].map(v => {
-                      const active = state.visibility === v.value
-                      return (
-                        <button
-                          key={v.value}
-                          onClick={() => dispatch({ type: 'SET_FIELD', field: 'visibility', value: v.value })}
-                          style={{
-                            flex: 1, padding: '10px 8px', borderRadius: 10,
-                            border: active ? '1.5px solid var(--gold-primary)' : '1px solid var(--border-subtle)',
-                            background: active ? 'rgba(255,184,0,0.06)' : 'var(--bg-surface)',
-                            cursor: 'pointer',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                          }}
-                        >
-                          <span style={{ fontSize: 16 }}>{v.icon}</span>
-                          <span style={{
-                            fontSize: 9, fontFamily: 'var(--font-display)',
-                            letterSpacing: 1, color: active ? 'var(--gold-primary)' : 'var(--text-muted)',
-                          }}>
-                            {v.label}
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
                 {/* Rules / Description */}
                 <div>
                   <label style={{
@@ -636,124 +715,6 @@ function CreateDealContent() {
                       fontFamily: 'var(--font-body)',
                     }}
                   />
-                </div>
-
-                {/* Media Upload */}
-                <div>
-                  <label style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    fontSize: 10, fontFamily: 'var(--font-display)',
-                    letterSpacing: 2, color: 'var(--text-secondary)', marginBottom: 8,
-                  }}>
-                    {'\u{1F3AC}'} {t('deals.addMedia')}
-                  </label>
-                  {state.mediaPreview ? (
-                    <div style={{ position: 'relative', marginBottom: 4 }}>
-                      {state.mediaFile?.type.startsWith('video/') ? (
-                        <video
-                          src={state.mediaPreview}
-                          controls
-                          playsInline
-                          muted
-                          style={{ width: '100%', borderRadius: 12, maxHeight: 220, objectFit: 'contain', background: '#000' }}
-                        />
-                      ) : (
-                        <img src={state.mediaPreview} alt="" style={{ width: '100%', borderRadius: 12, maxHeight: 220, objectFit: 'cover' }} />
-                      )}
-                      <button
-                        onClick={() => dispatch({ type: 'SET_MEDIA', file: null, preview: null })}
-                        style={{
-                          position: 'absolute', top: 8, right: 8,
-                          width: 28, height: 28, borderRadius: '50%',
-                          background: 'rgba(0,0,0,0.7)', border: 'none',
-                          color: 'var(--text-primary)', fontSize: 14,
-                          cursor: 'pointer', display: 'flex',
-                          alignItems: 'center', justifyContent: 'center',
-                        }}
-                      >
-                        {'\u2715'}
-                      </button>
-                      <button
-                        onClick={() => setShowEditor(true)}
-                        style={{
-                          position: 'absolute', top: 8, right: 44,
-                          height: 28, borderRadius: 14, paddingLeft: 10, paddingRight: 10,
-                          background: 'rgba(255,184,0,0.85)', border: 'none',
-                          color: '#060606', fontSize: 10, fontWeight: 800,
-                          fontFamily: 'var(--font-display)', letterSpacing: 1,
-                          cursor: 'pointer', display: 'flex',
-                          alignItems: 'center', justifyContent: 'center', gap: 4,
-                        }}
-                      >
-                        {'\u270F\uFE0F'} {t('editor.editMedia')}
-                      </button>
-                      <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 10 }}>{state.mediaFile?.type.startsWith('video/') ? '\u{1F3AC}' : '\u{1F4F8}'}</span>
-                        <span style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>
-                          {state.mediaFile?.name}
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', gap: 10, width: '100%' }}>
-                      <button
-                        onClick={() => document.getElementById('cameraCaptureInput')?.click()}
-                        style={{
-                          flex: 1, padding: '16px 12px', borderRadius: 14,
-                          border: '2px dashed rgba(255,184,0,0.3)',
-                          background: 'rgba(255,184,0,0.03)',
-                          cursor: 'pointer', textAlign: 'center',
-                          transition: 'border-color 0.2s, background 0.2s',
-                        }}
-                      >
-                        <span style={{ fontSize: 26, display: 'block', marginBottom: 6 }}>{'\u{1F4F7}'}</span>
-                        <p style={{
-                          fontSize: 10, color: 'var(--gold-primary)', fontFamily: 'var(--font-display)',
-                          fontWeight: 700, letterSpacing: 1, margin: 0,
-                        }}>
-                          KAMERA
-                        </p>
-                      </button>
-                      <button
-                        onClick={() => mediaRef.current?.click()}
-                        style={{
-                          flex: 1, padding: '16px 12px', borderRadius: 14,
-                          border: '2px dashed rgba(255,184,0,0.3)',
-                          background: 'rgba(255,184,0,0.03)',
-                          cursor: 'pointer', textAlign: 'center',
-                          transition: 'border-color 0.2s, background 0.2s',
-                        }}
-                      >
-                        <span style={{ fontSize: 26, display: 'block', marginBottom: 6 }}>{'\u{1F3AC}'}</span>
-                        <p style={{
-                          fontSize: 10, color: 'var(--gold-primary)', fontFamily: 'var(--font-display)',
-                          fontWeight: 700, letterSpacing: 1, margin: 0,
-                        }}>
-                          GALERIE
-                        </p>
-                      </button>
-                    </div>
-                  )}
-                  <input
-                    ref={mediaRef} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm"
-                    style={{ display: 'none' }}
-                    onChange={handleMediaSelect}
-                  />
-                  <input
-                    id="cameraCaptureInput" type="file" accept="image/*,video/*" capture="environment"
-                    style={{ display: 'none' }}
-                    onChange={handleMediaSelect}
-                  />
-                  {state.mediaError && (
-                    <div style={{
-                      marginTop: 8, padding: '10px 14px', borderRadius: 10,
-                      background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-                    }}>
-                      <p style={{ color: '#EF4444', fontSize: 12, margin: 0, fontFamily: 'var(--font-body)' }}>
-                        {state.mediaError}
-                      </p>
-                    </div>
-                  )}
                 </div>
 
               </div>
