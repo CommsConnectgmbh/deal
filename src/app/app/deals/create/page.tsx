@@ -373,7 +373,7 @@ function CreateDealContent() {
       </div>
 
       {/* ═══ FORM BODY ═══ */}
-      <div style={{ padding: '20px 20px 140px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ padding: '20px 20px 20px', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
         {/* ── CHALLENGE ── */}
         <div>
@@ -781,9 +781,10 @@ function CreateDealContent() {
 
       {/* ═══ FIXED BOTTOM CTA ═══ */}
       <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        padding: '16px 20px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
-        background: 'linear-gradient(transparent, var(--bg-base) 20%)',
+        position: 'sticky', bottom: 0, left: 0, right: 0,
+        padding: '12px 20px', paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+        background: 'var(--bg-base)',
+        borderTop: '1px solid var(--border-subtle)',
         zIndex: 10,
       }}>
         {/* Upload progress bar */}
