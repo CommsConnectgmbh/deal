@@ -21,12 +21,12 @@ import OpponentModal from '@/components/create-deal/OpponentModal'
 import TeamBuilder from '@/components/create-deal/TeamBuilder'
 
 /* --- Quick challenge templates --- */
-const CHALLENGE_CHIPS = [
-  'Wer schafft mehr Liegestuetze?',
-  'Wer hat Recht?',
-  'Wer zuerst?',
-  'Verlierer muss...',
-  'Wette: Ich schaffe...',
+const CHALLENGE_CHIPS_KEYS = [
+  'deals.chipWhoDoesMore',
+  'deals.chipWhoIsRight',
+  'deals.chipWhoFirst',
+  'deals.chipLoserMust',
+  'deals.chipIBetThat',
 ]
 
 const inputStyle: React.CSSProperties = {
@@ -101,7 +101,7 @@ function CreateDealContent() {
   const validateTitle = (v: string): string => {
     if (!v.trim()) return t('deals.enterChallenge')
     if (v.trim().length < 3) return t('auth.errorMinThreeChars')
-    if (v.trim().length > 100) return 'Max. 100 Zeichen'
+    if (v.trim().length > 100) return 'Max. 100'
     return ''
   }
   const validateStake = (v: string): string => {
@@ -111,7 +111,7 @@ function CreateDealContent() {
       if (num < 1) return 'Min. 1'
       if (num > 10000) return 'Max. 10.000'
     }
-    if (v.trim().length < 2) return 'Min. 2 Zeichen'
+    if (v.trim().length < 2) return 'Min. 2'
     return ''
   }
   const canSubmit = state.title.trim().length >= 3 && state.stake.trim().length >= 2 && !validateTitle(state.title) && !validateStake(state.stake)
@@ -121,7 +121,7 @@ function CreateDealContent() {
   const ctaText = () => {
     if (state.uploadProgress) return state.uploadProgress
     if (state.loading) return '...'
-    return 'START CHALLENGE'
+    return t('deals.startChallengeCta')
   }
 
   /* --- Submit --- */
@@ -368,7 +368,7 @@ function CreateDealContent() {
           margin: 0, fontFamily: 'var(--font-display)',
           fontSize: 14, letterSpacing: 3, color: 'var(--text-primary)',
         }}>
-          NEW DEAL
+          {t('deals.newDealHeader')}
         </h1>
       </div>
 
@@ -381,7 +381,7 @@ function CreateDealContent() {
             display: 'block', fontSize: 10, fontFamily: 'var(--font-display)',
             letterSpacing: 2, color: 'var(--text-secondary)', marginBottom: 8,
           }}>
-            CHALLENGE *
+            {t('deals.challengeLabel')}
           </label>
           <div style={{ position: 'relative' }}>
             <input
@@ -391,7 +391,7 @@ function CreateDealContent() {
                 if (titleTouched) setTitleErr(validateTitle(e.target.value.slice(0, 100)))
               }}
               onBlur={() => { setTitleTouched(true); setTitleErr(validateTitle(state.title)) }}
-              placeholder="Wer schafft mehr Liegestuetze?"
+              placeholder={t('deals.challengePlaceholder')}
               style={{
                 ...inputStyle,
                 fontSize: 18,
@@ -414,22 +414,25 @@ function CreateDealContent() {
             display: 'flex', gap: 6, overflowX: 'auto',
             marginTop: 10, paddingBottom: 4, scrollbarWidth: 'none',
           }}>
-            {CHALLENGE_CHIPS.map((chip) => (
+            {CHALLENGE_CHIPS_KEYS.map((key) => {
+              const chipText = t(key)
+              return (
               <button
-                key={chip}
-                onClick={() => dispatch({ type: 'SET_FIELD', field: 'title', value: chip })}
+                key={key}
+                onClick={() => dispatch({ type: 'SET_FIELD', field: 'title', value: chipText })}
                 style={{
                   flexShrink: 0, padding: '6px 12px', borderRadius: 20,
-                  border: state.title === chip ? '1.5px solid var(--gold-primary)' : '1px solid var(--border-subtle)',
-                  background: state.title === chip ? 'rgba(255,184,0,0.08)' : 'var(--bg-surface)',
-                  color: state.title === chip ? 'var(--gold-primary)' : 'var(--text-muted)',
+                  border: state.title === chipText ? '1.5px solid var(--gold-primary)' : '1px solid var(--border-subtle)',
+                  background: state.title === chipText ? 'rgba(255,184,0,0.08)' : 'var(--bg-surface)',
+                  color: state.title === chipText ? 'var(--gold-primary)' : 'var(--text-muted)',
                   fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap',
                   fontFamily: 'var(--font-body)',
                 }}
               >
-                {chip}
+                {chipText}
               </button>
-            ))}
+              )
+            })}
           </div>
         </div>
 
@@ -451,7 +454,7 @@ function CreateDealContent() {
             display: 'block', fontSize: 10, fontFamily: 'var(--font-display)',
             letterSpacing: 2, color: 'var(--text-secondary)', marginBottom: 10,
           }}>
-            GEGNER
+            {t('deals.gegner')}
           </label>
           {state.opponent ? (
             <div
@@ -524,7 +527,7 @@ function CreateDealContent() {
                     fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-display)',
                     letterSpacing: 0.5,
                   }}>
-                    Freund herausfordern
+                    {t('deals.challengeFriend')}
                   </p>
                 </div>
                 <span style={{ color: 'var(--text-muted)', fontSize: 16 }}>{'\u203A'}</span>
@@ -537,7 +540,7 @@ function CreateDealContent() {
                 fontSize: 12, fontFamily: 'var(--font-body)',
                 lineHeight: 1.4,
               }}>
-                Oder erstelle den Deal offen - du kannst ihn danach per WhatsApp teilen
+                {t('deals.openDealHint')}
               </p>
             </div>
           )}
@@ -640,7 +643,7 @@ function CreateDealContent() {
                 fontSize: 11, color: 'var(--gold-primary)', fontFamily: 'var(--font-display)',
                 fontWeight: 700, letterSpacing: 1,
               }}>
-                FOTO / VIDEO
+                {t('deals.fotoVideo')}
               </span>
             </button>
           )}
@@ -678,7 +681,7 @@ function CreateDealContent() {
               letterSpacing: 2, color: 'var(--gold-primary)',
               display: 'flex', alignItems: 'center', gap: 8,
             }}>
-              {'\u2699\uFE0F'} ERWEITERTE OPTIONEN
+              {'\u2699\uFE0F'} {t('deals.advancedOptionsLabel')}
             </span>
             <span style={{
               fontSize: 14, color: 'var(--gold-primary)',
@@ -710,7 +713,7 @@ function CreateDealContent() {
                     display: 'block', fontSize: 10, fontFamily: 'var(--font-display)',
                     letterSpacing: 2, color: 'var(--text-secondary)', marginBottom: 8,
                   }}>
-                    MODUS
+                    {t('deals.modusLabel')}
                   </label>
                   <div style={{ display: 'flex', gap: 6 }}>
                     {[

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
+import { useLang } from '@/contexts/LanguageContext'
 import ProfileImage from '@/components/ProfileImage'
 import type { Profile } from '@/lib/createDealReducer'
 
@@ -13,6 +14,7 @@ interface Props {
 
 export default function OpponentModal({ show, onSelect, onClose }: Props) {
   const { profile } = useAuth()
+  const { t } = useLang()
   const [query, setQuery] = useState('')
   const [friends, setFriends] = useState<Profile[]>([])
   const [loading, setLoading] = useState(false)
@@ -120,7 +122,7 @@ export default function OpponentModal({ show, onSelect, onClose }: Props) {
             color: 'var(--text-primary)',
             textAlign: 'center',
           }}>
-            GEGNER
+            {t('deals.gegner')}
           </h3>
         </div>
 
@@ -129,7 +131,7 @@ export default function OpponentModal({ show, onSelect, onClose }: Props) {
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Freunde & Follower durchsuchen..."
+            placeholder={t('deals.searchFriends')}
             autoFocus
             style={{
               width: '100%',
@@ -164,7 +166,7 @@ export default function OpponentModal({ show, onSelect, onClose }: Props) {
               fontSize: 13, padding: '24px 0',
               fontFamily: 'var(--font-body)',
             }}>
-              {query.trim() ? 'Keine Ergebnisse' : 'Noch keine Freunde'}
+              {query.trim() ? t('deals.noResults') : t('deals.noFriendsYet')}
             </p>
           ) : (
             filtered.map(user => (
@@ -222,7 +224,7 @@ export default function OpponentModal({ show, onSelect, onClose }: Props) {
               cursor: 'pointer',
             }}
           >
-            Ohne Gegner fortfahren
+            {t('deals.continueWithout')}
           </button>
         </div>
       </div>
