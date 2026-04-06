@@ -26,7 +26,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<Messages>({})
 
   useEffect(() => {
-    const stored = localStorage.getItem('db_lang') as Lang | null
+    let stored: Lang | null = null
+    try { stored = localStorage.getItem('db_lang') as Lang | null } catch {}
     const valid: Lang[] = ['de', 'en', 'fr', 'es', 'it', 'ru', 'ar', 'hi']
     const initial = stored && valid.includes(stored) ? stored : 'de'
     setLangState(initial)
@@ -57,7 +58,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const setLang = (l: Lang) => {
     setLangState(l)
-    localStorage.setItem('db_lang', l)
+    try { localStorage.setItem('db_lang', l) } catch {}
     loadMessages(l)
   }
 

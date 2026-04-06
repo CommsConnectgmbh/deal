@@ -5,6 +5,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ThemeScript } from '@/hooks/useTheme'
 import PostHogProvider from '@/components/PostHogProvider'
 import ServiceWorkerUpdater from '@/components/ServiceWorkerUpdater'
+import GlobalErrorBoundary from '@/components/GlobalErrorBoundary'
 
 export const metadata: Metadata = {
   title: { default: 'DealBuddy – Compete. Win. Reign.', template: '%s | DealBuddy' },
@@ -70,14 +71,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             author: { '@type': 'Organization', name: 'DealBuddy', url: 'https://deal-buddy.app' },
           })}}
         />
-        <LanguageProvider>
-          <AuthProvider>
-            <PostHogProvider>
-              <ServiceWorkerUpdater />
-              {children}
-            </PostHogProvider>
-          </AuthProvider>
-        </LanguageProvider>
+        <GlobalErrorBoundary>
+          <LanguageProvider>
+            <AuthProvider>
+              <PostHogProvider>
+                <ServiceWorkerUpdater />
+                {children}
+              </PostHogProvider>
+            </AuthProvider>
+          </LanguageProvider>
+        </GlobalErrorBoundary>
       </body>
     </html>
   )

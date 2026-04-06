@@ -12,9 +12,15 @@ export default function ServiceWorkerUpdater() {
       })
       .catch(() => {})
 
-    // Listen for SW update message → reload page
+    // Listen for SW update message → reload page (with loop guard)
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data?.type === 'SW_UPDATED') {
+        try {
+          const lastReload = sessionStorage.getItem('sw_reload_ts')
+          const now = Date.now()
+          if (lastReload && now - parseInt(lastReload) < 5000) return
+          sessionStorage.setItem('sw_reload_ts', String(now))
+        } catch {}
         window.location.reload()
       }
     })

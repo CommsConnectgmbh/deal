@@ -16,7 +16,7 @@ const securityHeaders = [
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://crests.football-data.org",
       "media-src 'self' blob: https://*.supabase.co https://*.supabase.in",
-      "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://api.stripe.com https://football-data.org",
+      "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://api.stripe.com https://football-data.org https://*.posthog.com https://eu.i.posthog.com",
       "frame-src https://js.stripe.com https://hooks.stripe.com",
       "worker-src 'self'",
       "manifest-src 'self'",
@@ -27,6 +27,12 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      { source: '/login', destination: '/auth/login', permanent: true },
+      { source: '/register', destination: '/auth/register', permanent: true },
+    ]
+  },
   async headers() {
     return [
       {

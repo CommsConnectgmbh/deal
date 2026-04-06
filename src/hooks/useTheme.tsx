@@ -7,18 +7,20 @@ export function useTheme() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved === 'light' || saved === 'dark') {
-      setTheme(saved)
-      document.documentElement.setAttribute('data-theme', saved)
-    }
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved === 'light' || saved === 'dark') {
+        setTheme(saved)
+        document.documentElement.setAttribute('data-theme', saved)
+      }
+    } catch {}
   }, [])
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
     setTheme(next)
     document.documentElement.setAttribute('data-theme', next)
-    localStorage.setItem(STORAGE_KEY, next)
+    try { localStorage.setItem(STORAGE_KEY, next) } catch {}
   }
 
   return { theme, toggleTheme }
