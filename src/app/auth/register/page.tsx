@@ -75,6 +75,7 @@ function RegisterForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const referralCode = useRef<string | null>(null)
+  const pendingAcceptDealId = useRef<string | null>(null)
   const { t } = useLang()
 
   // Track page view + capture referral code on mount
@@ -85,6 +86,11 @@ function RegisterForm() {
     const urlRef = searchParams.get('ref') || searchParams.get('code')
     const storedRef = typeof window !== 'undefined' ? localStorage.getItem('dealbuddy_referral') : null
     referralCode.current = urlRef || storedRef || null
+
+    // Pending deal accept: ?accept=<dealId> OR localStorage (set by public /deal/[id] page)
+    const urlAccept = searchParams.get('accept')
+    const storedAccept = typeof window !== 'undefined' ? localStorage.getItem('dealbuddy_pending_accept') : null
+    pendingAcceptDealId.current = urlAccept || storedAccept || null
   }, [searchParams])
 
   const mapError = (msg: string): string => {
@@ -187,6 +193,50 @@ function RegisterForm() {
             localStorage.removeItem('dealbuddy_referral')
           } catch {
             // Non-fatal
+          }
+        }
+
+        // Pending deal accept: if user came via a public /deal/[id] invite, auto-accept now
+        if (pendingAcceptDealId.current) {
+          try {
+            const dealId = pendingAcceptDealId.current
+            // Only accept if deal is still open and has no opponent yet (race-condition safe)
+            const { data: deal } = await supabase
+              .from('bets')
+              .select('id, status, opponent_id, creator_id, is_public, title')
+              .eq('id', dealId)
+              .single()
+
+            if (deal && deal.status === 'open' && !deal.opponent_id && deal.creator_id !== user.id) {
+              const update: Record<string, unknown> = {
+                status: 'active',
+                opponent_id: user.id,
+              }
+              if (deal.is_public !== false) {
+                update.shared_as_story_at = new Date().toISOString()
+              }
+              const { error: acceptErr } = await supabase
+                .from('bets')
+                .update(update)
+                .eq('id', dealId)
+                .eq('status', 'open')
+                .is('opponent_id', null)
+
+              if (!acceptErr && deal.is_public) {
+                try {
+                  await supabase.from('feed_events').insert([
+                    { event_type: 'deal_accepted', user_id: user.id, deal_id: dealId, metadata: { title: deal.title } },
+                    { event_type: 'challenge_joined', user_id: user.id, deal_id: dealId, metadata: { title: deal.title } },
+                  ])
+                } catch { /* non-fatal */ }
+              }
+            }
+            localStorage.removeItem('dealbuddy_pending_accept')
+            localStorage.setItem('dealbuddy_skip_avatar_setup', '1')
+            router.replace(`/app/deals/${dealId}`)
+            return
+          } catch {
+            // Fall through to default redirect on error
           }
         }
       }

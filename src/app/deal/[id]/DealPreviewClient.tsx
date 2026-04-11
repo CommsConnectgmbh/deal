@@ -237,22 +237,58 @@ export default function DealPreviewClient({ deal }: { deal: DealPreview }) {
         )}
 
         {/* CTA */}
-        <div style={{ padding: '0 20px 20px' }}>
-          <button
-            onClick={() => router.push('/auth/login?redirect=/app/deals/' + deal.id)}
-            style={{
-              width: '100%', padding: 16, borderRadius: 12,
-              border: 'none', cursor: 'pointer',
-              background: 'linear-gradient(135deg, #B45309, #F59E0B)',
-              color: '#0F0F11',
-              fontFamily: 'Oswald, sans-serif', fontSize: 13,
-              fontWeight: 700, letterSpacing: 2,
-              boxShadow: '0 4px 20px rgba(245,158,11,0.25)',
-              transition: 'transform 0.15s, box-shadow 0.15s',
-            }}
-          >
-            AUF DEALBUDDY ÖFFNEN
-          </button>
+        <div style={{ padding: '0 20px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {deal.status === 'open' && !deal.opponent ? (
+            <>
+              <button
+                onClick={() => {
+                  try {
+                    localStorage.setItem('dealbuddy_pending_accept', deal.id)
+                  } catch { /* ignore private mode */ }
+                  router.push(`/auth/register?accept=${deal.id}`)
+                }}
+                style={{
+                  width: '100%', padding: 18, borderRadius: 12,
+                  border: 'none', cursor: 'pointer',
+                  background: 'linear-gradient(135deg, #B45309, #F59E0B)',
+                  color: '#0F0F11',
+                  fontFamily: 'Oswald, sans-serif', fontSize: 14,
+                  fontWeight: 800, letterSpacing: 2,
+                  boxShadow: '0 4px 20px rgba(245,158,11,0.35)',
+                }}
+              >
+                ⚔️ CHALLENGE ANNEHMEN
+              </button>
+              <button
+                onClick={() => router.push(`/auth/login?redirect=/app/deals/${deal.id}`)}
+                style={{
+                  width: '100%', padding: 12, borderRadius: 12,
+                  border: '1px solid rgba(245,158,11,0.25)',
+                  background: 'transparent', cursor: 'pointer',
+                  color: 'rgba(245,158,11,0.8)',
+                  fontFamily: 'Oswald, sans-serif', fontSize: 11,
+                  fontWeight: 600, letterSpacing: 1.5,
+                }}
+              >
+                Schon Mitglied? Einloggen
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => router.push('/auth/login?redirect=/app/deals/' + deal.id)}
+              style={{
+                width: '100%', padding: 16, borderRadius: 12,
+                border: 'none', cursor: 'pointer',
+                background: 'linear-gradient(135deg, #B45309, #F59E0B)',
+                color: '#0F0F11',
+                fontFamily: 'Oswald, sans-serif', fontSize: 13,
+                fontWeight: 700, letterSpacing: 2,
+                boxShadow: '0 4px 20px rgba(245,158,11,0.25)',
+              }}
+            >
+              AUF DEALBUDDY ÖFFNEN
+            </button>
+          )}
         </div>
       </div>
 
