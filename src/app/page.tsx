@@ -41,6 +41,16 @@ export default function RootPage() {
   const router = useRouter()
   const [showLanding, setShowLanding] = useState(false)
 
+  // Capture ?ref= / ?code= from direct landing hits — mirrors /join/[code] behaviour
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const ref = params.get('ref') || params.get('code')
+    if (ref) {
+      localStorage.setItem('dealbuddy_referral', ref)
+    }
+  }, [])
+
   useEffect(() => {
     if (loading) return
     if (user) {
@@ -230,17 +240,17 @@ export default function RootPage() {
           </div>
         </section>
 
-        {/* SOCIAL PROOF */}
+        {/* FOUNDER HOOK — ehrlich statt fake social proof */}
         <FadeIn>
           <section style={{ textAlign: 'center', paddingBottom: '48px' }}>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <div className="stat-pill">
-                <span style={{ fontSize: '18px' }}>🔥</span>
-                <span><strong style={{ color: '#FFB800' }}>1.000+</strong> Deals abgeschlossen</span>
+                <span style={{ fontSize: '18px' }}>⚡</span>
+                <span><strong style={{ color: '#FFB800' }}>Season 1</strong> · The Founders Era</span>
               </div>
               <div className="stat-pill">
-                <span style={{ fontSize: '18px' }}>⭐</span>
-                <span><strong style={{ color: '#FFB800' }}>4.8</strong> Rating</span>
+                <span style={{ fontSize: '18px' }}>👑</span>
+                <span>Limitiert auf die ersten <strong style={{ color: '#FFB800' }}>1.000</strong></span>
               </div>
             </div>
           </section>

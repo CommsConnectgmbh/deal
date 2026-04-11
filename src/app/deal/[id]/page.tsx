@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import type { Metadata } from 'next'
 import DealPreviewClient from './DealPreviewClient'
 
@@ -77,7 +77,54 @@ export default async function DealPublicPage({ params }: { params: Promise<{ id:
   const deal = await getDeal(id)
 
   if (!deal) {
-    redirect('/auth/login')
+    return (
+      <div style={{
+        minHeight: '100dvh',
+        background: '#080808',
+        color: '#fff',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 24px',
+        textAlign: 'center',
+        maxWidth: 430,
+        margin: '0 auto',
+      }}>
+        <div style={{ fontSize: 64, marginBottom: 24 }}>🔍</div>
+        <h1 style={{
+          fontFamily: "'Oswald', sans-serif",
+          fontSize: 28,
+          color: '#FFB800',
+          letterSpacing: 2,
+          marginBottom: 12,
+          textTransform: 'uppercase',
+        }}>
+          Deal nicht gefunden
+        </h1>
+        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, lineHeight: 1.5, marginBottom: 32, maxWidth: 320 }}>
+          Diese Challenge existiert nicht oder wurde bereits entfernt. Vielleicht ist der Link abgelaufen?
+        </p>
+        <Link
+          href="/"
+          style={{
+            display: 'inline-block',
+            background: 'linear-gradient(135deg, #FFB800 0%, #FF8C00 100%)',
+            color: '#080808',
+            fontFamily: "'Oswald', sans-serif",
+            fontWeight: 700,
+            fontSize: 14,
+            letterSpacing: 2,
+            textTransform: 'uppercase',
+            padding: '14px 32px',
+            borderRadius: 12,
+            textDecoration: 'none',
+          }}
+        >
+          Zur Startseite
+        </Link>
+      </div>
+    )
   }
 
   const creator = deal.creator as any
