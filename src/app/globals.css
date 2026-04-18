@@ -1,105 +1,109 @@
 @import "tailwindcss";
 
 /* ══════════════════════════════════════════
-   DARK THEME (Default)
-   Discord + Spotify + Gaming inspired
+   LIGHT THEME (Default — "Instagram for Challenges")
+   Apple-clean, off-white, calm gold accent
    ══════════════════════════════════════════ */
 :root {
-  /* Backgrounds – 5 levels for depth */
-  --bg-deepest: #080808;
-  --bg-base: #0F0F11;
-  --bg-surface: #16171B;
-  --bg-elevated: #1D1E23;
-  --bg-overlay: #25262B;
+  /* Backgrounds – 5 levels for depth (Apple-style off-whites + greys) */
+  --bg-deepest: #F2F2F4;
+  --bg-base: #FBFBFD;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  --bg-overlay: #F5F5F7;
 
-  /* Text – 4 levels */
-  --text-primary: #F2F3F5;
-  --text-secondary: #A1A3A9;
-  --text-muted: #6B6E76;
-  --text-inverse: #0F0F11;
+  /* Text – 4 levels (Apple SF colors) */
+  --text-primary: #1D1D1F;
+  --text-secondary: #515154;
+  --text-muted: #86868B;
+  --text-inverse: #FFFFFF;
 
-  /* Gold accent – 4 levels */
-  --gold-primary: #F59E0B;
-  --gold-bright: #FBBF24;
-  --gold-dim: #B45309;
-  --gold-subtle: rgba(245, 158, 11, 0.08);
-  --gold-glow: rgba(245, 158, 11, 0.25);
+  /* Gold accent – calmer amber for light bg */
+  --gold-primary: #C68B12;
+  --gold-bright: #E0A41B;
+  --gold-dim: #8B6010;
+  --gold-subtle: rgba(198, 139, 18, 0.06);
+  --gold-glow: rgba(198, 139, 18, 0.18);
 
-  /* Borders – 3 levels */
-  --border-subtle: #1F2025;
-  --border-default: #2A2B31;
-  --border-strong: #3A3B42;
+  /* Borders – 3 levels (Apple separators) */
+  --border-subtle: #ECECEE;
+  --border-default: #D2D2D7;
+  --border-strong: #A1A1A6;
 
-  /* Status colors */
-  --status-active: #22C55E;
-  --status-pending: #F59E0B;
-  --status-warning: #F97316;
-  --status-error: #EF4444;
-  --status-info: #3B82F6;
+  /* Status colors – slightly desaturated for light bg */
+  --status-active: #1FA94B;
+  --status-pending: #C68B12;
+  --status-warning: #D97706;
+  --status-error: #DC2626;
+  --status-info: #2563EB;
 
   /* Rarity colors */
-  --rarity-common: #6B6E76;
-  --rarity-rare: #3B82F6;
-  --rarity-epic: #8B5CF6;
-  --rarity-legendary: #F59E0B;
-  --rarity-founder: #F59E0B;
+  --rarity-common: #86868B;
+  --rarity-rare: #2563EB;
+  --rarity-epic: #7C3AED;
+  --rarity-legendary: #C68B12;
+  --rarity-founder: #C68B12;
 
-  /* Card frame colors (17 types) */
-  --frame-bronze: #CD7F32;
-  --frame-silver: #C0C0C0;
-  --frame-gold: #F59E0B;
-  --frame-emerald: #22C55E;
-  --frame-sapphire: #3B82F6;
-  --frame-ruby: #EF4444;
-  --frame-amethyst: #8B5CF6;
-  --frame-topaz: #F97316;
-  --frame-legend: #FBBF24;
-  --frame-icon: #A78BFA;
+  /* Card frame colors (17 types) – kept identifiable, slightly toned */
+  --frame-bronze: #B0732D;
+  --frame-silver: #9FA0A4;
+  --frame-gold: #C68B12;
+  --frame-emerald: #1FA94B;
+  --frame-sapphire: #2563EB;
+  --frame-ruby: #DC2626;
+  --frame-amethyst: #7C3AED;
+  --frame-topaz: #D97706;
+  --frame-legend: #E0A41B;
+  --frame-icon: #8B5CF6;
   --frame-obsidian: #1F2937;
-  --frame-founder: #F59E0B;
-  --frame-hero: #60A5FA;
-  --frame-futties: #EC4899;
-  --frame-neon: #34D399;
-  --frame-celestial: #E0E7FF;
-  --frame-player-of-the-week: #FBBF24;
+  --frame-founder: #C68B12;
+  --frame-hero: #2563EB;
+  --frame-futties: #DB2777;
+  --frame-neon: #059669;
+  --frame-celestial: #6366F1;
+  --frame-player-of-the-week: #E0A41B;
 
   /* Card rarity colors (6 categories) */
-  --rarity-event: #EC4899;
+  --rarity-event: #DB2777;
 
   /* Legacy card aliases (backward compat) */
-  --card-bronze: #CD7F32;
-  --card-silver: #C0C0C0;
-  --card-gold: #F59E0B;
-  --card-green: #22C55E;
-  --card-heroes: #3B82F6;
-  --card-icon: #8B5CF6;
-  --card-futties: #EC4899;
-  --card-genesis: #F59E0B;
+  --card-bronze: #B0732D;
+  --card-silver: #9FA0A4;
+  --card-gold: #C68B12;
+  --card-green: #1FA94B;
+  --card-heroes: #2563EB;
+  --card-icon: #7C3AED;
+  --card-futties: #DB2777;
+  --card-genesis: #C68B12;
 
   /* Buttons */
-  --button-primary-bg: #F59E0B;
-  --button-primary-text: #0F0F11;
-  --button-primary-hover: #FBBF24;
+  --button-primary-bg: #1D1D1F;
+  --button-primary-text: #FFFFFF;
+  --button-primary-hover: #000000;
   --button-secondary-bg: transparent;
-  --button-secondary-border: #2A2B31;
-  --button-secondary-text: #A1A3A9;
-  --button-secondary-hover: #25262B;
-  --button-danger-bg: rgba(239, 68, 68, 0.1);
-  --button-danger-border: rgba(239, 68, 68, 0.3);
-  --button-danger-text: #EF4444;
+  --button-secondary-border: #D2D2D7;
+  --button-secondary-text: #515154;
+  --button-secondary-hover: #F5F5F7;
+  --button-danger-bg: rgba(220, 38, 38, 0.08);
+  --button-danger-border: rgba(220, 38, 38, 0.25);
+  --button-danger-text: #DC2626;
 
   /* Inputs */
-  --input-bg: #16171B;
-  --input-border: #2A2B31;
-  --input-border-focus: #F59E0B;
-  --input-text: #F2F3F5;
-  --input-placeholder: #6B6E76;
+  --input-bg: #FFFFFF;
+  --input-border: #D2D2D7;
+  --input-border-focus: #1D1D1F;
+  --input-text: #1D1D1F;
+  --input-placeholder: #86868B;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-gold: 0 0 20px rgba(245, 158, 11, 0.15);
+  /* Shadows – Apple-soft */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.10);
+  --shadow-gold: 0 0 20px rgba(198, 139, 18, 0.12);
+
+  /* Glass surfaces – translucent whites for Apple liquid-glass feel */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(0, 0, 0, 0.06);
 
   /* Radii */
   --radius-sm: 6px;
@@ -122,53 +126,71 @@
   --font-mono: 'JetBrains Mono', monospace;
 
   /* Legacy compatibility (keep for VS Battle Card) */
-  --gold: #FFB800;
-  --gold-dark: #CC8800;
-  --gold-light: #FFE566;
+  --gold: #C68B12;
+  --gold-dark: #8B6010;
+  --gold-light: #E0A41B;
 }
 
 /* ══════════════════════════════════════════
-   LIGHT THEME (Toggle in Settings)
+   DARK THEME (Opt-in via Settings)
+   Discord + Spotify + Gaming inspired
    ══════════════════════════════════════════ */
-[data-theme="light"] {
-  --bg-deepest: #F0F0F2;
-  --bg-base: #FAFAFA;
-  --bg-surface: #FFFFFF;
-  --bg-elevated: #FFFFFF;
-  --bg-overlay: #F3F4F6;
+[data-theme="dark"] {
+  --bg-deepest: #080808;
+  --bg-base: #0F0F11;
+  --bg-surface: #16171B;
+  --bg-elevated: #1D1E23;
+  --bg-overlay: #25262B;
 
-  --text-primary: #111215;
-  --text-secondary: #5F6169;
-  --text-muted: #9CA0A9;
-  --text-inverse: #FAFAFA;
+  --text-primary: #F2F3F5;
+  --text-secondary: #A1A3A9;
+  --text-muted: #6B6E76;
+  --text-inverse: #0F0F11;
 
-  --gold-primary: #D97706;
-  --gold-bright: #F59E0B;
-  --gold-dim: #92400E;
-  --gold-subtle: rgba(217, 119, 6, 0.06);
-  --gold-glow: rgba(217, 119, 6, 0.15);
+  --gold-primary: #F59E0B;
+  --gold-bright: #FBBF24;
+  --gold-dim: #B45309;
+  --gold-subtle: rgba(245, 158, 11, 0.08);
+  --gold-glow: rgba(245, 158, 11, 0.25);
 
-  --border-subtle: #E8E9EC;
-  --border-default: #D4D5DA;
-  --border-strong: #B8BAC0;
+  --border-subtle: #1F2025;
+  --border-default: #2A2B31;
+  --border-strong: #3A3B42;
 
-  --button-primary-bg: #D97706;
-  --button-primary-text: #FAFAFA;
-  --button-primary-hover: #B45309;
+  --status-active: #22C55E;
+  --status-pending: #F59E0B;
+  --status-warning: #F97316;
+  --status-error: #EF4444;
+  --status-info: #3B82F6;
+
+  --button-primary-bg: #F59E0B;
+  --button-primary-text: #0F0F11;
+  --button-primary-hover: #FBBF24;
   --button-secondary-bg: transparent;
-  --button-secondary-border: #D4D5DA;
-  --button-secondary-text: #5F6169;
-  --button-secondary-hover: #F3F4F6;
+  --button-secondary-border: #2A2B31;
+  --button-secondary-text: #A1A3A9;
+  --button-secondary-hover: #25262B;
+  --button-danger-bg: rgba(239, 68, 68, 0.1);
+  --button-danger-border: rgba(239, 68, 68, 0.3);
+  --button-danger-text: #EF4444;
 
-  --input-bg: #FFFFFF;
-  --input-border: #D4D5DA;
-  --input-text: #111215;
-  --input-placeholder: #9CA0A9;
+  --input-bg: #16171B;
+  --input-border: #2A2B31;
+  --input-border-focus: #F59E0B;
+  --input-text: #F2F3F5;
+  --input-placeholder: #6B6E76;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
-  --shadow-gold: 0 0 20px rgba(217, 119, 6, 0.1);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-gold: 0 0 20px rgba(245, 158, 11, 0.15);
+
+  --glass-bg: rgba(15, 15, 17, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.08);
+
+  --gold: #FFB800;
+  --gold-dark: #CC8800;
+  --gold-light: #FFE566;
 }
 
 /* ══════════════════════════════════════════
