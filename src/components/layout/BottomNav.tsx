@@ -49,8 +49,10 @@ export default function BottomNav({ tabs, createHref = '/app/deals/create' }: Pr
     <nav style={{
       position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
       width: '100%', maxWidth: 430,
-      background: 'var(--bg-deepest)', backdropFilter: 'blur(20px)',
-      borderTop: '1px solid var(--border-subtle)',
+      background: 'var(--glass-bg)',
+      backdropFilter: 'blur(24px) saturate(180%)',
+      WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+      borderTop: '1px solid var(--glass-border)',
       display: 'flex', alignItems: 'flex-end',
       paddingBottom: 'env(safe-area-inset-bottom)',
       zIndex: 100, overflow: 'visible',
@@ -67,10 +69,10 @@ export default function BottomNav({ tabs, createHref = '/app/deals/create' }: Pr
                 style={{
                   position: 'relative',
                   width: 60, height: 60, borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #1a1a1a, #2a2a2a, #1a1a1a)',
-                  border: '2px solid rgba(245, 158, 11, 0.35)', cursor: 'pointer',
+                  background: 'var(--button-primary-bg)',
+                  border: '2px solid var(--gold-glow)', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.6), 0 0 16px rgba(245, 158, 11, 0.25)',
+                  boxShadow: 'var(--shadow-md), var(--shadow-gold)',
                   padding: 0,
                   marginTop: -20, marginBottom: 4,
                   flexShrink: 0,
@@ -90,10 +92,10 @@ export default function BottomNav({ tabs, createHref = '/app/deals/create' }: Pr
                   bottom: -2, right: -2,
                   width: 22, height: 22, borderRadius: '50%',
                   background: 'var(--gold-primary)',
-                  border: '2px solid var(--bg-deepest)',
+                  border: '2px solid var(--bg-base)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: 'var(--text-inverse)',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                  boxShadow: 'var(--shadow-sm)',
                 }}>
                   <Plus size={12} strokeWidth={3} />
                 </span>

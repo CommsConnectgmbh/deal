@@ -107,19 +107,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div style={{
         position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)',
         width: '100%', maxWidth: 430, zIndex: 100,
-        background: 'var(--bg-deepest)', backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid var(--border-subtle)',
+        background: 'var(--glass-bg)',
+        backdropFilter: 'blur(24px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+        borderBottom: '1px solid var(--glass-border)',
         padding: 'env(safe-area-inset-top) 0 0',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
 
           {/* Left: Notification bell */}
           <Link href="/app/notifications" style={{ textDecoration: 'none', position: 'relative', display: 'inline-flex' }}>
-            <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'var(--bg-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: 18 }}>{'\u{1F514}'}</span>
             </div>
             {unreadNotifs > 0 && (
-              <div style={{ position: 'absolute', top: -2, right: -2, minWidth: 16, height: 16, borderRadius: 8, background: 'var(--gold-primary)', border: '2px solid var(--bg-deepest)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
+              <div style={{ position: 'absolute', top: -2, right: -2, minWidth: 16, height: 16, borderRadius: 8, background: 'var(--gold-primary)', border: '2px solid var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
                 <span className="font-display" style={{ fontSize: 8, fontWeight: 700, color: 'var(--text-inverse)' }}>{unreadNotifs > 9 ? '9+' : unreadNotifs}</span>
               </div>
             )}
@@ -203,11 +205,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
           {/* Right: Chat/Messages */}
           <Link href="/app/chat" style={{ textDecoration: 'none', display: 'inline-flex', position: 'relative' }}>
-            <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'var(--bg-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: 18 }}>{'\u{1F4AC}'}</span>
             </div>
             {unreadMsgs > 0 && (
-              <div style={{ position: 'absolute', top: -2, right: -2, minWidth: 16, height: 16, borderRadius: 8, background: 'var(--gold-primary)', border: '2px solid var(--bg-deepest)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
+              <div style={{ position: 'absolute', top: -2, right: -2, minWidth: 16, height: 16, borderRadius: 8, background: 'var(--gold-primary)', border: '2px solid var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
                 <span className="font-display" style={{ fontSize: 8, fontWeight: 700, color: 'var(--text-inverse)' }}>{unreadMsgs > 9 ? '9+' : unreadMsgs}</span>
               </div>
             )}
