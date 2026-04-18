@@ -44,7 +44,7 @@ export default function CompletedChallengeCard({
   const opponentName = deal.opponent?.display_name || deal.opponent?.username || null
 
   return (
-    <div data-deal-card={deal.id} style={{ marginBottom: 28, position: 'relative', paddingTop: 10, paddingBottom: 20, borderBottom: '1px solid rgba(255,184,0,0.12)' }}>
+    <div data-deal-card={deal.id} style={{ marginBottom: 28, position: 'relative', paddingTop: 10, paddingBottom: 20, borderBottom: '1px solid var(--border-subtle)' }}>
 
       {/* ═══ 3-DOT MENU — top right ═══ */}
       <div style={{ position: 'absolute', top: 14, right: 10, zIndex: 8 }}>
@@ -95,16 +95,20 @@ export default function CompletedChallengeCard({
           {/* Lesezeichen oben links */}
           <div style={{
             position: 'absolute', top: 0, left: 12, zIndex: 2,
-            background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
+            background: 'var(--glass-bg)',
+            backdropFilter: 'blur(12px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+            border: '1px solid var(--glass-border)',
+            borderTop: 'none',
             padding: '5px 10px', borderRadius: '0 0 8px 8px',
-            fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 700, color: '#fff',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+            fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)',
+            boxShadow: 'var(--shadow-sm)',
             display: 'flex', alignItems: 'center', gap: 5,
           }}>
             <span>{'\u2694\uFE0F'}</span>
             <span>{creatorName}</span>
             {opponentName && (
-              <><span style={{ color: 'rgba(255,255,255,0.5)' }}>vs</span> <span>{opponentName}</span></>
+              <><span style={{ color: 'var(--text-muted)' }}>vs</span> <span>{opponentName}</span></>
             )}
           </div>
           {deal.media_url ? (
@@ -131,14 +135,14 @@ export default function CompletedChallengeCard({
                 fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 900,
                 color: 'var(--text-primary)', letterSpacing: 1,
                 borderRadius: 8, padding: '6px 16px',
-                background: 'rgba(255,255,255,0.06)',
-                textShadow: 'none',
+                background: 'var(--bg-overlay)',
+                border: '1px solid var(--border-subtle)',
               }}>
                 {'\uD83C\uDFC6'} {deal.stake}
               </span>
             )}
             {winnerId && winner && (
-              <span style={{ fontSize: 10, color: '#4ade80', fontWeight: 600 }}>
+              <span style={{ fontSize: 10, color: 'var(--status-active)', fontWeight: 600 }}>
                 {'\u{1F451}'} {winner.display_name || winner.username}
               </span>
             )}

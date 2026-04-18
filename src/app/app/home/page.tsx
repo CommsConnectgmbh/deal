@@ -890,12 +890,7 @@ export default function HomePage() {
         const streak = profile.streak || 0
         const actionItems: { id: string; title: string; sub: string; label: string; color: string; href: string; prio: number }[] = []
 
-        deals.forEach((d: any) => {
-          if ((d.status === 'active' || d.status === 'pending_confirmation') && (d.creator_id === profile.id || d.opponent_id === profile.id)) {
-            const vsUser = d.creator_id === profile.id ? d.opponent?.username : d.creator?.username
-            actionItems.push({ id: d.id, title: t('home.resultFor').replace('{title}', d.title), sub: `vs @${vsUser || '?'}`, label: d.status === 'pending_confirmation' ? t('home.confirm') : t('home.report'), color: '#4ade80', href: `/app/deals/${d.id}`, prio: 100 })
-          }
-        })
+        // "Ergebnis melden" / "Bestätigen" lives only on /app/tippen — keep home feed visually calm
         pendingInvites.forEach((inv: any) => {
           actionItems.push({ id: inv.id, title: t('home.acceptChallenge').replace('{username}', inv.creator?.username || '?'), sub: `\u201E${inv.title}\u201C`, label: t('home.acceptLabel'), color: '#f97316', href: `/app/deals/${inv.id}`, prio: 95 })
         })
@@ -987,7 +982,7 @@ export default function HomePage() {
         background: 'var(--glass-bg)',
         backdropFilter: 'blur(24px) saturate(180%)',
         WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-        position: 'sticky', top: 68, zIndex: 30,
+        position: 'sticky', top: 'calc(68px + env(safe-area-inset-top))', zIndex: 30,
         borderBottom: '1px solid var(--glass-border)',
         overflowX: 'auto', scrollbarWidth: 'none',
         WebkitOverflowScrolling: 'touch',

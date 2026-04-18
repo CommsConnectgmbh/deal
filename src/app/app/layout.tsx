@@ -221,7 +221,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {profile && <StreakLoginHandler userId={profile.id} />}
 
       {/* Page Content */}
-      <div style={{ flex: 1, paddingTop: 68, paddingBottom: 84 }}>
+      <div style={{ flex: 1, paddingTop: 'calc(68px + env(safe-area-inset-top))', paddingBottom: 84 }}>
         <CelebrationProvider>
           <div key={pathname} className="page-enter">
             {children}

@@ -69,7 +69,7 @@ export default function BottomNav({ tabs, createHref = '/app/deals/create' }: Pr
                 style={{
                   position: 'relative',
                   width: 60, height: 60, borderRadius: '50%',
-                  background: 'var(--button-primary-bg)',
+                  background: '#0F0F11',
                   border: '2px solid var(--gold-glow)', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   boxShadow: 'var(--shadow-md), var(--shadow-gold)',

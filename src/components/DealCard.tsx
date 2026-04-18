@@ -131,9 +131,9 @@ export default function DealCard({
       <div style={{
         background: 'var(--bg-surface)',
         borderRadius: 16,
-        border: `1px solid ${sc}33`,
+        border: '1px solid var(--border-subtle)',
         overflow: 'hidden',
-        boxShadow: 'var(--shadow-md)',
+        boxShadow: 'var(--shadow-sm)',
         transition: 'transform 0.15s, box-shadow 0.15s',
         cursor: 'pointer',
         marginBottom: 0,
@@ -141,8 +141,6 @@ export default function DealCard({
         onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.015)' }}
         onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)' }}
       >
-        {/* Gold top accent line */}
-        <div style={{ height: 2, background: `linear-gradient(90deg, transparent, ${sc}, transparent)` }} />
 
         <div style={{ padding: compact ? '12px 14px' : '16px 16px 12px' }}>
           {/* VS Row */}
@@ -165,10 +163,9 @@ export default function DealCard({
               <span style={{
                 fontFamily:'Cinzel,serif', fontSize: compact ? 18 : 22, fontWeight:900,
                 color:'var(--gold-primary)', letterSpacing:2,
-                textShadow:'0 0 15px #FFB80066, 0 0 30px #FFB80033',
               }}>VS</span>
               <div style={{
-                background:`${sc}22`, border:`1px solid ${sc}55`, borderRadius:8,
+                background:`${sc}14`, border:`1px solid ${sc}33`, borderRadius:8,
                 padding:'2px 8px', fontSize:9, fontWeight:700, color:sc,
                 fontFamily:'Cinzel,serif', letterSpacing:0.8,
               }}>{STATUS_LABELS[deal.status] || deal.status.toUpperCase()}</div>
@@ -239,8 +236,8 @@ export default function DealCard({
                   key={key}
                   onClick={() => toggleReaction(key)}
                   style={{
-                    background: isMine ? '#FFB80022' : 'transparent',
-                    border: isMine ? '1px solid #FFB80066' : '1px solid var(--border-subtle)',
+                    background: isMine ? 'var(--gold-subtle)' : 'transparent',
+                    border: isMine ? '1px solid var(--gold-glow)' : '1px solid var(--border-subtle)',
                     borderRadius: 20, padding:'4px 10px', cursor:'pointer',
                     fontSize:12, color: isMine ? 'var(--gold-primary)' : 'var(--text-secondary)',
                     display:'flex', alignItems:'center', gap:4,

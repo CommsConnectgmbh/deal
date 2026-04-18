@@ -36,7 +36,7 @@ export default function InvitedChallengeCard({
   const creatorName = deal.creator?.display_name || deal.creator?.username || '?'
 
   return (
-    <div data-deal-card={deal.id} style={{ marginBottom: 28, position: 'relative', paddingTop: 10, paddingBottom: 20, borderBottom: '1px solid rgba(255,184,0,0.12)' }}>
+    <div data-deal-card={deal.id} style={{ marginBottom: 28, position: 'relative', paddingTop: 10, paddingBottom: 20, borderBottom: '1px solid var(--border-subtle)' }}>
 
       {/* ═══ 3-DOT MENU — top right ═══ */}
       <div style={{ position: 'absolute', top: 14, right: 10, zIndex: 8 }}>
@@ -90,15 +90,19 @@ export default function InvitedChallengeCard({
           {/* Lesezeichen oben links */}
           <div style={{
             position: 'absolute', top: 0, left: 12, zIndex: 2,
-            background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
+            background: 'var(--glass-bg)',
+            backdropFilter: 'blur(12px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+            border: '1px solid var(--glass-border)',
+            borderTop: 'none',
             padding: '5px 10px', borderRadius: '0 0 8px 8px',
-            fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 700, color: '#fff',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+            fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)',
+            boxShadow: 'var(--shadow-sm)',
             display: 'flex', alignItems: 'center', gap: 5,
           }}>
             <span>{'\u2694\uFE0F'}</span>
             <span style={{ color: sc }}>{creatorName}</span>
-            <span style={{ color: 'rgba(255,255,255,0.5)' }}>{t('feed.challengesYou')}</span>
+            <span style={{ color: 'var(--text-muted)' }}>{t('feed.challengesYou')}</span>
           </div>
           {deal.media_url ? (
             deal.media_type === 'video' ? (
@@ -124,18 +128,18 @@ export default function InvitedChallengeCard({
                 fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 900,
                 color: 'var(--text-primary)', letterSpacing: 1,
                 borderRadius: 8, padding: '6px 16px',
-                background: 'rgba(255,255,255,0.06)',
-                textShadow: '0 0 12px rgba(147,197,253,0.15)',
+                background: 'var(--bg-overlay)',
+                border: '1px solid var(--border-subtle)',
               }}>
                 {'\uD83C\uDFC6'} {deal.stake}
               </span>
             )}
             {deal.deadline && (() => {
               const diff = new Date(deal.deadline).getTime() - Date.now()
-              if (diff <= 0) return <span style={{ fontSize: 9, color: '#EF4444', fontWeight: 600 }}>{'\u23F3'} {t('status.expired')}</span>
+              if (diff <= 0) return <span style={{ fontSize: 9, color: 'var(--status-error)', fontWeight: 600 }}>{'\u23F3'} {t('status.expired')}</span>
               const d = Math.floor(diff / 86400000), h = Math.floor((diff % 86400000) / 3600000), m = Math.floor((diff % 3600000) / 60000)
               const txt = d > 0 ? `${d}d` : h > 0 ? `${h}h` : `${m}min`
-              return <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>{'\u23F3'} {txt}</span>
+              return <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-muted)' }}>{'\u23F3'} {txt}</span>
             })()}
           </div>
         )}
