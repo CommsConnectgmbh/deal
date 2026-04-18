@@ -106,10 +106,8 @@ export default function DealCardMenu({ dealId, onHide }: DealCardMenuProps) {
           setShowReasons(false)
         }}
         style={{
-          background: 'rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(6px)',
+          background: 'transparent',
           border: 'none',
-          borderRadius: '50%',
           width: 28,
           height: 28,
           display: 'flex',
@@ -117,8 +115,8 @@ export default function DealCardMenu({ dealId, onHide }: DealCardMenuProps) {
           justifyContent: 'center',
           cursor: 'pointer',
           padding: 0,
-          color: 'rgba(255,255,255,0.7)',
-          fontSize: 16,
+          color: '#000',
+          fontSize: 18,
           fontWeight: 900,
           lineHeight: 1,
           letterSpacing: 1,
