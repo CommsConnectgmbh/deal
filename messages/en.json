@@ -9,7 +9,11 @@
     "tippen": "BETS",
     "rank": "RANK",
     "score": "SCORE",
-    "level": "LEVEL"
+    "level": "LEVEL",
+    "create": "CREATE",
+    "notifications": "NOTIFICATIONS",
+    "messages": "MESSAGES",
+    "settings": "SETTINGS"
   },
   "auth": {
     "login": "Log In",

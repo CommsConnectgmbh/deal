@@ -9,7 +9,11 @@
     "tippen": "APUESTAS",
     "rank": "RANGO",
     "score": "SCORE",
-    "level": "NIVEL"
+    "level": "NIVEL",
+    "create": "CREAR",
+    "notifications": "NOTIFICACIONES",
+    "messages": "MENSAJES",
+    "settings": "AJUSTES"
   },
   "auth": {
     "login": "Iniciar sesión",

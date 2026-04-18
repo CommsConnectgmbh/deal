@@ -236,6 +236,26 @@ body {
     linear-gradient(180deg, #0F0F11 0%, #050507 100%);
 }
 
+/* ── Blitz fullscreen — covers viewport on mobile, respects sidebar on desktop ── */
+.blitz-fullscreen {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 200;
+  background: #000;
+  overflow: hidden;
+  touch-action: none;
+}
+@media (min-width: 1024px) {
+  .blitz-fullscreen {
+    left: 245px;
+    /* center column up to 500px wide so videos don't stretch absurdly */
+    right: max(0px, calc((100vw - 245px - 500px) / 2));
+    /* matching right offset → centered */
+    left: calc(245px + max(0px, (100vw - 245px - 500px) / 2));
+    border-radius: 0;
+  }
+}
+
 /* ── Responsive shell — Instagram-style desktop layout at >=1024px ── */
 .dt-only { display: none !important; }
 .mb-only { display: block; }

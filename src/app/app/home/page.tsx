@@ -882,9 +882,9 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* ═══ SINGLE FILTER BAR — viral-style scrollable chips ═══ */}
+      {/* ═══ SINGLE FILTER BAR — same chip style as /tippen ═══ */}
       <div style={{
-        display: 'flex', gap: 6, padding: '10px 16px',
+        display: 'flex', gap: 8, padding: '10px 16px',
         background: 'var(--glass-bg)',
         backdropFilter: 'blur(24px) saturate(180%)',
         WebkitBackdropFilter: 'blur(24px) saturate(180%)',
@@ -905,12 +905,12 @@ export default function HomePage() {
               key={tab.key}
               onClick={() => setFeedTab(tab.key)}
               style={{
-                padding: '6px 14px', borderRadius: 20, cursor: 'pointer',
-                background: isActive ? 'var(--gold-subtle)' : 'transparent',
-                border: isActive ? '1.5px solid var(--gold-glow)' : '1px solid var(--border-subtle)',
-                color: isActive ? 'var(--gold-primary)' : 'var(--text-muted)',
-                fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 700,
-                letterSpacing: 1.2, transition: 'all .2s',
+                fontSize: 10, fontFamily: 'var(--font-display)', letterSpacing: 1.5,
+                padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                background: isActive ? 'var(--gold-primary)' : 'var(--bg-overlay)',
+                color: isActive ? 'var(--text-inverse)' : 'var(--text-muted)',
+                fontWeight: isActive ? 800 : 600,
+                transition: 'all 0.2s ease',
                 whiteSpace: 'nowrap', flexShrink: 0,
               }}
             >

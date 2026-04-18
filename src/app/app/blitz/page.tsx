@@ -258,11 +258,7 @@ export default function BlitzPage() {
 
   /* ─── RENDER ─── */
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 200,
-      background: '#000', overflow: 'hidden',
-      touchAction: 'none',
-    }}>
+    <div className="blitz-fullscreen">
 
       {/* ═══ TOP CONTROLS ═══ */}
       <div style={{

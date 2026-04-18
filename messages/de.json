@@ -9,7 +9,11 @@
     "tippen": "TIPPEN",
     "rank": "RANG",
     "score": "SCORE",
-    "level": "LEVEL"
+    "level": "LEVEL",
+    "create": "ERSTELLEN",
+    "notifications": "BENACHRICHTIGUNGEN",
+    "messages": "NACHRICHTEN",
+    "settings": "EINSTELLUNGEN"
   },
   "auth": {
     "login": "Einloggen",

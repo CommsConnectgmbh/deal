@@ -9,7 +9,11 @@
     "tippen": "ПРОГНОЗЫ",
     "rank": "РАНГ",
     "score": "СЧЁТ",
-    "level": "УРОВЕНЬ"
+    "level": "УРОВЕНЬ",
+    "create": "СОЗДАТЬ",
+    "notifications": "УВЕДОМЛЕНИЯ",
+    "messages": "СООБЩЕНИЯ",
+    "settings": "НАСТРОЙКИ"
   },
   "auth": {
     "login": "Войти",

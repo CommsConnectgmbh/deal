@@ -9,7 +9,11 @@
     "tippen": "टिप्पेन",
     "rank": "रैंक",
     "score": "स्कोर",
-    "level": "लेवल"
+    "level": "लेवल",
+    "create": "बनाएँ",
+    "notifications": "सूचनाएं",
+    "messages": "संदेश",
+    "settings": "सेटिंग्स"
   },
   "auth": {
     "login": "लॉग इन",

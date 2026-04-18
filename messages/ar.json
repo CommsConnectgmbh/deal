@@ -9,7 +9,11 @@
     "tippen": "التوقعات",
     "rank": "الرتبة",
     "score": "النقاط",
-    "level": "المستوى"
+    "level": "المستوى",
+    "create": "إنشاء",
+    "notifications": "الإشعارات",
+    "messages": "الرسائل",
+    "settings": "الإعدادات"
   },
   "auth": {
     "login": "تسجيل الدخول",

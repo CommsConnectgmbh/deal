@@ -9,7 +9,11 @@
     "tippen": "PARIS",
     "rank": "RANG",
     "score": "SCORE",
-    "level": "NIVEAU"
+    "level": "NIVEAU",
+    "create": "CRÉER",
+    "notifications": "NOTIFICATIONS",
+    "messages": "MESSAGES",
+    "settings": "PARAMÈTRES"
   },
   "auth": {
     "login": "Connexion",

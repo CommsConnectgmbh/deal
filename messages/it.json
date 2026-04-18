@@ -9,7 +9,11 @@
     "tippen": "SCOMMESSE",
     "rank": "RANGO",
     "score": "SCORE",
-    "level": "LIVELLO"
+    "level": "LIVELLO",
+    "create": "CREA",
+    "notifications": "NOTIFICHE",
+    "messages": "MESSAGGI",
+    "settings": "IMPOSTAZIONI"
   },
   "auth": {
     "login": "Accedi",

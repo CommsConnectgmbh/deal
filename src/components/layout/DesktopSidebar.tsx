@@ -80,21 +80,30 @@ export default function DesktopSidebar({
     }}>
       {/* Logo */}
       <Link href="/app/home" style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '8px 14px 18px', textDecoration: 'none',
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '4px 14px 22px', textDecoration: 'none',
       }}>
-        <img src="/logo.png" alt="" style={{ width: 32, height: 32, borderRadius: 8 }} />
+        <div style={{
+          width: 44, height: 44, borderRadius: 12,
+          background: 'var(--gold-primary)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 4px 14px rgba(245,158,11,0.35)',
+          flexShrink: 0,
+        }}>
+          <img src="/logo.png" alt="" style={{ width: 30, height: 30, borderRadius: 6 }} />
+        </div>
         <span style={{
-          fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 800,
+          fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800,
           color: 'var(--text-primary)', letterSpacing: 1.2,
         }}>DealBuddy</span>
       </Link>
 
-      {/* Stats strip */}
-      <div style={{
+      {/* Stats strip — clickable → leaderboard */}
+      <Link href="/app/leaderboard" style={{
         display: 'flex', justifyContent: 'space-between',
         padding: '10px 14px 14px', marginBottom: 6,
         borderBottom: '1px solid var(--border-subtle)',
+        textDecoration: 'none',
       }}>
         <div style={{ textAlign: 'left' }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700, color: 'var(--gold-primary)' }}>
@@ -114,7 +123,7 @@ export default function DesktopSidebar({
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700, color: scoreColorVal }}>{scoreDisplay}</div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 6, letterSpacing: 1.5, color: 'var(--text-muted)' }}>{t('nav.score')}</div>
         </div>
-      </div>
+      </Link>
 
       {/* Primary nav */}
       {tabs.map(tab => {
