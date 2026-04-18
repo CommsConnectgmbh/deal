@@ -175,7 +175,9 @@ serve(async (req) => {
       }
 
       // Find an available (unclaimed) card of this rarity — DNA-matched
-      // Fallback hierarchy: gender+age → gender only → any card
+      // Fallback hierarchy: age is treated as MANDATORY when the user has set one
+      // (mismatched age is jarring for users — prefer dust over wrong age).
+      // gender+age → age only → (legacy users without DNA) gender only → any card
       let card: any = null
 
       // Helper: try to claim a card from a filtered query
@@ -212,8 +214,17 @@ serve(async (req) => {
         )
       }
 
-      // Tier 2: Gender only
-      if (!card && dnaGender) {
+      // Tier 2: Age match (drop gender) — age mismatch is more jarring than gender
+      if (!card && dnaAge) {
+        card = await tryClaimFromQuery(
+          supabase.from('card_catalog').select('*')
+            .eq('rarity', rolledRarity)
+            .eq('age', dnaAge)
+        )
+      }
+
+      // Tier 3: Gender only — only for legacy users without age in DNA
+      if (!card && dnaGender && !dnaAge) {
         card = await tryClaimFromQuery(
           supabase.from('card_catalog').select('*')
             .eq('rarity', rolledRarity)
@@ -221,8 +232,8 @@ serve(async (req) => {
         )
       }
 
-      // Tier 3: Any unclaimed card of this rarity (fallback)
-      if (!card) {
+      // Tier 4: Any unclaimed card of this rarity — only for legacy users without DNA
+      if (!card && !dnaAge && !dnaGender) {
         card = await tryClaimFromQuery(
           supabase.from('card_catalog').select('*')
             .eq('rarity', rolledRarity)

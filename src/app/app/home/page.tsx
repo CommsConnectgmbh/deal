@@ -962,15 +962,15 @@ export default function HomePage() {
 
               {/* Extra actions (max 2 more, compact) */}
               {actionItems.length > 1 && (
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 6, width: '100%' }}>
                   {actionItems.slice(1, 3).map(item => (
                     <button key={`sub-${item.id}`} onClick={() => router.push(item.href)} style={{
-                      flex: 1, display: 'flex', alignItems: 'center', gap: 6,
+                      flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6,
                       background: `${item.color}06`, border: `1px solid ${item.color}18`,
                       borderRadius: 8, padding: '5px 8px', cursor: 'pointer', textAlign: 'left',
                     }}>
                       <span style={{ width: 4, height: 4, borderRadius: '50%', flexShrink: 0, background: item.color }} />
-                      <p style={{ fontFamily: 'var(--font-display)', fontSize: 8, fontWeight: 700, color: 'var(--text-muted)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>{item.title}</p>
+                      <p style={{ fontFamily: 'var(--font-display)', fontSize: 8, fontWeight: 700, color: 'var(--text-muted)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0, textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>{item.title}</p>
                       <span style={{ fontSize: 6, padding: '2px 5px', borderRadius: 4, flexShrink: 0, fontFamily: 'var(--font-display)', fontWeight: 700, background: `${item.color}15`, color: item.color }}>{item.label}</span>
                     </button>
                   ))}

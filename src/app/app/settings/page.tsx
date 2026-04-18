@@ -524,6 +524,35 @@ export default function SettingsPage() {
           )}
         </div>
 
+        {/* Community */}
+        <p style={sectionTitle}>COMMUNITY</p>
+        <a
+          href="https://discord.gg/gJkzFzZdS2"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            ...card,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            textDecoration: 'none',
+            color: 'inherit',
+            border: '1px solid #5865F2',
+            background: 'linear-gradient(135deg, rgba(88,101,242,0.18), rgba(88,101,242,0.04))',
+          }}
+        >
+          <div style={{ fontSize: 28, lineHeight: 1 }}>💬</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>
+              Deal Buddy Discord
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              Community, Support, Beta & Insider-Drops
+            </div>
+          </div>
+          <div style={{ fontSize: 20, color: '#5865F2' }}>→</div>
+        </a>
+
         {/* Danger Zone */}
         <p style={sectionTitle}>{t('settings.dangerZone').toUpperCase()}</p>
         <div style={{ ...card, border:'1px solid color-mix(in srgb, var(--status-error) 15%, transparent)' }}>

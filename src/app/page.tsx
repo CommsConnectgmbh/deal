@@ -279,6 +279,38 @@ export default function RootPage() {
           paddingBottom: '40px',
           textAlign: 'center',
         }}>
+          <a
+            href="https://discord.gg/gJkzFzZdS2"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '12px 22px',
+              marginBottom: 22,
+              borderRadius: 999,
+              border: '1px solid #5865F2',
+              background: 'linear-gradient(135deg, rgba(88,101,242,0.18), rgba(88,101,242,0.04))',
+              color: '#fff',
+              fontSize: 14,
+              fontWeight: 600,
+              textDecoration: 'none',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-1px)'
+              e.currentTarget.style.boxShadow = '0 8px 24px rgba(88,101,242,0.35)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'none'
+              e.currentTarget.style.boxShadow = 'none'
+            }}
+          >
+            <span style={{ fontSize: 18 }}>💬</span>
+            Community auf Discord beitreten
+            <span style={{ color: '#5865F2' }}>→</span>
+          </a>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '16px', flexWrap: 'wrap' }}>
             {[
               { label: 'AGB', href: '/legal/terms' },

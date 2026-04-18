@@ -180,8 +180,9 @@ export default function AvatarFrame({
         <div style={{
           position: 'relative',
           width: '100%', aspectRatio: '2/3',
-          borderRadius: isNone ? (size === 'sm' ? 6 : size === 'md' ? 10 : 14) : (size === 'sm' ? 6 : size === 'md' ? 10 : 14),
-          border: 'none',
+          borderRadius: size === 'sm' ? 6 : size === 'md' ? 10 : 14,
+          border: isNone ? 'none' : `${borderWidth}px solid ${cfg.color}`,
+          boxShadow: isNone ? 'none' : `0 0 ${borderWidth * 4}px ${cfg.glow}, inset 0 0 ${borderWidth * 2}px ${cfg.glow}`,
           overflow: 'hidden',
           background: 'transparent',
           animation: cfg.animated ? 'ca-frame-glow 3s ease-in-out infinite' : 'none',
