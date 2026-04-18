@@ -9,6 +9,7 @@ import { CelebrationProvider } from '@/contexts/CelebrationContext'
 import StreakLoginHandler from '@/components/StreakLoginHandler'
 import { useLang } from '@/contexts/LanguageContext'
 import BottomNav, { type BottomNavTab } from '@/components/layout/BottomNav'
+import DesktopSidebar from '@/components/layout/DesktopSidebar'
 
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -101,10 +102,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const scoreColorVal = reliabilityColor === 'green' ? '#22C55E' : reliabilityColor === 'yellow' ? '#EAB308' : reliabilityColor === 'red' ? '#EF4444' : 'var(--text-muted)'
 
   return (
-    <div style={{ maxWidth: 430, margin: '0 auto', minHeight: '100dvh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div className="app-shell">
 
-      {/* Top Bar — KD/Rank instead of DealBuddy text */}
-      <div style={{
+      {/* Desktop sidebar (>=1024px) */}
+      <DesktopSidebar
+        tabs={TABS}
+        createHref="/app/deals/create"
+        unreadMsgs={unreadMsgs}
+        unreadNotifs={unreadNotifs}
+        wins={wins}
+        losses={losses}
+        level={level}
+        globalRank={globalRank}
+        scoreDisplay={scoreDisplay}
+        scoreColorVal={scoreColorVal}
+      />
+
+      {/* Top Bar — mobile only */}
+      <div className="mb-only" style={{
         position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)',
         width: '100%', maxWidth: 430, zIndex: 100,
         background: 'var(--glass-bg)',
@@ -221,7 +236,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {profile && <StreakLoginHandler userId={profile.id} />}
 
       {/* Page Content */}
-      <div style={{ flex: 1, paddingTop: 'calc(68px + env(safe-area-inset-top))', paddingBottom: 84 }}>
+      <div className="app-content">
         <CelebrationProvider>
           <div key={pathname} className="page-enter">
             {children}
@@ -229,7 +244,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </CelebrationProvider>
       </div>
 
-      <BottomNav tabs={TABS} createHref="/app/deals/create" />
+      <div className="mb-only">
+        <BottomNav tabs={TABS} createHref="/app/deals/create" />
+      </div>
     </div>
   )
 }

@@ -480,49 +480,49 @@ export default function TippenPage() {
   // ── Render ──────────────────────────────────────────────────────
 
   return (
-    <div style={{ minHeight: 'calc(100dvh - 80px)', background: 'var(--bg-base)', padding: '24px 16px 100px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+    <div style={{ minHeight: 'calc(100dvh - 80px)', padding: '24px 16px 100px' }}>
+      {/* Header row: title + small create-action */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <h1 style={{
-          fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 700,
-          color: 'var(--gold-primary)', margin: 0, letterSpacing: 2, textTransform: 'uppercase',
+          fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700,
+          color: 'var(--text-primary)', margin: 0, letterSpacing: 1.5,
         }}>
-          🏆 TIPPEN
+          Tippen
         </h1>
+        <button
+          onClick={() => setShowModal(true)}
+          style={{
+            padding: '8px 14px', background: 'transparent',
+            color: 'var(--gold-primary)', fontFamily: 'var(--font-display)',
+            fontSize: 11, fontWeight: 700, letterSpacing: 1.2,
+            border: '1px solid var(--gold-primary)', borderRadius: 999, cursor: 'pointer',
+          }}
+        >
+          + Neue Gruppe
+        </button>
       </div>
-
-      {/* Create Button */}
-      <button
-        onClick={() => setShowModal(true)}
-        style={{
-          width: '100%', padding: '14px 0', marginBottom: 28,
-          background: 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))',
-          color: 'var(--text-inverse)', fontFamily: 'var(--font-display)',
-          fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
-          border: 'none', borderRadius: 12, cursor: 'pointer',
-        }}
-      >
-        {t('tippen.newGroup')}
-      </button>
 
       {/* Filter Tab Bar */}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 20 }}>
-        {(['alle', 'followers', 'bookmarks'] as const).map(f => (
-          <button
-            key={f}
-            onClick={() => setTipFilter(f)}
-            style={{
-              fontSize: 10, fontFamily: 'var(--font-display)', letterSpacing: 1.5,
-              padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
-              background: tipFilter === f ? 'var(--gold-primary)' : 'var(--bg-overlay)',
-              color: tipFilter === f ? 'var(--text-inverse)' : 'var(--text-muted)',
-              fontWeight: tipFilter === f ? 800 : 600,
-              transition: 'all 0.2s ease',
-            }}
-          >
-            {t(`tippen.filter${f.charAt(0).toUpperCase() + f.slice(1)}`)}
-          </button>
-        ))}
+        {(['alle', 'followers', 'bookmarks'] as const).map(f => {
+          const labelKey = f === 'alle' ? 'tippen.filterAll' : f === 'followers' ? 'tippen.filterFollowers' : 'tippen.filterBookmarks'
+          return (
+            <button
+              key={f}
+              onClick={() => setTipFilter(f)}
+              style={{
+                fontSize: 10, fontFamily: 'var(--font-display)', letterSpacing: 1.5,
+                padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                background: tipFilter === f ? 'var(--gold-primary)' : 'var(--bg-overlay)',
+                color: tipFilter === f ? 'var(--text-inverse)' : 'var(--text-muted)',
+                fontWeight: tipFilter === f ? 800 : 600,
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {t(labelKey)}
+            </button>
+          )
+        })}
       </div>
 
       {loading ? (

@@ -236,6 +236,42 @@ body {
     linear-gradient(180deg, #0F0F11 0%, #050507 100%);
 }
 
+/* ── Responsive shell — Instagram-style desktop layout at >=1024px ── */
+.dt-only { display: none !important; }
+.mb-only { display: block; }
+
+/* Mobile (default): single 430-wide centered column with fixed top + bottom bars */
+.app-shell {
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.app-content {
+  flex: 1;
+  padding-top: calc(68px + env(safe-area-inset-top));
+  padding-bottom: 84px;
+}
+
+/* Desktop: 245px left sidebar + centered content column */
+@media (min-width: 1024px) {
+  .mb-only { display: none !important; }
+  .dt-only { display: block !important; }
+  .dt-only.dt-flex { display: flex !important; }
+  .app-shell {
+    max-width: none;
+    padding-left: 245px;
+  }
+  .app-content {
+    max-width: 640px;
+    margin: 0 auto;
+    padding-top: 28px;
+    padding-bottom: 28px;
+  }
+}
+
 /* Typography classes */
 .font-display {
   font-family: var(--font-display);
