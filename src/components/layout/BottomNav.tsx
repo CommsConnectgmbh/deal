@@ -135,18 +135,6 @@ export default function BottomNav({ tabs, createHref = '/app/deals/create' }: Pr
             }}>
               {slot.label}
             </span>
-            {active && (
-              <motion.span
-                layoutId="bottom-nav-dot"
-                style={{
-                  position: 'absolute',
-                  bottom: 4,
-                  width: 4, height: 4, borderRadius: '50%',
-                  background: 'var(--gold-primary)',
-                }}
-                transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-              />
-            )}
           </Link>
         )
       })}
