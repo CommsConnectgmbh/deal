@@ -187,7 +187,7 @@ export default function NotificationsPage() {
           <button key={tab} onClick={() => setActiveTab(tab)} style={{
             flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
             background: activeTab === tab ? 'rgba(255,184,0,0.12)' : 'var(--bg-surface)',
-            color: activeTab === tab ? '#FFB800' : 'var(--text-muted)',
+            color: activeTab === tab ? 'var(--gold-primary)' : 'var(--text-muted)',
             fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
             transition: 'all 0.2s',
           }}>

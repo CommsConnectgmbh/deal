@@ -40,12 +40,12 @@ export default function ChallengePreviewClient({ challenge }: { challenge: Chall
   if (checking) {
     return (
       <div style={{
-        minHeight: '100vh', background: '#080808',
+        minHeight: '100vh', background: 'var(--bg-base)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <div style={{
-          width: 32, height: 32, border: '3px solid rgba(255,184,0,0.2)',
-          borderTopColor: '#FFB800', borderRadius: '50%',
+          width: 32, height: 32, border: '3px solid var(--gold-glow)',
+          borderTopColor: 'var(--gold-primary)', borderRadius: '50%',
           animation: 'spin 0.8s linear infinite',
         }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
@@ -57,7 +57,7 @@ export default function ChallengePreviewClient({ challenge }: { challenge: Chall
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#080808',
+      minHeight: '100vh', background: 'var(--bg-base)',
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       justifyContent: 'center', padding: '24px 16px',
     }}>
@@ -65,12 +65,12 @@ export default function ChallengePreviewClient({ challenge }: { challenge: Chall
       <div style={{ marginBottom: 32, textAlign: 'center' }}>
         <h1 style={{
           fontFamily: 'Oswald, sans-serif', fontSize: 22, fontWeight: 800,
-          letterSpacing: 3, color: '#FFB800',
+          letterSpacing: 3, color: 'var(--gold-primary)',
         }}>
           DEALBUDDY
         </h1>
         <p style={{
-          fontSize: 10, letterSpacing: 2, color: '#6B6E76',
+          fontSize: 10, letterSpacing: 2, color: 'var(--text-muted)',
           fontFamily: 'Oswald, sans-serif', marginTop: 2,
         }}>
           COMPETE · WIN · REIGN
@@ -80,19 +80,19 @@ export default function ChallengePreviewClient({ challenge }: { challenge: Chall
       {/* Challenge Card */}
       <div style={{
         width: '100%', maxWidth: 400, borderRadius: 16,
-        overflow: 'hidden', border: '1px solid rgba(255,184,0,0.15)',
-        background: '#16171B',
-        boxShadow: '0 8px 32px rgba(255,184,0,0.08)',
+        overflow: 'hidden', border: '1px solid var(--border-subtle)',
+        background: 'var(--bg-elevated)',
+        boxShadow: '0 8px 32px var(--gold-subtle)',
       }}>
         {/* Header Badge */}
         <div style={{
           padding: '10px 16px', textAlign: 'center',
-          background: 'linear-gradient(135deg, rgba(255,184,0,0.12), rgba(255,184,0,0.04))',
-          borderBottom: '1px solid rgba(255,184,0,0.1)',
+          background: 'linear-gradient(135deg, var(--gold-subtle), transparent)',
+          borderBottom: '1px solid var(--border-subtle)',
         }}>
           <span style={{
             fontFamily: 'Oswald, sans-serif', fontSize: 11, fontWeight: 700,
-            color: '#FFB800', letterSpacing: 2,
+            color: 'var(--gold-primary)', letterSpacing: 2,
           }}>
             {challenge.isOpen ? 'OFFENE CHALLENGE' : challenge.status.toUpperCase()}
           </span>
@@ -102,14 +102,14 @@ export default function ChallengePreviewClient({ challenge }: { challenge: Chall
         <div style={{ padding: '20px 20px 8px', textAlign: 'center' }}>
           <h2 style={{
             fontFamily: 'Oswald, sans-serif', fontSize: 22, fontWeight: 800,
-            color: '#F2F3F5', letterSpacing: 1.5,
+            color: 'var(--text-primary)', letterSpacing: 1.5,
             textTransform: 'uppercase', lineHeight: 1.3, margin: 0,
           }}>
             {challenge.title}
           </h2>
           {challenge.description && (
             <p style={{
-              fontFamily: 'Georgia, serif', fontSize: 14, color: '#A1A3A9',
+              fontFamily: 'Georgia, serif', fontSize: 14, color: 'var(--text-secondary)',
               marginTop: 8, lineHeight: 1.5,
             }}>
               {challenge.description}
@@ -124,8 +124,8 @@ export default function ChallengePreviewClient({ challenge }: { challenge: Chall
         }}>
           <div style={{
             width: 36, height: 36, borderRadius: '50%',
-            background: 'linear-gradient(135deg, rgba(255,184,0,0.15), rgba(255,184,0,0.05))',
-            border: '1px solid rgba(255,184,0,0.2)',
+            background: 'linear-gradient(135deg, var(--gold-subtle), transparent)',
+            border: '1px solid var(--gold-glow)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 16,
           }}>
@@ -134,13 +134,13 @@ export default function ChallengePreviewClient({ challenge }: { challenge: Chall
           <div>
             <span style={{
               fontFamily: 'Oswald, sans-serif', fontSize: 14, fontWeight: 600,
-              color: '#F2F3F5', letterSpacing: 0.5,
+              color: 'var(--text-primary)', letterSpacing: 0.5,
             }}>
               @{challenge.creator?.username}
             </span>
             <span style={{
               fontFamily: 'Oswald, sans-serif', fontSize: 11,
-              color: '#FFB800', marginLeft: 6,
+              color: 'var(--gold-primary)', marginLeft: 6,
             }}>
               fordert dich heraus!
             </span>
@@ -154,12 +154,12 @@ export default function ChallengePreviewClient({ challenge }: { challenge: Chall
         }}>
           <div style={{
             padding: '6px 14px', borderRadius: 20,
-            background: 'rgba(255,184,0,0.08)',
-            border: '1px solid rgba(255,184,0,0.15)',
+            background: 'var(--gold-subtle)',
+            border: '1px solid var(--gold-glow)',
           }}>
             <span style={{
               fontFamily: 'Oswald, sans-serif', fontSize: 12, fontWeight: 600,
-              color: '#FFB800', letterSpacing: 0.5,
+              color: 'var(--gold-primary)', letterSpacing: 0.5,
             }}>
               🏆 {challenge.amount}
             </span>
@@ -167,12 +167,12 @@ export default function ChallengePreviewClient({ challenge }: { challenge: Chall
           {challenge.deadline && (
             <div style={{
               padding: '6px 14px', borderRadius: 20,
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--bg-overlay)',
+              border: '1px solid var(--border-subtle)',
             }}>
               <span style={{
                 fontFamily: 'Oswald, sans-serif', fontSize: 12,
-                color: '#A1A3A9', letterSpacing: 0.5,
+                color: 'var(--text-secondary)', letterSpacing: 0.5,
               }}>
                 ⏰ {challenge.deadline}
               </span>
@@ -195,11 +195,11 @@ export default function ChallengePreviewClient({ challenge }: { challenge: Chall
               style={{
                 width: '100%', padding: 16, borderRadius: 12,
                 border: 'none', cursor: 'pointer',
-                background: 'linear-gradient(135deg, #CC8800, #FFB800, #FFE566)',
-                color: '#0F0F11',
+                background: 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary), var(--gold-bright))',
+                color: 'var(--text-inverse)',
                 fontFamily: 'Oswald, sans-serif', fontSize: 14,
                 fontWeight: 700, letterSpacing: 2,
-                boxShadow: '0 4px 20px rgba(255,184,0,0.3)',
+                boxShadow: '0 4px 20px var(--gold-glow)',
                 opacity: joining ? 0.6 : 1,
               }}
             >
@@ -211,8 +211,8 @@ export default function ChallengePreviewClient({ challenge }: { challenge: Chall
               style={{
                 width: '100%', padding: 16, borderRadius: 12,
                 border: 'none', cursor: 'pointer',
-                background: 'linear-gradient(135deg, #CC8800, #FFB800)',
-                color: '#0F0F11',
+                background: 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))',
+                color: 'var(--text-inverse)',
                 fontFamily: 'Oswald, sans-serif', fontSize: 13,
                 fontWeight: 700, letterSpacing: 2,
               }}
@@ -225,9 +225,9 @@ export default function ChallengePreviewClient({ challenge }: { challenge: Chall
             onClick={() => router.push('/auth/register')}
             style={{
               width: '100%', padding: 12, borderRadius: 12,
-              border: '1px solid rgba(255,184,0,0.2)',
+              border: '1px solid var(--gold-glow)',
               background: 'transparent', cursor: 'pointer',
-              color: '#FFB800',
+              color: 'var(--gold-primary)',
               fontFamily: 'Oswald, sans-serif', fontSize: 12,
               fontWeight: 600, letterSpacing: 1.5,
             }}
@@ -255,10 +255,10 @@ export default function ChallengePreviewClient({ challenge }: { challenge: Chall
           }}
           style={{
             width: '100%', padding: 14, borderRadius: 12,
-            border: '1px solid rgba(255,184,0,0.3)',
-            background: 'rgba(255,184,0,0.08)',
+            border: '1px solid var(--gold-glow)',
+            background: 'var(--gold-subtle)',
             cursor: 'pointer',
-            color: '#FFB800',
+            color: 'var(--gold-primary)',
             fontFamily: 'Oswald, sans-serif', fontSize: 13,
             fontWeight: 700, letterSpacing: 2,
           }}
@@ -266,7 +266,7 @@ export default function ChallengePreviewClient({ challenge }: { challenge: Chall
           IN DER APP ÖFFNEN
         </button>
         <p style={{
-          fontSize: 11, color: '#6B6E76',
+          fontSize: 11, color: 'var(--text-muted)',
           letterSpacing: 1, fontFamily: 'Oswald, sans-serif',
         }}>
           Auch als App für iOS & Android verfügbar

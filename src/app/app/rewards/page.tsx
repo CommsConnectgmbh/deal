@@ -316,7 +316,7 @@ export default function RewardsPage() {
                 opacity: !reached && !claimed ? 0.6 : 1,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 12, flexShrink: 0, background: reached ? `${rc}18` : 'var(--bg-base)', border: `1.5px solid ${reached ? rc : '#222'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 12, flexShrink: 0, background: reached ? `${rc}18` : 'var(--bg-base)', border: `1.5px solid ${reached ? rc : 'var(--border-subtle)'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
                     <span style={{ fontSize: 10 }}>🔥</span>
                     <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, color: rc, fontWeight: 700 }}>{sr.streak_count}</span>
                   </div>

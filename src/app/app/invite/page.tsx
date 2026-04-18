@@ -108,7 +108,7 @@ export default function InvitePage() {
             const text = `⚔️ ${t('invite.shareText')} ${inviteCode}\n${inviteLink}`
             window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
           }}
-          style={{ width: '100%', padding: '14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #128C7E, #25D366)', color: '#fff', fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700, letterSpacing: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          style={{ width: '100%', padding: '14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #128C7E, #25D366)', color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700, letterSpacing: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           💬 {t('invite.shareWhatsapp')}
         </button>
         {/* General share */}

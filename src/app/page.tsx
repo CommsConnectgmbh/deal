@@ -62,15 +62,15 @@ export default function RootPage() {
 
   if (!showLanding) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', background: '#080808' }}>
-        <div style={{ width: 40, height: 40, border: '2px solid transparent', borderTopColor: '#FFB800', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', background: 'var(--bg-base)' }}>
+        <div style={{ width: 40, height: 40, border: '2px solid transparent', borderTopColor: 'var(--gold-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     )
   }
 
   return (
-    <div style={{ background: '#080808', minHeight: '100dvh', color: '#fff', overflowX: 'hidden' }}>
+    <div style={{ background: 'var(--bg-base)', minHeight: '100dvh', color: 'var(--text-primary)', overflowX: 'hidden' }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
@@ -81,8 +81,8 @@ export default function RootPage() {
         .landing-wrap { max-width: 430px; margin: 0 auto; padding: 0 20px; }
         .gold-btn {
           display: inline-block;
-          background: linear-gradient(135deg, #FFB800 0%, #FF8C00 100%);
-          color: #080808;
+          background: linear-gradient(135deg, var(--gold-primary) 0%, var(--gold-bright) 100%);
+          color: var(--text-inverse);
           font-family: 'Oswald', sans-serif;
           font-weight: 700;
           font-size: 18px;
@@ -94,14 +94,14 @@ export default function RootPage() {
           cursor: pointer;
           text-decoration: none;
           transition: transform 0.2s, box-shadow 0.2s;
-          box-shadow: 0 4px 20px rgba(255, 184, 0, 0.3);
+          box-shadow: 0 4px 20px var(--gold-glow);
         }
-        .gold-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(255, 184, 0, 0.45); }
+        .gold-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 28px var(--gold-glow); }
         .gold-btn:active { transform: translateY(0); }
         .outline-btn {
           display: inline-block;
           background: transparent;
-          color: #FFB800;
+          color: var(--gold-primary);
           font-family: 'Oswald', sans-serif;
           font-weight: 600;
           font-size: 16px;
@@ -109,41 +109,41 @@ export default function RootPage() {
           letter-spacing: 1px;
           padding: 14px 32px;
           border-radius: 12px;
-          border: 2px solid #FFB800;
+          border: 2px solid var(--gold-primary);
           cursor: pointer;
           text-decoration: none;
           transition: background 0.2s, color 0.2s, transform 0.2s;
         }
-        .outline-btn:hover { background: rgba(255, 184, 0, 0.1); transform: translateY(-1px); }
+        .outline-btn:hover { background: var(--gold-subtle); transform: translateY(-1px); }
         .feature-card {
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 184, 0, 0.12);
+          background: var(--bg-surface);
+          border: 1px solid var(--border-subtle);
           border-radius: 16px;
           padding: 24px 20px;
           text-align: center;
           transition: border-color 0.3s, transform 0.3s;
         }
-        .feature-card:hover { border-color: rgba(255, 184, 0, 0.35); transform: translateY(-4px); }
+        .feature-card:hover { border-color: var(--gold-glow); transform: translateY(-4px); }
         .stat-pill {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          background: rgba(255, 184, 0, 0.08);
-          border: 1px solid rgba(255, 184, 0, 0.2);
+          background: var(--gold-subtle);
+          border: 1px solid var(--gold-glow);
           border-radius: 100px;
           padding: 10px 20px;
           font-size: 14px;
-          color: rgba(255, 255, 255, 0.85);
+          color: var(--text-secondary);
         }
         .store-badge {
           display: flex;
           align-items: center;
           gap: 12px;
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: var(--bg-surface);
+          border: 1px solid var(--border-subtle);
           border-radius: 12px;
           padding: 14px 20px;
-          color: rgba(255, 255, 255, 0.6);
+          color: var(--text-muted);
           font-size: 14px;
           flex: 1;
           justify-content: center;
@@ -161,7 +161,7 @@ export default function RootPage() {
               fontWeight: 700,
               letterSpacing: '2px',
               textTransform: 'uppercase',
-              background: 'linear-gradient(135deg, #FFB800, #FF8C00)',
+              background: 'linear-gradient(135deg, var(--gold-primary), var(--gold-bright))',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               marginBottom: '24px',
@@ -180,14 +180,14 @@ export default function RootPage() {
               textTransform: 'uppercase',
             }}>
               Dein Wort.<br />
-              <span style={{ color: '#FFB800' }}>Dein Status.</span>
+              <span style={{ color: 'var(--gold-primary)' }}>Dein Status.</span>
             </h1>
           </FadeIn>
 
           <FadeIn delay={300}>
             <p style={{
               fontSize: '16px',
-              color: 'rgba(255,255,255,0.6)',
+              color: 'var(--text-secondary)',
               lineHeight: 1.6,
               margin: '0 0 36px',
               maxWidth: '320px',
@@ -227,11 +227,11 @@ export default function RootPage() {
                     fontWeight: 600,
                     textTransform: 'uppercase',
                     marginBottom: '8px',
-                    color: '#FFB800',
+                    color: 'var(--gold-primary)',
                   }}>
                     {f.title}
                   </h3>
-                  <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.5, margin: 0 }}>
+                  <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
                     {f.desc}
                   </p>
                 </div>
@@ -246,11 +246,11 @@ export default function RootPage() {
             <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <div className="stat-pill">
                 <span style={{ fontSize: '18px' }}>⚡</span>
-                <span><strong style={{ color: '#FFB800' }}>Season 1</strong> · The Founders Era</span>
+                <span><strong style={{ color: 'var(--gold-primary)' }}>Season 1</strong> · The Founders Era</span>
               </div>
               <div className="stat-pill">
                 <span style={{ fontSize: '18px' }}>👑</span>
-                <span>Limitiert auf die ersten <strong style={{ color: '#FFB800' }}>1.000</strong></span>
+                <span>Limitiert auf die ersten <strong style={{ color: 'var(--gold-primary)' }}>1.000</strong></span>
               </div>
             </div>
           </section>
@@ -274,7 +274,7 @@ export default function RootPage() {
 
         {/* FOOTER */}
         <footer style={{
-          borderTop: '1px solid rgba(255,255,255,0.08)',
+          borderTop: '1px solid var(--border-subtle)',
           paddingTop: '24px',
           paddingBottom: '40px',
           textAlign: 'center',
@@ -292,7 +292,7 @@ export default function RootPage() {
               borderRadius: 999,
               border: '1px solid #5865F2',
               background: 'linear-gradient(135deg, rgba(88,101,242,0.18), rgba(88,101,242,0.04))',
-              color: '#fff',
+              color: 'var(--text-primary)',
               fontSize: 14,
               fontWeight: 600,
               textDecoration: 'none',
@@ -320,15 +320,15 @@ export default function RootPage() {
               <Link
                 key={link.href}
                 href={link.href}
-                style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', textDecoration: 'none', transition: 'color 0.2s' }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#FFB800')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}
+                style={{ color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'none', transition: 'color 0.2s' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--gold-primary)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
               >
                 {link.label}
               </Link>
             ))}
           </div>
-          <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.25)', margin: 0 }}>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
             &copy; 2026 DealBuddy by Comms Connect GmbH
           </p>
         </footer>

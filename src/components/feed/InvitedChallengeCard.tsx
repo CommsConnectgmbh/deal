@@ -59,7 +59,8 @@ export default function InvitedChallengeCard({
 
       <div style={{
         borderRadius: 14, overflow: 'hidden',
-        background: '#111',
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border-subtle)',
       }}>
 
         {/* ═══ ORANGE ACCENT BAR ═══ */}
@@ -121,7 +122,7 @@ export default function InvitedChallengeCard({
             {deal.stake && (
               <span style={{
                 fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 900,
-                color: '#ffffff', letterSpacing: 1,
+                color: 'var(--text-primary)', letterSpacing: 1,
                 borderRadius: 8, padding: '6px 16px',
                 background: 'rgba(255,255,255,0.06)',
                 textShadow: '0 0 12px rgba(147,197,253,0.15)',

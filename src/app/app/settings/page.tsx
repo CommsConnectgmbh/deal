@@ -207,14 +207,16 @@ export default function SettingsPage() {
         onClick={() => onChange(!checked)}
         style={{
           width:48, height:26, borderRadius:13, border:'none', cursor:'pointer',
-          background: checked ? 'var(--gold-primary)' : 'var(--bg-overlay)',
-          position:'relative', transition:'background 0.2s', flexShrink:0
+          background: checked ? 'var(--gold-primary)' : 'var(--border-default)',
+          position:'relative', transition:'background 0.2s', flexShrink:0,
+          boxShadow: 'inset 0 0 0 1px var(--border-subtle)'
         }}
       >
         <span style={{
           position:'absolute', top:3, left: checked ? 25 : 3,
-          width:20, height:20, borderRadius:'50%', background:'#fff',
-          transition:'left 0.2s', display:'block'
+          width:20, height:20, borderRadius:'50%', background:'var(--text-inverse)',
+          transition:'left 0.2s', display:'block',
+          boxShadow:'0 1px 3px rgba(0,0,0,0.15)'
         }}/>
       </button>
     </div>
@@ -595,7 +597,7 @@ export default function SettingsPage() {
               style={{
                 width:'100%', padding:16, borderRadius:12, border:'none', cursor: deleteInput === t('settings.deleteConfirmWord') ? 'pointer' : 'default',
                 background: deleteInput === t('settings.deleteConfirmWord') ? '#dc2626' : 'color-mix(in srgb, var(--status-error) 10%, transparent)',
-                color: deleteInput === t('settings.deleteConfirmWord') ? '#fff' : 'color-mix(in srgb, var(--status-error) 40%, transparent)',
+                color: deleteInput === t('settings.deleteConfirmWord') ? 'var(--text-inverse)' : 'color-mix(in srgb, var(--status-error) 40%, transparent)',
                 fontFamily:'var(--font-display)', fontSize:12, letterSpacing:2, marginBottom:10
               }}
             >

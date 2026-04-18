@@ -312,7 +312,7 @@ export default function BlitzPage() {
         }}>
           <div style={{
             width: 32, height: 32,
-            border: '2px solid transparent', borderTopColor: 'var(--gold-primary)',
+            border: '2px solid transparent', borderTopColor: '#FFB800',
             borderRadius: '50%', animation: 'spin 0.8s linear infinite',
           }} />
         </div>

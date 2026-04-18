@@ -650,7 +650,7 @@ export default function DealDetailPage() {
           borderRadius: 12, padding: '12px 24px', zIndex: 300, boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
           animation: 'fadeInUp 0.3s ease',
         }}>
-          <span style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: actionToastType === 'error' ? '#fff' : 'var(--text-inverse)', fontWeight: 700, letterSpacing: 1 }}>{actionToast}</span>
+          <span style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--text-inverse)', fontWeight: 700, letterSpacing: 1 }}>{actionToast}</span>
         </div>
       )}
       <style>{`@keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}`}</style>
@@ -717,7 +717,7 @@ export default function DealDetailPage() {
           {STATUS_LABELS[deal.status] || deal.status.toUpperCase()}
         </div>
 
-        <div style={{ borderRadius: 14, overflow: 'hidden', background: '#111' }}>
+        <div style={{ borderRadius: 14, overflow: 'hidden', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
 
           {/* ═══ TITLE BAR ═══ */}
           <div style={{
@@ -853,7 +853,7 @@ export default function DealDetailPage() {
               <>
                 <video src={m.url} autoPlay muted loop playsInline preload="auto" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.25)' }}>
-                  <span style={{ fontSize: 12, color: '#fff' }}>{'\u25B6'}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-inverse)' }}>{'\u25B6'}</span>
                 </div>
               </>
             ) : (
@@ -1107,7 +1107,7 @@ export default function DealDetailPage() {
             </button>
             {isWinner && (
               <button onClick={() => setShowShareCard(true)}
-                style={{ width: '100%', padding: 16, borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #166534, #22c55e)', color: '#fff', fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700, letterSpacing: 2, boxShadow: '0 4px 20px rgba(34,197,94,0.3)' }}>
+                style={{ width: '100%', padding: 16, borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #166534, #22c55e)', color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700, letterSpacing: 2, boxShadow: '0 4px 20px rgba(34,197,94,0.3)' }}>
                 {t('deals.shareVictory')} {'\uD83C\uDFC6'}
               </button>
             )}
@@ -1141,7 +1141,7 @@ export default function DealDetailPage() {
                 style={{
                   flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
                   background: 'linear-gradient(135deg, #22C55E, #16A34A)',
-                  color: '#fff', fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 700, letterSpacing: 1,
+                  color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 700, letterSpacing: 1,
                 }}
               >
                 {'\u2705'} {t('deals.fulfillmentYes')}
@@ -1152,7 +1152,7 @@ export default function DealDetailPage() {
                 style={{
                   flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
                   background: 'linear-gradient(135deg, #EF4444, #DC2626)',
-                  color: '#fff', fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 700, letterSpacing: 1,
+                  color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 700, letterSpacing: 1,
                 }}
               >
                 {'\u274C'} {t('deals.fulfillmentNo')}

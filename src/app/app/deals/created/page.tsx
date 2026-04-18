@@ -74,7 +74,7 @@ function DealCreatedSuccess() {
           borderRadius: 14,
           border: 'none',
           background: 'linear-gradient(135deg, #128C7E, #25D366)',
-          color: '#fff',
+          color: 'var(--text-inverse)',
           fontFamily: 'var(--font-display)',
           fontSize: 13,
           fontWeight: 700,

@@ -170,7 +170,7 @@ export default function PostCreationModal({ open, onClose, onPostCreated }: Prop
                   )}
                   <button onClick={() => { setFile(null); setFilePreview(null) }} style={{
                     position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: 14,
-                    background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 14,
+                    background: 'rgba(0,0,0,0.6)', border: 'none', color: 'var(--text-inverse)', cursor: 'pointer', fontSize: 14,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>{'\u2715'}</button>
                   <button onClick={() => setShowEditor(true)} style={{

@@ -514,8 +514,8 @@ export default function TippenPage() {
             style={{
               fontSize: 10, fontFamily: 'var(--font-display)', letterSpacing: 1.5,
               padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
-              background: tipFilter === f ? '#FFB800' : 'rgba(255,255,255,0.06)',
-              color: tipFilter === f ? '#060606' : 'rgba(255,255,255,0.4)',
+              background: tipFilter === f ? 'var(--gold-primary)' : 'var(--bg-overlay)',
+              color: tipFilter === f ? 'var(--text-inverse)' : 'var(--text-muted)',
               fontWeight: tipFilter === f ? 800 : 600,
               transition: 'all 0.2s ease',
             }}
@@ -627,9 +627,10 @@ export default function TippenPage() {
                   <div
                     key={g.id}
                     style={{
-                      background: '#111', border: '1px solid rgba(255,255,255,0.08)',
+                      background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
                       borderRadius: 16, overflow: 'hidden',
                       position: 'relative',
+                      boxShadow: 'var(--shadow-sm)',
                     }}
                   >
                     {/* ═══ COLLAPSED HEADER — Deal-Style 3 rows ═══ */}
@@ -638,7 +639,7 @@ export default function TippenPage() {
                       style={{
                         display: 'flex', alignItems: 'center', gap: 10,
                         padding: '10px 12px', cursor: 'pointer',
-                        borderBottom: isGroupExpanded ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                        borderBottom: isGroupExpanded ? '1px solid var(--border-subtle)' : 'none',
                       }}
                     >
                       {/* Status dot */}
@@ -653,7 +654,7 @@ export default function TippenPage() {
                         {/* Row 1: Title */}
                         <p style={{
                           fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 800,
-                          color: '#F0ECE4', letterSpacing: 0.8, lineHeight: 1.25,
+                          color: 'var(--text-primary)', letterSpacing: 0.8, lineHeight: 1.25,
                           margin: 0,
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}>
@@ -676,22 +677,22 @@ export default function TippenPage() {
                         }}>
                           {g.stake && (
                             <span style={{
-                              fontSize: 9, color: 'rgba(255,255,255,0.7)', fontWeight: 600,
+                              fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600,
                               fontFamily: 'var(--font-body)', whiteSpace: 'nowrap',
                               padding: '2px 8px', borderRadius: 6,
-                              background: 'rgba(255,184,0,0.08)',
-                              border: '1px solid rgba(255,184,0,0.15)',
+                              background: 'var(--gold-subtle)',
+                              border: '1px solid var(--gold-glow)',
                             }}>
                               {'\uD83C\uDFAF'} {g.stake}
                             </span>
                           )}
                           {g.next_question && (
                             <span style={{
-                              fontSize: 9, color: 'rgba(255,255,255,0.5)', fontWeight: 600,
+                              fontSize: 9, color: 'var(--text-muted)', fontWeight: 600,
                               fontFamily: 'var(--font-body)', whiteSpace: 'nowrap',
                               padding: '2px 8px', borderRadius: 6,
-                              background: 'rgba(255,255,255,0.04)',
-                              border: '1px solid rgba(255,255,255,0.06)',
+                              background: 'var(--bg-overlay)',
+                              border: '1px solid var(--border-subtle)',
                             }}>
                               {'\u23F3'} {formatDeadline(g.next_question.deadline)}
                             </span>
@@ -706,7 +707,7 @@ export default function TippenPage() {
                         style={{
                           background: 'none', border: 'none', cursor: bookmarkLoading === g.id ? 'not-allowed' : 'pointer', padding: '2px 4px',
                           fontSize: 16, flexShrink: 0, lineHeight: 1,
-                          color: bookmarkedGroupIds.has(g.id) ? '#FFB800' : 'rgba(255,255,255,0.25)',
+                          color: bookmarkedGroupIds.has(g.id) ? 'var(--gold-primary)' : 'var(--text-muted)',
                           transition: 'color 0.2s ease',
                           opacity: bookmarkLoading === g.id ? 0.5 : 1,
                         }}
@@ -757,7 +758,7 @@ export default function TippenPage() {
                           </div>
                           <div style={{
                             position: 'absolute', bottom: 0, left: 0, right: 0, height: '30%',
-                            background: 'linear-gradient(to bottom, transparent 0%, #111 100%)',
+                            background: 'linear-gradient(to bottom, transparent 0%, var(--bg-surface) 100%)',
                             pointerEvents: 'none',
                           }} />
                         </div>
@@ -846,9 +847,10 @@ export default function TippenPage() {
                 <div
                   key={g.id}
                   style={{
-                    background: '#111', border: '1px solid rgba(255,255,255,0.08)',
+                    background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
                     borderRadius: 14, overflow: 'hidden',
                     position: 'relative',
+                    boxShadow: 'var(--shadow-sm)',
                   }}
                 >
                   {/* ═══ COLLAPSED HEADER — Deal-Style 3 rows ═══ */}
@@ -857,7 +859,7 @@ export default function TippenPage() {
                     style={{
                       display: 'flex', alignItems: 'center', gap: 10,
                       padding: '10px 12px', cursor: 'pointer',
-                      borderBottom: isPubExpanded ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                      borderBottom: isPubExpanded ? '1px solid var(--border-subtle)' : 'none',
                     }}
                   >
                     {/* Status dot */}
@@ -872,7 +874,7 @@ export default function TippenPage() {
                       {/* Row 1: Title */}
                       <p style={{
                         fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 800,
-                        color: '#F0ECE4', letterSpacing: 0.8, lineHeight: 1.25,
+                        color: 'var(--text-primary)', letterSpacing: 0.8, lineHeight: 1.25,
                         margin: 0,
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
@@ -895,22 +897,22 @@ export default function TippenPage() {
                       }}>
                         {g.stake && (
                           <span style={{
-                            fontSize: 9, color: 'rgba(255,255,255,0.7)', fontWeight: 600,
+                            fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600,
                             fontFamily: 'var(--font-body)', whiteSpace: 'nowrap',
                             padding: '2px 8px', borderRadius: 6,
-                            background: 'rgba(255,184,0,0.08)',
-                            border: '1px solid rgba(255,184,0,0.15)',
+                            background: 'var(--gold-subtle)',
+                            border: '1px solid var(--gold-glow)',
                           }}>
                             {'\uD83C\uDFAF'} {g.stake}
                           </span>
                         )}
                         {g.league && (
                           <span style={{
-                            fontSize: 9, color: 'rgba(255,255,255,0.5)', fontWeight: 600,
+                            fontSize: 9, color: 'var(--text-muted)', fontWeight: 600,
                             fontFamily: 'var(--font-body)', whiteSpace: 'nowrap',
                             padding: '2px 8px', borderRadius: 6,
-                            background: 'rgba(255,255,255,0.04)',
-                            border: '1px solid rgba(255,255,255,0.06)',
+                            background: 'var(--bg-overlay)',
+                            border: '1px solid var(--border-subtle)',
                           }}>
                             {'\u26BD'} {LEAGUE_OPTIONS.find(l => l.value === g.league)?.label?.replace(/^[^\s]+\s/, '') || g.league}
                           </span>
@@ -924,7 +926,7 @@ export default function TippenPage() {
                       style={{
                         background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
                         fontSize: 16, flexShrink: 0, lineHeight: 1,
-                        color: bookmarkedGroupIds.has(g.id) ? '#FFB800' : 'rgba(255,255,255,0.25)',
+                        color: bookmarkedGroupIds.has(g.id) ? 'var(--gold-primary)' : 'var(--text-muted)',
                         transition: 'color 0.2s ease',
                       }}
                     >
@@ -968,7 +970,7 @@ export default function TippenPage() {
                         </div>
                         <div style={{
                           position: 'absolute', bottom: 0, left: 0, right: 0, height: '30%',
-                          background: 'linear-gradient(to bottom, transparent 0%, #111 100%)',
+                          background: 'linear-gradient(to bottom, transparent 0%, var(--bg-surface) 100%)',
                           pointerEvents: 'none',
                         }} />
                       </div>
@@ -1049,9 +1051,14 @@ export default function TippenPage() {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              width: '100%', maxWidth: 480, background: 'var(--bg-elevated)',
+              width: '100%', maxWidth: 480,
+              background: 'var(--glass-bg)',
+              backdropFilter: 'blur(24px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+              border: '1px solid var(--glass-border)',
               borderRadius: '20px 20px 0 0', padding: '24px 20px 32px',
               maxHeight: '85dvh', overflowY: 'auto',
+              boxShadow: 'var(--shadow-lg)',
             }}
           >
             {/* Drag indicator */}

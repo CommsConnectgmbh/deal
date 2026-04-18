@@ -794,7 +794,7 @@ export default function HomePage() {
                   <div style={{
                     width: hasMyStory ? 60 : 64, height: hasMyStory ? 60 : 64,
                     borderRadius: '50%',
-                    border: hasMyStory ? '2px solid var(--bg-deepest)' : '2px solid rgba(255,255,255,0.15)',
+                    border: hasMyStory ? '2px solid var(--bg-deepest)' : '2px solid var(--border-default)',
                     overflow: 'hidden',
                   }}>
                     <ProfileImage
@@ -859,7 +859,7 @@ export default function HomePage() {
                       width: hasUnviewed ? 62 : 64,
                       height: hasUnviewed ? 62 : 64,
                       borderRadius: '50%',
-                      border: hasUnviewed ? '2px solid var(--bg-deepest)' : '2px solid rgba(255,255,255,0.15)',
+                      border: hasUnviewed ? '2px solid var(--bg-deepest)' : '2px solid var(--border-default)',
                       overflow: 'hidden',
                     }}>
                       <ProfileImage
@@ -953,7 +953,7 @@ export default function HomePage() {
                     <span style={{ fontSize: 14, flexShrink: 0 }}>{'\uD83E\uDD4A'}</span>
                     <div style={{ flex: 1 }}>
                       <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 800, color: 'var(--gold-primary)', letterSpacing: 0.5, margin: 0, textTransform: 'uppercase' as const }}>{t('home.newChallenge')}</p>
-                      <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.4)', margin: '1px 0 0' }}>{t('home.challengeSomeone')}</p>
+                      <p style={{ fontSize: 8, color: 'var(--text-muted)', margin: '1px 0 0' }}>{t('home.challengeSomeone')}</p>
                     </div>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--gold-primary)" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   </button>
@@ -984,9 +984,11 @@ export default function HomePage() {
       {/* ═══ SINGLE FILTER BAR — viral-style scrollable chips ═══ */}
       <div style={{
         display: 'flex', gap: 6, padding: '10px 16px',
-        background: 'var(--bg-deepest)',
+        background: 'var(--glass-bg)',
+        backdropFilter: 'blur(24px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
         position: 'sticky', top: 68, zIndex: 30,
-        borderBottom: '1px solid var(--border-subtle)',
+        borderBottom: '1px solid var(--glass-border)',
         overflowX: 'auto', scrollbarWidth: 'none',
         WebkitOverflowScrolling: 'touch',
       }}>
@@ -1151,7 +1153,10 @@ export default function HomePage() {
               <div key={`ptg-${tg.id}`} data-deal-card={`tg-${tg.id}`} style={{ marginBottom: 6 }}>
                 <div style={{
                   borderRadius: 12, overflow: 'hidden',
-                  border: '1px solid rgba(255,255,255,0.04)', background: 'rgba(17,17,17,0.85)',
+                  border: '1px solid var(--border-subtle)',
+                  background: 'var(--glass-bg)',
+                  backdropFilter: 'blur(24px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(24px) saturate(180%)',
                 }}>
 
                   {/* ═══ COLLAPSED HEADER — Community-Style (compact) ═══ */}
@@ -1160,7 +1165,7 @@ export default function HomePage() {
                     style={{
                       display: 'flex', alignItems: 'center', gap: 8,
                       padding: '8px 10px', cursor: 'pointer',
-                      borderBottom: isTgExpanded ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                      borderBottom: isTgExpanded ? '1px solid var(--border-subtle)' : 'none',
                     }}
                   >
                     {/* Status dot — smaller */}
@@ -1175,7 +1180,7 @@ export default function HomePage() {
                       {/* Row 1: Title */}
                       <p style={{
                         fontFamily: 'var(--font-display)', fontSize: 11, fontWeight: 800,
-                        color: '#F0ECE4', letterSpacing: 0.6, lineHeight: 1.25,
+                        color: 'var(--text-primary)', letterSpacing: 0.6, lineHeight: 1.25,
                         margin: 0,
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
@@ -1211,7 +1216,7 @@ export default function HomePage() {
                       }}>
                         {tg.stake && (
                           <span style={{
-                            fontSize: 8, color: 'rgba(255,255,255,0.6)', fontWeight: 600,
+                            fontSize: 8, color: 'var(--text-secondary)', fontWeight: 600,
                             fontFamily: 'var(--font-body)', whiteSpace: 'nowrap',
                             padding: '1px 7px', borderRadius: 5,
                             background: 'rgba(255,184,0,0.06)',
@@ -1260,7 +1265,7 @@ export default function HomePage() {
                   }}>
                     <div style={{ overflow: 'hidden' }}>
                       {/* Creator info mini header */}
-                      <div style={{ display: 'flex', alignItems: 'center', padding: '8px 14px', gap: 8, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', padding: '8px 14px', gap: 8, borderBottom: '1px solid var(--border-subtle)' }}>
                         <div onClick={(e) => { e.stopPropagation(); if (tg.creator?.username) router.push(`/app/profile/${tg.creator.username}`) }} style={{ cursor: 'pointer' }}>
                           <ProfileImage size={24} avatarUrl={tg.creator?.avatar_url} name={tg.creator?.display_name || tg.creator?.username} goldBorder />
                         </div>
@@ -1276,7 +1281,7 @@ export default function HomePage() {
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
                           </button>
                           {menuOpenId === `tg-${tg.id}` && (
-                            <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: 50, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '4px 0', minWidth: 160, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+                            <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: 50, background: 'var(--glass-bg)', backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', border: '1px solid var(--glass-border)', borderRadius: 12, padding: '4px 0', minWidth: 160, boxShadow: 'var(--shadow-lg)' }}>
                               <button onClick={(e) => { e.stopPropagation(); setHiddenFeedIds(prev => new Set(prev).add(`tg-${tg.id}`)); setMenuOpenId(null) }}
                                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                                 Ausblenden
@@ -1295,7 +1300,7 @@ export default function HomePage() {
                       }}>
                         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
                           {tg.league && (
-                            <p style={{ fontSize: 13, color: '#FFB800', marginBottom: 4, textShadow: '0 1px 6px rgba(0,0,0,0.9)', fontFamily: 'var(--font-display)', letterSpacing: 1 }}>{tg.league}</p>
+                            <p style={{ fontSize: 13, color: 'var(--gold-primary)', marginBottom: 4, textShadow: '0 1px 6px rgba(0,0,0,0.9)', fontFamily: 'var(--font-display)', letterSpacing: 1 }}>{tg.league}</p>
                           )}
                           <p style={{ fontSize: 12, color: '#ccc', marginBottom: 0, textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
                             {tg.member_count} {t('home.members')}
@@ -1303,7 +1308,7 @@ export default function HomePage() {
                         </div>
                         <div style={{
                           position: 'absolute', bottom: 0, left: 0, right: 0, height: '25%',
-                          background: 'linear-gradient(to bottom, transparent 0%, #111 100%)',
+                          background: 'linear-gradient(to bottom, transparent 0%, var(--bg-surface) 100%)',
                           pointerEvents: 'none',
                         }} />
                       </div>
@@ -1358,7 +1363,7 @@ export default function HomePage() {
                       onClick={() => router.push(`/app/deals/${d.id}`)}
                       style={{
                         marginBottom: 12, borderRadius: 12, overflow: 'hidden',
-                        border: `1px solid ${statusColor}25`, background: '#111',
+                        border: `1px solid ${statusColor}25`, background: 'var(--bg-surface)',
                         cursor: 'pointer',
                       }}>
                       {/* Titel */}
@@ -1379,8 +1384,8 @@ export default function HomePage() {
                       {/* Begegnung */}
                       <div style={{ padding: '4px 14px', display: 'flex', alignItems: 'center', gap: 4 }}>
                         <span style={{ fontSize: 10 }}>{'\u2694\uFE0F'}</span>
-                        <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
-                          {creatorName} <span style={{ color: 'rgba(255,255,255,0.4)' }}>vs</span> {opponentName}
+                        <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                          {creatorName} <span style={{ color: 'var(--text-muted)' }}>vs</span> {opponentName}
                         </span>
                       </div>
                       {/* Tipp + Status */}

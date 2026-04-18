@@ -215,7 +215,7 @@ export default function SideBetSheet({
                     disabled={!stake.trim() || sending}
                     style={{
                       width: '100%', padding: 14, borderRadius: 12, border: 'none', cursor: 'pointer',
-                      background: stake.trim() ? 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))' : '#333',
+                      background: stake.trim() ? 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))' : 'var(--border-subtle)',
                       color: stake.trim() ? 'var(--text-inverse)' : 'var(--text-muted)',
                       fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700, letterSpacing: 2,
                       marginBottom: 20,

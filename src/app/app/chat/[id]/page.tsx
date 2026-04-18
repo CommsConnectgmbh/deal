@@ -707,7 +707,7 @@ export default function ChatConversationPage() {
           <img src={mediaPreview} alt={t('chat.preview')} style={{ maxWidth: '90%', maxHeight: '85vh', borderRadius: 8 }} />
           <button style={{
             position: 'absolute', top: 20, right: 20,
-            background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff',
+            background: 'rgba(255,255,255,0.1)', border: 'none', color: 'var(--text-inverse)',
             width: 40, height: 40, borderRadius: '50%', fontSize: 20, cursor: 'pointer',
           }}>✕</button>
         </div>

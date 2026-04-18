@@ -129,11 +129,11 @@ export default function DealCard({
   return (
     <Link href={`/app/deals/${deal.id}`} style={{ textDecoration:'none', display:'block' }}>
       <div style={{
-        background: '#111',
+        background: 'var(--bg-surface)',
         borderRadius: 16,
         border: `1px solid ${sc}33`,
         overflow: 'hidden',
-        boxShadow: `0 2px 16px rgba(0,0,0,0.4)`,
+        boxShadow: 'var(--shadow-md)',
         transition: 'transform 0.15s, box-shadow 0.15s',
         cursor: 'pointer',
         marginBottom: 0,
@@ -156,15 +156,15 @@ export default function DealCard({
                   <div style={{ position:'absolute', top:-8, left:'50%', transform:'translateX(-50%)', fontSize:18, filter:'drop-shadow(0 0 6px #FFB800)' }}>👑</div>
                 )}
               </div>
-              <span style={{ fontSize:10, color:'#aaa', fontWeight:600 }}>@{deal.creator?.username || '?'}</span>
-              {!compact && <span style={{ fontSize:9, color:'#555' }}>Lv.{deal.creator?.level || 1}</span>}
+              <span style={{ fontSize:10, color:'var(--text-secondary)', fontWeight:600 }}>@{deal.creator?.username || '?'}</span>
+              {!compact && <span style={{ fontSize:9, color:'var(--text-muted)' }}>Lv.{deal.creator?.level || 1}</span>}
             </div>
 
             {/* VS + Category + Status */}
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, flexShrink:0 }}>
               <span style={{
                 fontFamily:'Cinzel,serif', fontSize: compact ? 18 : 22, fontWeight:900,
-                color:'#FFB800', letterSpacing:2,
+                color:'var(--gold-primary)', letterSpacing:2,
                 textShadow:'0 0 15px #FFB80066, 0 0 30px #FFB80033',
               }}>VS</span>
               <div style={{
@@ -187,22 +187,22 @@ export default function DealCard({
                 ) : (
                   <div style={{
                     width:avatarSize, height:avatarSize, borderRadius:'50%',
-                    border:'2px dashed #333', background:'#0A0A0A',
+                    border:'2px dashed var(--border-subtle)', background:'var(--bg-surface)',
                     display:'flex', alignItems:'center', justifyContent:'center',
-                    color:'#444', fontSize:20,
+                    color:'var(--text-muted)', fontSize:20,
                   }}>?</div>
                 )}
               </div>
-              <span style={{ fontSize:10, color:'#aaa', fontWeight:600 }}>
+              <span style={{ fontSize:10, color:'var(--text-secondary)', fontWeight:600 }}>
                 {deal.opponent ? `@${deal.opponent.username}` : t('components.statusOpen')}
               </span>
-              {!compact && <span style={{ fontSize:9, color:'#555' }}>Lv.{deal.opponent?.level || '?'}</span>}
+              {!compact && <span style={{ fontSize:9, color:'var(--text-muted)' }}>Lv.{deal.opponent?.level || '?'}</span>}
             </div>
           </div>
 
           {/* Deal Title */}
           <div style={{
-            textAlign:'center', fontSize: compact ? 13 : 15, fontWeight:700, color:'#F0ECE4',
+            textAlign:'center', fontSize: compact ? 13 : 15, fontWeight:700, color:'var(--text-primary)',
             marginBottom: compact ? 8 : 10, lineHeight:1.3,
             padding:'0 8px',
           }}>
@@ -212,7 +212,7 @@ export default function DealCard({
           {/* Stake */}
           {deal.stake && (
             <div style={{ textAlign:'center', marginBottom: compact ? 6 : 8 }}>
-              <span style={{ fontSize: compact ? 12 : 13, color:'#F59E0B', fontWeight:600 }}>
+              <span style={{ fontSize: compact ? 12 : 13, color:'var(--gold-primary)', fontWeight:600 }}>
                 {t('components.stakeLabel')}: {deal.stake}
               </span>
             </div>
@@ -220,15 +220,15 @@ export default function DealCard({
 
           {/* Footer */}
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-            <span style={{ fontSize:11, color:'#555' }}>⏱ {timeAgo(deal.created_at)}</span>
-            {deal.is_public && <span style={{ fontSize:10, color:'#444' }}>🌐 {t('components.public')}</span>}
+            <span style={{ fontSize:11, color:'var(--text-muted)' }}>⏱ {timeAgo(deal.created_at)}</span>
+            {deal.is_public && <span style={{ fontSize:10, color:'var(--text-muted)' }}>🌐 {t('components.public')}</span>}
           </div>
         </div>
 
         {/* Reactions */}
         {showReactions && !compact && deal.status !== 'cancelled' && (
           <div
-            style={{ borderTop:'1px solid #1a1a1a', padding:'8px 16px', display:'flex', gap:8 }}
+            style={{ borderTop:'1px solid var(--border-subtle)', padding:'8px 16px', display:'flex', gap:8 }}
             onClick={e => e.preventDefault()}
           >
             {(Object.entries(REACTION_EMOJIS) as [string, string][]).map(([key, emoji]) => {
@@ -240,9 +240,9 @@ export default function DealCard({
                   onClick={() => toggleReaction(key)}
                   style={{
                     background: isMine ? '#FFB80022' : 'transparent',
-                    border: isMine ? '1px solid #FFB80066' : '1px solid #222',
+                    border: isMine ? '1px solid #FFB80066' : '1px solid var(--border-subtle)',
                     borderRadius: 20, padding:'4px 10px', cursor:'pointer',
-                    fontSize:12, color: isMine ? '#FFB800' : '#888',
+                    fontSize:12, color: isMine ? 'var(--gold-primary)' : 'var(--text-secondary)',
                     display:'flex', alignItems:'center', gap:4,
                     transition:'all 0.15s',
                   }}

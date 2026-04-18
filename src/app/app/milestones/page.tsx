@@ -143,7 +143,7 @@ export default function MilestonesPage() {
                 <div style={{
                   width:48, height:48, borderRadius:12, flexShrink:0,
                   background: reached ? `${rc}18` : 'var(--bg-base)',
-                  border: `1.5px solid ${reached ? rc : '#222'}`,
+                  border: `1.5px solid ${reached ? rc : 'var(--border-subtle)'}`,
                   display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2,
                 }}>
                   <span style={{ fontSize:8, color:rc, fontFamily:'var(--font-display)', letterSpacing:0.5 }}>LVL</span>

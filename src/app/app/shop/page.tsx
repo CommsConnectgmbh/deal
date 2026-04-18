@@ -546,7 +546,7 @@ export default function ShopPage() {
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                     <span className='font-display' style={{ fontSize: 16, color: 'var(--gold-primary)', fontWeight: 700 }}>{pack.coins.toLocaleString()}</span>
-                    {pack.badge && <span style={{ background: pack.badge === 'BESTER WERT' ? 'var(--gold-primary)' : pack.badge === 'MEGA PACK' ? 'linear-gradient(135deg, #a855f7, #7c3aed)' : 'rgba(255,184,0,0.2)', padding: '2px 7px', borderRadius: 5, fontFamily: 'var(--font-display)', fontSize: 7, color: pack.badge === 'BESTER WERT' ? 'var(--text-inverse)' : pack.badge === 'MEGA PACK' ? '#fff' : 'var(--gold-primary)', fontWeight: 700 }}>{pack.badge}</span>}
+                    {pack.badge && <span style={{ background: pack.badge === 'BESTER WERT' ? 'var(--gold-primary)' : pack.badge === 'MEGA PACK' ? 'linear-gradient(135deg, #a855f7, #7c3aed)' : 'rgba(255,184,0,0.2)', padding: '2px 7px', borderRadius: 5, fontFamily: 'var(--font-display)', fontSize: 7, color: pack.badge === 'BESTER WERT' ? 'var(--text-inverse)' : pack.badge === 'MEGA PACK' ? 'var(--text-inverse)' : 'var(--gold-primary)', fontWeight: 700 }}>{pack.badge}</span>}
                   </div>
                   <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>~{pack.perCoin}/Coin</span>
                 </div>

@@ -80,8 +80,8 @@ export default async function DealPublicPage({ params }: { params: Promise<{ id:
     return (
       <div style={{
         minHeight: '100dvh',
-        background: '#080808',
-        color: '#fff',
+        background: 'var(--bg-base)',
+        color: 'var(--text-primary)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -95,22 +95,22 @@ export default async function DealPublicPage({ params }: { params: Promise<{ id:
         <h1 style={{
           fontFamily: "'Oswald', sans-serif",
           fontSize: 28,
-          color: '#FFB800',
+          color: 'var(--gold-primary)',
           letterSpacing: 2,
           marginBottom: 12,
           textTransform: 'uppercase',
         }}>
           Deal nicht gefunden
         </h1>
-        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, lineHeight: 1.5, marginBottom: 32, maxWidth: 320 }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.5, marginBottom: 32, maxWidth: 320 }}>
           Diese Challenge existiert nicht oder wurde bereits entfernt. Vielleicht ist der Link abgelaufen?
         </p>
         <Link
           href="/"
           style={{
             display: 'inline-block',
-            background: 'linear-gradient(135deg, #FFB800 0%, #FF8C00 100%)',
-            color: '#080808',
+            background: 'linear-gradient(135deg, var(--gold-primary) 0%, var(--gold-bright) 100%)',
+            color: 'var(--text-inverse)',
             fontFamily: "'Oswald', sans-serif",
             fontWeight: 700,
             fontSize: 14,
