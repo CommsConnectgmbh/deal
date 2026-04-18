@@ -32,6 +32,11 @@ export function ThemeScript() {
   const script = `
     (function() {
       try {
+        var MIGRATION_KEY = '${STORAGE_KEY}-migrated-light-2026-04-18';
+        if (!localStorage.getItem(MIGRATION_KEY)) {
+          localStorage.removeItem('${STORAGE_KEY}');
+          localStorage.setItem(MIGRATION_KEY, '1');
+        }
         var t = localStorage.getItem('${STORAGE_KEY}');
         if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
       } catch(e) {}
