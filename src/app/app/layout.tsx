@@ -8,6 +8,7 @@ import { usePresence } from '@/hooks/usePresence'
 import { CelebrationProvider } from '@/contexts/CelebrationContext'
 import StreakLoginHandler from '@/components/StreakLoginHandler'
 import { useLang } from '@/contexts/LanguageContext'
+import BottomNav, { type BottomNavTab } from '@/components/layout/BottomNav'
 
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -16,13 +17,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { t } = useLang()
 
-  // Bottom nav tabs
-  const TABS = [
-    { href: '/app/home',    icon: '\u{1F3E0}', label: t('nav.home')    },
-    { href: '/app/blitz',   icon: '\u26A1',    label: t('nav.blitz')   },
-    { href: null,           icon: '',           label: ''               },
-    { href: '/app/tippen',  icon: '\u{1F3C6}', label: t('nav.tippen')  },
-    { href: '/app/profile', icon: '\u{1F464}', label: t('nav.profile') },
+  const TABS: BottomNavTab[] = [
+    { key: 'home',    href: '/app/home',    label: t('nav.home')    },
+    { key: 'blitz',   href: '/app/blitz',   label: t('nav.blitz')   },
+    { key: 'tippen',  href: '/app/tippen',  label: t('nav.tippen')  },
+    { key: 'profile', href: '/app/profile', label: t('nav.profile') },
   ]
 
   // Online presence tracking
@@ -228,68 +227,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </CelebrationProvider>
       </div>
 
-      {/* Bottom Tab Bar — Logo in center */}
-      <nav style={{
-        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-        width: '100%', maxWidth: 430,
-        background: 'var(--bg-deepest)', backdropFilter: 'blur(20px)',
-        borderTop: '1px solid var(--border-subtle)',
-        display: 'flex', alignItems: 'flex-end',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-        zIndex: 100, overflow: 'visible',
-      }}>
-        {TABS.map((tab, idx) => {
-          // Center: DealBuddy Logo FAB
-          if (tab.href === null) {
-            return (
-              <div key="fab" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                <button
-                  onClick={() => router.push('/app/deals/create')}
-                  style={{
-                    width: 60, height: 60, borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #1a1a1a, #2a2a2a, #1a1a1a)',
-                    border: '2px solid rgba(255,184,0,0.25)', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.6), 0 0 12px rgba(255,184,0,0.15)',
-                    padding: 0,
-                    marginTop: -20, marginBottom: 4,
-                    transition: 'transform 0.15s',
-                    flexShrink: 0,
-                  }}
-                >
-                  <img
-                    src="/logo.png"
-                    alt="DealBuddy"
-                    style={{
-                      width: 54, height: 54, objectFit: 'contain',
-                      borderRadius: '50%',
-                    }}
-                  />
-                </button>
-              </div>
-            )
-          }
-
-          // Profile tab: only highlight on own profile pages, not /app/profile/[username]
-          const active = tab.href === '/app/profile'
-            ? pathname === '/app/profile' || pathname === '/app/profile/followers' || pathname === '/app/profile/following'
-            : pathname === tab.href || pathname.startsWith(tab.href + '/')
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px 0', textDecoration: 'none', gap: 3, position: 'relative' }}
-            >
-              <div style={{ position: 'relative', display: 'inline-flex' }}>
-                <span style={{ fontSize: 20, opacity: active ? 1 : 0.35, transition: 'opacity 0.2s' }}>{tab.icon}</span>
-              </div>
-              <span className="font-display" style={{ fontSize: 9, letterSpacing: 1, color: active ? 'var(--gold-primary)' : 'var(--text-muted)', transition: 'color 0.2s' }}>
-                {tab.label}
-              </span>
-            </Link>
-          )
-        })}
-      </nav>
+      <BottomNav tabs={TABS} createHref="/app/deals/create" />
     </div>
   )
 }
