@@ -1,5 +1,5 @@
 // DealBuddy Service Worker — v2 (auto-update)
-const SW_VERSION = 'v12-2026-04-18-polish'
+const SW_VERSION = 'v13-2026-04-19-calm'
 
 self.addEventListener('install', (event) => {
   // Immediately activate new SW, don't wait for old tabs to close

@@ -848,12 +848,9 @@ export default function HomePage() {
                 <div style={{ position: 'relative' }}>
                   <div style={{
                     width: 68, height: 68, borderRadius: '50%',
-                    background: hasUnviewed
-                      ? 'linear-gradient(135deg, #FFB800, #FF6B00, #FFB800)'
-                      : 'transparent',
+                    background: hasUnviewed ? 'var(--gold-primary)' : 'transparent',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    padding: hasUnviewed ? 3 : 0,
-                    boxShadow: hasUnviewed ? '0 0 12px rgba(255,184,0,0.4)' : 'none',
+                    padding: hasUnviewed ? 2 : 0,
                   }}>
                     <div style={{
                       width: hasUnviewed ? 62 : 64,
@@ -918,7 +915,7 @@ export default function HomePage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                     <span style={{ fontSize: 18 }}>{'\uD83D\uDD25'}</span>
                     <div>
-                      <span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 900, color: streak >= 3 ? '#EF4444' : 'var(--gold-primary)', lineHeight: 1 }}>{streak}</span>
+                      <span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>{streak}</span>
                       <p style={{ fontFamily: 'var(--font-display)', fontSize: 6, letterSpacing: 2, color: 'var(--text-muted)', margin: 0 }}>STREAK</p>
                     </div>
                     <div style={{ width: 1, height: 28, background: 'var(--border-subtle)', marginLeft: 4 }} />
@@ -929,28 +926,26 @@ export default function HomePage() {
                 {topAction ? (
                   <button onClick={() => router.push(topAction.href)} style={{
                     flex: 1, display: 'flex', alignItems: 'center', gap: 8,
-                    background: `${topAction.color}08`, border: `1px solid ${topAction.color}25`,
+                    background: 'var(--bg-overlay)', border: '1px solid var(--border-subtle)',
                     borderRadius: 10, padding: '8px 10px', cursor: 'pointer', textAlign: 'left',
                   }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: topAction.color, boxShadow: `0 0 5px ${topAction.color}80` }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: 0.5, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'uppercase' as const }}>{topAction.title}</p>
-                      <p style={{ fontSize: 8, color: topAction.color, margin: '1px 0 0' }}>{topAction.sub}</p>
+                      <p style={{ fontSize: 8, color: 'var(--text-muted)', margin: '1px 0 0' }}>{topAction.sub}</p>
                     </div>
-                    <span style={{ fontSize: 7, padding: '3px 7px', borderRadius: 6, flexShrink: 0, fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: 1, background: `${topAction.color}20`, color: topAction.color }}>{topAction.label}</span>
+                    <span style={{ fontSize: 7, padding: '3px 7px', borderRadius: 6, flexShrink: 0, fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: 1, background: 'var(--gold-subtle)', color: 'var(--gold-primary)' }}>{topAction.label}</span>
                   </button>
                 ) : (
                   <button onClick={() => router.push('/app/deals/create')} style={{
                     flex: 1, display: 'flex', alignItems: 'center', gap: 8,
-                    background: 'rgba(255,184,0,0.06)', border: '1px solid rgba(255,184,0,0.15)',
+                    background: 'var(--bg-overlay)', border: '1px solid var(--border-subtle)',
                     borderRadius: 10, padding: '8px 10px', cursor: 'pointer', textAlign: 'left',
                   }}>
-                    <span style={{ fontSize: 14, flexShrink: 0 }}>{'\uD83E\uDD4A'}</span>
                     <div style={{ flex: 1 }}>
-                      <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 800, color: 'var(--gold-primary)', letterSpacing: 0.5, margin: 0, textTransform: 'uppercase' as const }}>{t('home.newChallenge')}</p>
+                      <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: 0.5, margin: 0, textTransform: 'uppercase' as const }}>{t('home.newChallenge')}</p>
                       <p style={{ fontSize: 8, color: 'var(--text-muted)', margin: '1px 0 0' }}>{t('home.challengeSomeone')}</p>
                     </div>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--gold-primary)" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   </button>
                 )}
               </div>
@@ -961,12 +956,11 @@ export default function HomePage() {
                   {actionItems.slice(1, 3).map(item => (
                     <button key={`sub-${item.id}`} onClick={() => router.push(item.href)} style={{
                       flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6,
-                      background: `${item.color}06`, border: `1px solid ${item.color}18`,
+                      background: 'var(--bg-overlay)', border: '1px solid var(--border-subtle)',
                       borderRadius: 8, padding: '5px 8px', cursor: 'pointer', textAlign: 'left',
                     }}>
-                      <span style={{ width: 4, height: 4, borderRadius: '50%', flexShrink: 0, background: item.color }} />
-                      <p style={{ fontFamily: 'var(--font-display)', fontSize: 8, fontWeight: 700, color: 'var(--text-muted)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0, textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>{item.title}</p>
-                      <span style={{ fontSize: 6, padding: '2px 5px', borderRadius: 4, flexShrink: 0, fontFamily: 'var(--font-display)', fontWeight: 700, background: `${item.color}15`, color: item.color }}>{item.label}</span>
+                      <p style={{ fontFamily: 'var(--font-display)', fontSize: 8, fontWeight: 700, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0, textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>{item.title}</p>
+                      <span style={{ fontSize: 6, padding: '2px 5px', borderRadius: 4, flexShrink: 0, fontFamily: 'var(--font-display)', fontWeight: 700, background: 'var(--gold-subtle)', color: 'var(--gold-primary)' }}>{item.label}</span>
                     </button>
                   ))}
                 </div>
@@ -988,10 +982,10 @@ export default function HomePage() {
         WebkitOverflowScrolling: 'touch',
       }}>
         {([
-          { key: 'alle', label: t('home.filters.alle'), color: 'var(--gold-primary)' },
-          { key: 'herausforderungen', label: t('home.filters.herausforderungen'), color: '#f97316' },
-          { key: 'tipprunden', label: t('home.filters.tipprunden'), color: '#a78bfa' },
-          { key: 'live_tipp', label: t('home.filters.live_tipp'), color: '#4ade80' },
+          { key: 'alle', label: t('home.filters.alle') },
+          { key: 'herausforderungen', label: t('home.filters.herausforderungen') },
+          { key: 'tipprunden', label: t('home.filters.tipprunden') },
+          { key: 'live_tipp', label: t('home.filters.live_tipp') },
         ] as const).map(tab => {
           const isActive = feedTab === tab.key
           return (
@@ -1000,9 +994,9 @@ export default function HomePage() {
               onClick={() => setFeedTab(tab.key)}
               style={{
                 padding: '6px 14px', borderRadius: 20, cursor: 'pointer',
-                background: isActive ? `${tab.color}18` : 'transparent',
-                border: isActive ? `1.5px solid ${tab.color}55` : '1px solid var(--border-subtle)',
-                color: isActive ? tab.color : 'var(--text-muted)',
+                background: isActive ? 'var(--gold-subtle)' : 'transparent',
+                border: isActive ? '1.5px solid var(--gold-glow)' : '1px solid var(--border-subtle)',
+                color: isActive ? 'var(--gold-primary)' : 'var(--text-muted)',
                 fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 700,
                 letterSpacing: 1.2, transition: 'all .2s',
                 whiteSpace: 'nowrap', flexShrink: 0,
@@ -1057,10 +1051,10 @@ export default function HomePage() {
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
               {[
-                { icon: '\uD83C\uDFC3', title: t('home.fitnessChallenge'), sub: t('home.fitnessSub'), color: '#22C55E' },
-                { icon: '\uD83C\uDFAF', title: t('home.prediction'), sub: t('home.predictionSub'), color: '#3B82F6' },
-                { icon: '\uD83D\uDCDA', title: t('home.learnChallenge'), sub: t('home.learnSub'), color: '#A855F7' },
-                { icon: '\u26A1', title: t('home.speedChallenge'), sub: t('home.speedSub'), color: '#F59E0B' },
+                { icon: '\uD83C\uDFC3', title: t('home.fitnessChallenge'), sub: t('home.fitnessSub') },
+                { icon: '\uD83C\uDFAF', title: t('home.prediction'), sub: t('home.predictionSub') },
+                { icon: '\uD83D\uDCDA', title: t('home.learnChallenge'), sub: t('home.learnSub') },
+                { icon: '\u26A1', title: t('home.speedChallenge'), sub: t('home.speedSub') },
               ].map((cat, i) => (
                 <button
                   key={i}
@@ -1074,7 +1068,7 @@ export default function HomePage() {
                 >
                   <div style={{
                     width: 44, height: 44, borderRadius: 12,
-                    background: `${cat.color}12`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'var(--bg-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 22, flexShrink: 0,
                   }}>
                     {cat.icon}
@@ -1083,7 +1077,7 @@ export default function HomePage() {
                     <p style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: 0.5 }}>{cat.title}</p>
                     <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{cat.sub}</p>
                   </div>
-                  <span style={{ fontSize: 14, color: cat.color, flexShrink: 0 }}>›</span>
+                  <span style={{ fontSize: 14, color: 'var(--text-muted)', flexShrink: 0 }}>›</span>
                 </button>
               ))}
             </div>

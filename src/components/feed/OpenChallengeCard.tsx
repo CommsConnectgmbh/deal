@@ -15,9 +15,6 @@ export default function OpenChallengeCard({
 }: DealCardProps) {
   const router = useRouter()
   const { t } = useLang()
-  const isCreator = deal.creator_id === userId
-  const sc = '#FFB800'
-  const ctaText = isCreator ? t('components.openChallengeShare') : t('components.openChallengeJoin')
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
@@ -45,40 +42,24 @@ export default function OpenChallengeCard({
         <DealCardMenu dealId={deal.id} onHide={() => onHide?.(deal.id)} />
       </div>
 
-      {/* ═══ BADGE — gleicher Style wie CTA, links oben ═══ */}
-      <div style={{
-        position: 'absolute', top: -4, left: 16, zIndex: 5,
-        padding: '4px 10px 5px',
-        background: 'linear-gradient(135deg, rgba(180,140,0,0.95), rgba(255,184,0,0.9))',
-        color: '#060606', fontFamily: 'var(--font-display)',
-        fontSize: 7, fontWeight: 800, letterSpacing: 1.5,
-        borderRadius: '6px 6px 0 0',
-        boxShadow: '0 -3px 10px rgba(255,184,0,0.25)',
-        lineHeight: 1,
-      }}>
-        {deal.opponent_id ? t('status.open') : t('status.opponentSearched')}
-      </div>
-
       <div style={{
         borderRadius: 14, overflow: 'hidden',
         background: 'var(--bg-surface)',
         border: '1px solid var(--border-subtle)',
       }}>
 
-        {/* ═══ TITLE BAR — farbiger Rahmen oben, max 2 Zeilen ═══ */}
+        {/* ═══ TITLE BAR — calm, primary text ═══ */}
         <div style={{
           width: '100%', padding: '10px 16px', textAlign: 'center',
-          background: `linear-gradient(135deg, ${sc}12, ${sc}06)`,
         }}>
           <p style={{
             fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 900,
-            color: sc, letterSpacing: 1.5, textTransform: 'uppercase',
+            color: 'var(--text-primary)', letterSpacing: 1.5, textTransform: 'uppercase',
             margin: 0, lineHeight: 1.3,
             overflow: 'hidden',
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical' as never,
-            textShadow: `0 0 12px ${sc}25`,
           }}>
             {deal.title}
           </p>
@@ -104,7 +85,7 @@ export default function OpenChallengeCard({
             {opponentName ? (
               <><span style={{ color: 'var(--text-muted)' }}>vs</span> <span>{opponentName}</span></>
             ) : (
-              <span style={{ color: sc }}>· {t('status.searchingOpponent')}</span>
+              <span style={{ color: 'var(--text-muted)' }}>· {t('status.searchingOpponent')}</span>
             )}
           </div>
           {deal.media_url ? (
@@ -156,21 +137,6 @@ export default function OpenChallengeCard({
         />
       </div>
 
-      {/* ═══ CTA BOOKMARK ═══ */}
-      <button onClick={(e) => { e.stopPropagation(); goToDeal() }}
-        style={{
-          position: 'absolute', bottom: 6, right: 16, zIndex: 5,
-          padding: '5px 10px 4px',
-          background: 'linear-gradient(135deg, rgba(180,140,0,0.95), rgba(255,184,0,0.9))',
-          color: '#060606', fontFamily: 'var(--font-display)',
-          fontSize: 7, fontWeight: 800, letterSpacing: 1.5,
-          border: 'none', cursor: 'pointer',
-          borderRadius: '0 0 6px 6px',
-          boxShadow: '0 3px 10px rgba(255,184,0,0.25)',
-          lineHeight: 1,
-        }}>
-        {ctaText}
-      </button>
     </div>
   )
 }
