@@ -37,7 +37,7 @@ export default function LiveDuelCard({
   const opponentName = deal.opponent?.display_name || deal.opponent?.username || '?'
 
   return (
-    <div data-deal-card={deal.id} style={{ marginBottom: 28, position: 'relative', paddingTop: 10, paddingBottom: 20, borderBottom: '1px solid var(--border-subtle)' }}>
+    <div data-deal-card={deal.id} style={{ marginBottom: 14, position: 'relative' }}>
 
       {/* ═══ 3-DOT MENU — top right ═══ */}
       <div style={{ position: 'absolute', top: 14, right: 10, zIndex: 8 }}>
@@ -45,9 +45,12 @@ export default function LiveDuelCard({
       </div>
 
       <div style={{
-        borderRadius: 14, overflow: 'hidden',
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border-subtle)',
+        borderRadius: 18, overflow: 'hidden',
+        background: 'var(--glass-bg)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        border: '1px solid var(--glass-border)',
+        boxShadow: 'var(--shadow-md)',
       }}>
 
         {/* ═══ TITLE BAR — calm, primary text ═══ */}

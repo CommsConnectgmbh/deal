@@ -85,7 +85,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [user, loading, profile, pathname, router])
 
   if (loading || !user) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', background: 'var(--bg-base)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh' }}>
       <div style={{ width: 40, height: 40, border: '2px solid transparent', borderTopColor: 'var(--gold-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}/>
     </div>
   )
@@ -101,7 +101,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const scoreColorVal = reliabilityColor === 'green' ? '#22C55E' : reliabilityColor === 'yellow' ? '#EAB308' : reliabilityColor === 'red' ? '#EF4444' : 'var(--text-muted)'
 
   return (
-    <div style={{ maxWidth: 430, margin: '0 auto', minHeight: '100dvh', background: 'var(--bg-base)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div style={{ maxWidth: 430, margin: '0 auto', minHeight: '100dvh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
 
       {/* Top Bar — KD/Rank instead of DealBuddy text */}
       <div style={{

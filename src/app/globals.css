@@ -204,7 +204,11 @@
 }
 
 html, body {
-  background: var(--bg-base);
+  background:
+    radial-gradient(at 15% 0%, rgba(198,139,18,0.10) 0%, transparent 55%),
+    radial-gradient(at 85% 95%, rgba(31,169,75,0.06) 0%, transparent 50%),
+    linear-gradient(180deg, #F5F5F7 0%, #ECECEE 100%);
+  background-attachment: fixed;
   color: var(--text-primary);
   font-family: var(--font-body);
   font-size: 14px;
@@ -223,6 +227,13 @@ html {
 }
 body {
   overscroll-behavior: none;
+}
+
+[data-theme="dark"] body, [data-theme="dark"] html {
+  background:
+    radial-gradient(at 15% 0%, rgba(245,158,11,0.12) 0%, transparent 55%),
+    radial-gradient(at 85% 95%, rgba(34,197,94,0.08) 0%, transparent 50%),
+    linear-gradient(180deg, #0F0F11 0%, #050507 100%);
 }
 
 /* Typography classes */
