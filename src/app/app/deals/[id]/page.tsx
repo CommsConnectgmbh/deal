@@ -738,48 +738,96 @@ export default function DealDetailPage() {
             </p>
           </div>
 
-          {/* ═══ MEDIA + BEGEGNUNG LESEZEICHEN ═══ */}
-          <div style={{ position: 'relative' }}>
-            {/* Lesezeichen oben links */}
+          {/* ═══ MEDIA + BEGEGNUNG LESEZEICHEN (top) + EINSATZ LESEZEICHEN (bottom) ═══ */}
+          <div style={{
+            position: 'relative',
+            minHeight: deal.media_url ? undefined : 88,
+            background: deal.media_url ? undefined : `
+              radial-gradient(at 20% 30%, rgba(245,158,11,0.18) 0%, transparent 55%),
+              radial-gradient(at 80% 70%, rgba(34,197,94,0.12) 0%, transparent 55%),
+              radial-gradient(at 50% 100%, rgba(59,130,246,0.10) 0%, transparent 50%)
+            `,
+          }}>
+            {/* Lesezeichen oben links — Begegnung (Apple liquid glass) */}
             <div style={{
               position: 'absolute', top: 0, left: 12, zIndex: 2,
-              background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
-              padding: '3px 8px', borderRadius: '0 0 6px 6px',
-              fontFamily: 'var(--font-body)', fontSize: 10, fontWeight: 700, color: '#fff',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-              display: 'flex', alignItems: 'center', gap: 4,
+              background: 'rgba(255,255,255,0.55)',
+              backdropFilter: 'blur(20px) saturate(200%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(200%)',
+              border: '1px solid rgba(255,255,255,0.6)',
+              borderTop: 'none',
+              padding: '5px 10px', borderRadius: '0 0 12px 12px',
+              fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.5)',
+              display: 'flex', alignItems: 'center', gap: 6,
             }}>
               <span>{'\u2694\uFE0F'}</span>
               <span
                 onClick={() => deal.creator?.username && router.push(`/app/profile/${deal.creator.username}`)}
-                style={{ cursor: 'pointer', color: creatorWon ? '#4ade80' : '#fff' }}
+                style={{ cursor: 'pointer', color: creatorWon ? 'var(--status-active)' : 'var(--text-primary)' }}
               >
                 {creatorWon && '\u{1F451} '}{deal.creator?.display_name || deal.creator?.username || '?'}
               </span>
               {deal.creator_side && (
                 <span style={{
-                  fontSize: 8, fontWeight: 800, fontFamily: 'var(--font-display)',
+                  fontSize: 9, fontWeight: 800, fontFamily: 'var(--font-display)',
                   letterSpacing: 0.5, padding: '1px 5px', borderRadius: 4,
                   background: deal.creator_side === 'yes' ? 'rgba(74,222,128,0.2)' : 'rgba(239,68,68,0.2)',
-                  color: deal.creator_side === 'yes' ? '#4ade80' : '#ef4444',
+                  color: deal.creator_side === 'yes' ? 'var(--status-active)' : 'var(--status-error)',
                 }}>
                   {deal.creator_side === 'yes' ? t('deals.sideYes') : t('deals.sideNo')}
                 </span>
               )}
               {deal.opponent ? (
                 <>
-                  <span style={{ color: 'rgba(255,255,255,0.5)' }}>vs</span>
+                  <span style={{ color: 'var(--text-muted)', fontWeight: 800, fontSize: 10, letterSpacing: 1 }}>VS</span>
                   <span
                     onClick={() => deal.opponent?.username && router.push(`/app/profile/${deal.opponent.username}`)}
-                    style={{ cursor: 'pointer', color: opponentWon ? '#4ade80' : '#fff' }}
+                    style={{ cursor: 'pointer', color: opponentWon ? 'var(--status-active)' : 'var(--text-primary)' }}
                   >
                     {opponentWon && '\u{1F451} '}{deal.opponent?.display_name || deal.opponent?.username}
                   </span>
                 </>
               ) : (
-                <span style={{ color: sc }}>{'\u00B7'} {t('deals.searchingOpponent')}</span>
+                <>
+                  <span style={{ color: 'var(--text-muted)', fontWeight: 800, fontSize: 10, letterSpacing: 1 }}>VS</span>
+                  <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>{t('deals.searchingOpponent')}</span>
+                </>
               )}
             </div>
+
+            {/* Lesezeichen unten links — Einsatz (mirror of top bookmark) */}
+            {(deal.stake || (deal.deadline && !countdownExpired && ['active', 'pending', 'open', 'pending_confirmation'].includes(deal.status))) && (
+              <div style={{
+                position: 'absolute', bottom: 0, left: 12, zIndex: 2,
+                background: 'rgba(255,255,255,0.55)',
+                backdropFilter: 'blur(20px) saturate(200%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(200%)',
+                border: '1px solid rgba(255,255,255,0.6)',
+                borderBottom: 'none',
+                padding: '5px 10px', borderRadius: '12px 12px 0 0',
+                fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)',
+                boxShadow: '0 -4px 14px rgba(0,0,0,0.08), inset 0 -1px 0 rgba(255,255,255,0.5)',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                {deal.stake && (
+                  <>
+                    <span>{'\uD83C\uDFC6'}</span>
+                    <span>{deal.stake}</span>
+                  </>
+                )}
+                {deal.deadline && !countdownExpired && ['active', 'pending', 'open', 'pending_confirmation'].includes(deal.status) && (
+                  <span style={{
+                    fontSize: 10, fontWeight: 600,
+                    color: countdownUrgent ? 'var(--status-error)' : 'var(--text-muted)',
+                    marginLeft: deal.stake ? 6 : 0,
+                    animation: countdownUrgent ? 'pulse-timer 1.5s ease-in-out infinite' : 'none',
+                  }}>
+                    {'\u23F3'} {countdownRemaining}
+                  </span>
+                )}
+              </div>
+            )}
 
             {deal.media_url ? (
               deal.media_type === 'video' ? (
@@ -794,38 +842,8 @@ export default function DealDetailPage() {
                   style={{ width: '100%', maxHeight: '45vh', objectFit: 'cover', display: 'block', cursor: 'pointer' }}
                 />
               )
-            ) : (
-              <div style={{ height: 28 }} />
-            )}
+            ) : null}
           </div>
-
-          {/* ═══ EINSATZ — mittig, gerahmt ═══ */}
-          {(deal.stake || deal.deadline) && (
-            <div style={{
-              padding: '8px 12px',
-              display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
-            }}>
-              {deal.stake && (
-                <span style={{
-                  fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 900,
-                  color: '#ffffff', letterSpacing: 1,
-                  borderRadius: 8, padding: '6px 16px',
-                  background: 'rgba(255,255,255,0.06)',
-                  textShadow: 'none',
-                }}>
-                  {'\uD83C\uDFC6'} {deal.stake}
-                </span>
-              )}
-              {deal.deadline && !countdownExpired && ['active', 'pending', 'open', 'pending_confirmation'].includes(deal.status) && (
-                <span style={{
-                  fontSize: 9, fontWeight: 600, color: countdownUrgent ? '#EF4444' : 'rgba(255,255,255,0.4)',
-                  animation: countdownUrgent ? 'pulse-timer 1.5s ease-in-out infinite' : 'none',
-                }}>
-                  {'\u23F3'} {countdownRemaining}
-                </span>
-              )}
-            </div>
-          )}
 
         </div>
       </div>
