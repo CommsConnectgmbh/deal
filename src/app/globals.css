@@ -295,6 +295,7 @@ body {
     padding-left: 245px;
   }
   .app-content {
+    width: 100%;
     max-width: 640px;
     margin: 0 auto;
     padding-top: 28px;
