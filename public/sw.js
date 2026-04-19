@@ -1,5 +1,5 @@
 // DealBuddy Service Worker — v2 (auto-update)
-const SW_VERSION = 'v17-2026-04-19-clean'
+const SW_VERSION = 'v18-2026-04-19-glass-bookmarks'
 
 self.addEventListener('install', (event) => {
   // Immediately activate new SW, don't wait for old tabs to close

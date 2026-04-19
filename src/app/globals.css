@@ -236,6 +236,16 @@ body {
     linear-gradient(180deg, #0F0F11 0%, #050507 100%);
 }
 
+/* ── Theme-aware logo: dark on light bg, gold/light on dark bg ── */
+.theme-logo {
+  /* Light mode default → render logo as near-black for contrast on cream BG */
+  filter: brightness(0) saturate(100%);
+}
+[data-theme="dark"] .theme-logo {
+  /* Dark mode → original gold/orange logo pops on dark BG */
+  filter: none;
+}
+
 /* ── Blitz fullscreen — covers viewport on mobile, respects sidebar on desktop ── */
 .blitz-fullscreen {
   position: fixed;

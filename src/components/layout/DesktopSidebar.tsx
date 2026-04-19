@@ -83,7 +83,7 @@ export default function DesktopSidebar({
         display: 'flex', alignItems: 'center', gap: 10,
         padding: '4px 14px 22px', textDecoration: 'none',
       }}>
-        <img src="/logo.png" alt="" style={{ width: 40, height: 40, flexShrink: 0 }} />
+        <img src="/logo.png" alt="" className="theme-logo" style={{ width: 40, height: 40, flexShrink: 0 }} />
         <span style={{
           fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800,
           color: 'var(--text-primary)', letterSpacing: 1.2,
