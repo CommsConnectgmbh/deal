@@ -96,7 +96,7 @@ serve(async (req) => {
           const { data: newCardId } = await supabase.rpc('assign_card_for_frame', {
             p_user_id: user.id,
             p_frame: frame_id,
-            p_obtained_from: 'equip'
+            p_obtained_from: 'upgrade'
           })
           if (newCardId) {
             const { data: newUserCard } = await supabase
