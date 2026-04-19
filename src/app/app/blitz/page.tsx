@@ -53,6 +53,8 @@ export default function BlitzPage() {
   const isSwiping = useRef(false)
   const swipeOffset = useRef(0)
   const containerRef = useRef<HTMLDivElement>(null)
+  const wheelCooldown = useRef(false)
+  const lastTouchTime = useRef(0)
 
   /* ─── Track page view ─── */
   useEffect(() => { trackScreenView('blitz') }, [])
@@ -198,6 +200,7 @@ export default function BlitzPage() {
   }, [currentIndex])
 
   const handleTouchEnd = useCallback(() => {
+    lastTouchTime.current = Date.now()
     const deltaY = touchStartY.current - (touchStartY.current - swipeOffset.current)
     const duration = Date.now() - touchStartTime.current
     const totalMovement = Math.abs(swipeOffset.current)
@@ -245,6 +248,47 @@ export default function BlitzPage() {
       containerRef.current.style.transform = `translateY(-${currentIndex * window.innerHeight}px)`
     }
   }, [currentIndex])
+
+  /* ─── Desktop navigation: wheel (non-passive so we can preventDefault) + keyboard ─── */
+  useEffect(() => {
+    const el = containerRef.current?.parentElement
+    if (!el) return
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      if (wheelCooldown.current) return
+      if (Math.abs(e.deltaY) < 20) return
+      wheelCooldown.current = true
+      setTimeout(() => { wheelCooldown.current = false }, 450)
+      if (e.deltaY > 0) {
+        setCurrentIndex(prev => Math.min(prev + 1, videos.length - 1))
+      } else {
+        setCurrentIndex(prev => Math.max(prev - 1, 0))
+      }
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'j') {
+        e.preventDefault()
+        setCurrentIndex(prev => Math.min(prev + 1, videos.length - 1))
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'k') {
+        e.preventDefault()
+        setCurrentIndex(prev => Math.max(prev - 1, 0))
+      }
+    }
+
+    el.addEventListener('wheel', onWheel, { passive: false })
+    window.addEventListener('keydown', onKey)
+    return () => {
+      el.removeEventListener('wheel', onWheel)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [videos.length])
+
+  const handleClick = useCallback(() => {
+    // Skip synthesized click after touch (mobile handleTouchEnd already handled the tap)
+    if (Date.now() - lastTouchTime.current < 500) return
+    if (videos[currentIndex]) router.push(`/app/deals/${videos[currentIndex].id}`)
+  }, [videos, currentIndex, router])
 
   const toggleMute = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
@@ -357,10 +401,12 @@ export default function BlitzPage() {
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
+            onClick={handleClick}
             style={{
               width: '100%',
               height: `${videos.length * 100}vh`,
               display: 'flex', flexDirection: 'column',
+              cursor: 'pointer',
             }}
           >
             {videos.map((video, idx) => (
