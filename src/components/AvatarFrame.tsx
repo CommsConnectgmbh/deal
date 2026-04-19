@@ -166,8 +166,7 @@ export default function AvatarFrame({
   const legacyMode = !frameTypeProp && rarity && !imageUrl
   // Legacy mode now falls through to the new CSS frame below (with CardPlaceholder)
 
-  // New mode: dynamic CSS frame — no border, only outer glow (card-art-speaks-for-itself)
-  const glowSize = frame === 'none' ? 0 : (size === 'sm' ? 12 : size === 'md' ? 22 : 32)
+  // New mode: card art is the hero — no border, no glow, no shadow
   const isNone = frame === 'none'
 
   return (
@@ -176,16 +175,15 @@ export default function AvatarFrame({
         position: 'relative', width: w,
         filter: isLoser ? 'grayscale(70%) brightness(0.4)' : 'none',
       }}>
-        {/* Card — no frame border, just outer glow */}
+        {/* Card — pure image, zero chrome */}
         <div style={{
           position: 'relative',
           width: '100%', aspectRatio: '2/3',
           borderRadius: size === 'sm' ? 6 : size === 'md' ? 10 : 14,
           border: 'none',
-          boxShadow: isNone ? 'none' : `0 0 ${glowSize}px ${cfg.glow}, 0 0 ${glowSize * 2}px ${cfg.glow}`,
+          boxShadow: 'none',
           overflow: 'hidden',
           background: 'transparent',
-          animation: cfg.animated ? 'ca-frame-glow 3s ease-in-out infinite' : 'none',
         }}>
           {/* Card image or placeholder */}
           {imageUrl ? (

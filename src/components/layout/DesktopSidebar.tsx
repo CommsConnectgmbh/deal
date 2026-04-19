@@ -78,20 +78,12 @@ export default function DesktopSidebar({
       flexDirection: 'column', gap: 4,
       zIndex: 100,
     }}>
-      {/* Logo */}
+      {/* Logo — image speaks for itself, no tile wrapper */}
       <Link href="/app/home" style={{
-        display: 'flex', alignItems: 'center', gap: 12,
+        display: 'flex', alignItems: 'center', gap: 10,
         padding: '4px 14px 22px', textDecoration: 'none',
       }}>
-        <div style={{
-          width: 44, height: 44, borderRadius: 12,
-          background: 'var(--gold-primary)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 4px 14px rgba(245,158,11,0.35)',
-          flexShrink: 0,
-        }}>
-          <img src="/logo.png" alt="" style={{ width: 30, height: 30, borderRadius: 6 }} />
-        </div>
+        <img src="/logo.png" alt="" style={{ width: 40, height: 40, flexShrink: 0 }} />
         <span style={{
           fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800,
           color: 'var(--text-primary)', letterSpacing: 1.2,
