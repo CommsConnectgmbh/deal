@@ -115,7 +115,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         level={level}
         globalRank={globalRank}
         scoreDisplay={scoreDisplay}
-        scoreColorVal={scoreColorVal}
       />
 
       {/* Top Bar — mobile only */}

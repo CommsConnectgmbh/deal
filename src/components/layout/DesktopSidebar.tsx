@@ -17,13 +17,12 @@ interface Props {
   level: number
   globalRank: number
   scoreDisplay: string
-  scoreColorVal: string
 }
 
 export default function DesktopSidebar({
   tabs, createHref = '/app/deals/create',
   unreadMsgs, unreadNotifs,
-  wins, losses, level, globalRank, scoreDisplay, scoreColorVal,
+  wins, losses, level, globalRank, scoreDisplay,
 }: Props) {
   const router = useRouter()
   const pathname = usePathname()
@@ -115,11 +114,11 @@ export default function DesktopSidebar({
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 6, letterSpacing: 1.5, color: 'var(--text-muted)' }}>{t('nav.level')}</div>
         </div>
         <div style={{ textAlign: 'left' }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>#{globalRank || '\u2013'}</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700, color: 'var(--gold-primary)' }}>#{globalRank || '\u2013'}</div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 6, letterSpacing: 1.5, color: 'var(--text-muted)' }}>{t('nav.rank')}</div>
         </div>
         <div style={{ textAlign: 'left' }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700, color: scoreColorVal }}>{scoreDisplay}</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700, color: 'var(--gold-primary)' }}>{scoreDisplay}</div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 6, letterSpacing: 1.5, color: 'var(--text-muted)' }}>{t('nav.score')}</div>
         </div>
       </Link>

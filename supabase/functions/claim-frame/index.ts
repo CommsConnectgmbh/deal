@@ -67,7 +67,52 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: 'Frame not owned' }), { status: 400, headers: corsHeaders })
       }
       await supabase.from('profiles').update({ active_frame: frame_id }).eq('id', user.id)
-      return new Response(JSON.stringify({ success: true, action: 'equipped', frame_id }), {
+
+      // Sync user_cards.is_equipped — find a card the user owns matching this frame
+      const { data: matchingCards } = await supabase
+        .from('user_cards')
+        .select('id, card_catalog!inner(frame)')
+        .eq('user_id', user.id)
+        .eq('card_catalog.frame', frame_id)
+        .order('obtained_at', { ascending: false })
+        .limit(1)
+
+      let matching_card_id = matchingCards?.[0]?.id as string | undefined
+
+      // No matching card yet — provision one (happens for bronze starter, or legacy users)
+      if (!matching_card_id) {
+        try {
+          const { data: newCardId } = await supabase.rpc('assign_card_for_frame', {
+            p_user_id: user.id,
+            p_frame: frame_id,
+            p_obtained_from: 'equip'
+          })
+          if (newCardId) {
+            const { data: newUserCard } = await supabase
+              .from('user_cards')
+              .select('id')
+              .eq('user_id', user.id)
+              .eq('card_id', newCardId)
+              .maybeSingle()
+            matching_card_id = newUserCard?.id
+          }
+        } catch (e) {
+          console.error('Card assignment during equip failed:', e)
+        }
+      }
+
+      if (matching_card_id) {
+        // Unequip all other cards, equip the matching one
+        await supabase.from('user_cards')
+          .update({ is_equipped: false })
+          .eq('user_id', user.id)
+          .neq('id', matching_card_id)
+        await supabase.from('user_cards')
+          .update({ is_equipped: true })
+          .eq('id', matching_card_id)
+      }
+
+      return new Response(JSON.stringify({ success: true, action: 'equipped', frame_id, card_id: matching_card_id }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
