@@ -107,7 +107,13 @@ export default function DealBetWidget({
   const barGradientPos = pctA
 
   return (
-    <div onClick={(e) => e.stopPropagation()} style={{ padding: '4px 10px 3px' }}>
+    <div onClick={(e) => e.stopPropagation()} style={{
+      padding: '8px 10px 7px',
+      background: 'linear-gradient(180deg, rgba(255,184,0,0.08) 0%, rgba(59,130,246,0.05) 100%)',
+      borderTop: '1px solid rgba(255,255,255,0.08)',
+      borderBottom: '1px solid rgba(255,255,255,0.08)',
+      position: 'relative',
+    }}>
 
       {/* ─── Header — natürlich, bündig mit Herz ─── */}
       <div style={{
