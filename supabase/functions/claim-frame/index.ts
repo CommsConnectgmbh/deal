@@ -68,18 +68,29 @@ serve(async (req) => {
       }
       await supabase.from('profiles').update({ active_frame: frame_id }).eq('id', user.id)
 
-      // Sync user_cards.is_equipped — find a card the user owns matching this frame
-      const { data: matchingCards } = await supabase
-        .from('user_cards')
-        .select('id, card_catalog!inner(frame)')
-        .eq('user_id', user.id)
-        .eq('card_catalog.frame', frame_id)
-        .order('obtained_at', { ascending: false })
-        .limit(1)
+      // Prefer a card matching the user's primary_archetype
+      const { data: profileRow } = await supabase
+        .from('profiles')
+        .select('primary_archetype')
+        .eq('id', user.id)
+        .single()
+      const primaryArchetype = profileRow?.primary_archetype as string | null | undefined
 
-      let matching_card_id = matchingCards?.[0]?.id as string | undefined
+      // Try 1: owned card with frame + primary_archetype
+      let matching_card_id: string | undefined
+      if (primaryArchetype) {
+        const { data: archCards } = await supabase
+          .from('user_cards')
+          .select('id, card_catalog!inner(frame, archetype)')
+          .eq('user_id', user.id)
+          .eq('card_catalog.frame', frame_id)
+          .eq('card_catalog.archetype', primaryArchetype)
+          .order('obtained_at', { ascending: false })
+          .limit(1)
+        matching_card_id = archCards?.[0]?.id as string | undefined
+      }
 
-      // No matching card yet — provision one (happens for bronze starter, or legacy users)
+      // Try 2: provision a new card (assign_card_for_frame prefers primary_archetype)
       if (!matching_card_id) {
         try {
           const { data: newCardId } = await supabase.rpc('assign_card_for_frame', {
@@ -97,8 +108,20 @@ serve(async (req) => {
             matching_card_id = newUserCard?.id
           }
         } catch (e) {
-          console.error('Card assignment during equip failed:', e)
+          console.error('Card assignment during equip failed (falling back to existing):', e)
         }
+      }
+
+      // Try 3: any owned card for this frame (most recent)
+      if (!matching_card_id) {
+        const { data: anyCards } = await supabase
+          .from('user_cards')
+          .select('id, card_catalog!inner(frame)')
+          .eq('user_id', user.id)
+          .eq('card_catalog.frame', frame_id)
+          .order('obtained_at', { ascending: false })
+          .limit(1)
+        matching_card_id = anyCards?.[0]?.id as string | undefined
       }
 
       if (matching_card_id) {
