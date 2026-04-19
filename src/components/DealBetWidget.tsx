@@ -108,10 +108,10 @@ export default function DealBetWidget({
 
   return (
     <div onClick={(e) => e.stopPropagation()} style={{
-      padding: '8px 10px 7px',
-      background: 'linear-gradient(180deg, rgba(255,184,0,0.08) 0%, rgba(59,130,246,0.05) 100%)',
-      borderTop: '1px solid rgba(255,255,255,0.08)',
-      borderBottom: '1px solid rgba(255,255,255,0.08)',
+      padding: '10px 10px 9px',
+      background: 'linear-gradient(180deg, rgba(255,184,0,0.11) 0%, rgba(59,130,246,0.07) 100%)',
+      borderTop: '1px solid var(--border-subtle)',
+      borderBottom: '1px solid var(--border-subtle)',
       position: 'relative',
     }}>
 
@@ -168,7 +168,7 @@ export default function DealBetWidget({
             }}
           >
             <span style={{
-              fontSize: 10, fontWeight: 700, color: myPickSide === 'a' ? colorA : '#F0ECE4',
+              fontSize: 11, fontWeight: 700, color: myPickSide === 'a' ? colorA : 'var(--text-primary)',
               fontFamily: 'var(--font-display)', whiteSpace: 'nowrap',
               letterSpacing: 0.3, flex: 1, minWidth: 0,
               overflow: 'hidden', textOverflow: 'ellipsis',
@@ -177,7 +177,7 @@ export default function DealBetWidget({
             </span>
             {betCounts.a > 0 && (
               <span style={{
-                fontSize: 8, fontWeight: 600, color: 'rgba(240,236,228,0.3)',
+                fontSize: 9, fontWeight: 600, color: 'var(--text-muted)',
                 fontFamily: 'var(--font-body)', flexShrink: 0,
               }}>
                 {betCounts.a}
@@ -201,7 +201,7 @@ export default function DealBetWidget({
             }}
           >
             <span style={{
-              fontSize: 10, fontWeight: 700, color: myPickSide === 'b' ? colorB : '#F0ECE4',
+              fontSize: 11, fontWeight: 700, color: myPickSide === 'b' ? colorB : 'var(--text-primary)',
               fontFamily: 'var(--font-display)', whiteSpace: 'nowrap',
               letterSpacing: 0.3, flex: 1, minWidth: 0,
               overflow: 'hidden', textOverflow: 'ellipsis',
@@ -211,7 +211,7 @@ export default function DealBetWidget({
             </span>
             {betCounts.b > 0 && (
               <span style={{
-                fontSize: 8, fontWeight: 600, color: 'rgba(240,236,228,0.3)',
+                fontSize: 9, fontWeight: 600, color: 'var(--text-muted)',
                 fontFamily: 'var(--font-body)', flexShrink: 0,
               }}>
                 {betCounts.b}

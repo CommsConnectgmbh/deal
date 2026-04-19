@@ -37,7 +37,7 @@ export default function LiveDuelCard({
   const opponentName = deal.opponent?.display_name || deal.opponent?.username || '?'
 
   return (
-    <div data-deal-card={deal.id} style={{ marginBottom: 14, position: 'relative' }}>
+    <div data-deal-card={deal.id} style={{ marginBottom: 20, position: 'relative' }}>
 
       {/* ═══ 3-DOT MENU — top right ═══ */}
       <div style={{ position: 'absolute', top: 14, right: 10, zIndex: 8 }}>
