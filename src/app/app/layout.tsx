@@ -99,7 +99,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const reliabilityScore = (profile as any)?.reliability_score
   const reliabilityColor = (profile as any)?.reliability_color
   const scoreDisplay = reliabilityScore != null ? `${Math.round(reliabilityScore * 100)}%` : '—'
-  const scoreColorVal = reliabilityColor === 'green' ? '#22C55E' : reliabilityColor === 'yellow' ? '#EAB308' : reliabilityColor === 'red' ? '#EF4444' : 'var(--text-muted)'
 
   return (
     <div className="app-shell">
@@ -185,7 +184,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div style={{ textAlign: 'center' }}>
               <span style={{
                 fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700,
-                color: 'var(--text-primary)', letterSpacing: 0.5,
+                color: 'var(--gold-primary)', letterSpacing: 0.5,
               }}>
                 #{globalRank || '\u2013'}
               </span>
@@ -204,7 +203,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div style={{ textAlign: 'center' }}>
               <span style={{
                 fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700,
-                color: scoreColorVal, letterSpacing: 0.5,
+                color: 'var(--gold-primary)', letterSpacing: 0.5,
               }}>
                 {scoreDisplay}
               </span>
