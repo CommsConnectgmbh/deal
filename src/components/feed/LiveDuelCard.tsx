@@ -70,26 +70,65 @@ export default function LiveDuelCard({
           </p>
         </div>
 
-        {/* ═══ MEDIA + BEGEGNUNG LESEZEICHEN ═══ */}
-        <div onClick={goToDeal} style={{ position: 'relative', cursor: 'pointer' }}>
-          {/* Lesezeichen oben links */}
+        {/* ═══ MEDIA + BEGEGNUNG LESEZEICHEN (top) + EINSATZ LESEZEICHEN (bottom) ═══ */}
+        <div onClick={goToDeal} style={{
+          position: 'relative', cursor: 'pointer',
+          minHeight: deal.media_url ? undefined : 88,
+          background: deal.media_url ? undefined : `
+            radial-gradient(at 20% 30%, rgba(245,158,11,0.18) 0%, transparent 55%),
+            radial-gradient(at 80% 70%, rgba(34,197,94,0.12) 0%, transparent 55%),
+            radial-gradient(at 50% 100%, rgba(59,130,246,0.10) 0%, transparent 50%)
+          `,
+        }}>
+          {/* Lesezeichen oben links — Begegnung (Apple liquid glass) */}
           <div style={{
             position: 'absolute', top: 0, left: 12, zIndex: 2,
-            background: 'var(--glass-bg)',
-            backdropFilter: 'blur(12px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(12px) saturate(180%)',
-            border: '1px solid var(--glass-border)',
+            background: 'rgba(255,255,255,0.55)',
+            backdropFilter: 'blur(20px) saturate(200%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(200%)',
+            border: '1px solid rgba(255,255,255,0.6)',
             borderTop: 'none',
-            padding: '5px 10px', borderRadius: '0 0 8px 8px',
+            padding: '5px 10px', borderRadius: '0 0 12px 12px',
             fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)',
-            boxShadow: 'var(--shadow-sm)',
-            display: 'flex', alignItems: 'center', gap: 5,
+            boxShadow: '0 4px 14px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.5)',
+            display: 'flex', alignItems: 'center', gap: 6,
           }}>
             <span>{'\u2694\uFE0F'}</span>
             <span>{creatorName}</span>
-            <span style={{ color: 'var(--text-muted)' }}>vs</span>
+            <span style={{ color: 'var(--text-muted)', fontWeight: 800, fontSize: 10, letterSpacing: 1 }}>VS</span>
             <span>{opponentName}</span>
           </div>
+
+          {/* Lesezeichen unten links — Einsatz (mirror of top bookmark) */}
+          {(deal.stake || deal.deadline) && (
+            <div style={{
+              position: 'absolute', bottom: 0, left: 12, zIndex: 2,
+              background: 'rgba(255,255,255,0.55)',
+              backdropFilter: 'blur(20px) saturate(200%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(200%)',
+              border: '1px solid rgba(255,255,255,0.6)',
+              borderBottom: 'none',
+              padding: '5px 10px', borderRadius: '12px 12px 0 0',
+              fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)',
+              boxShadow: '0 -4px 14px rgba(0,0,0,0.08), inset 0 -1px 0 rgba(255,255,255,0.5)',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              {deal.stake && (
+                <>
+                  <span>{'\uD83C\uDFC6'}</span>
+                  <span>{deal.stake}</span>
+                </>
+              )}
+              {deal.deadline && (() => {
+                const diff = new Date(deal.deadline).getTime() - Date.now()
+                if (diff <= 0) return <span style={{ fontSize: 10, color: 'var(--status-error)', fontWeight: 600, marginLeft: deal.stake ? 6 : 0 }}>{'\u23F3'} {t('status.expired')}</span>
+                const d = Math.floor(diff / 86400000), h = Math.floor((diff % 86400000) / 3600000), m = Math.floor((diff % 3600000) / 60000)
+                const txt = d > 0 ? `${d}d` : h > 0 ? `${h}h` : `${m}min`
+                return <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', marginLeft: deal.stake ? 6 : 0 }}>{'\u23F3'} {txt}</span>
+              })()}
+            </div>
+          )}
+
           {deal.media_url ? (
             deal.media_type === 'video' ? (
               <video ref={videoRef} src={deal.media_url} muted playsInline loop preload="auto"
@@ -98,37 +137,8 @@ export default function LiveDuelCard({
               <img src={deal.media_url} alt="" loading="lazy"
                 style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block' }} />
             )
-          ) : (
-            <div style={{ height: 28 }} />
-          )}
+          ) : null}
         </div>
-
-        {/* ═══ EINSATZ — mittig, gerahmt, gleiche Größe wie Titel ═══ */}
-        {(deal.stake || deal.deadline) && (
-          <div onClick={goToDeal} style={{
-            cursor: 'pointer', padding: '8px 12px',
-            display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
-          }}>
-            {deal.stake && (
-              <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 900,
-                color: 'var(--text-primary)', letterSpacing: 1,
-                borderRadius: 8, padding: '6px 16px',
-                background: 'var(--bg-overlay)',
-                border: '1px solid var(--border-subtle)',
-              }}>
-                {'\uD83C\uDFC6'} {deal.stake}
-              </span>
-            )}
-            {deal.deadline && (() => {
-              const diff = new Date(deal.deadline).getTime() - Date.now()
-              if (diff <= 0) return <span style={{ fontSize: 9, color: 'var(--status-error)', fontWeight: 600 }}>{'\u23F3'} {t('status.expired')}</span>
-              const d = Math.floor(diff / 86400000), h = Math.floor((diff % 86400000) / 3600000), m = Math.floor((diff % 3600000) / 60000)
-              const txt = d > 0 ? `${d}d` : h > 0 ? `${h}h` : `${m}min`
-              return <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-muted)' }}>{'\u23F3'} {txt}</span>
-            })()}
-          </div>
-        )}
 
         {/* ═══ Tipp Widget ═══ */}
         <DealBetWidget
