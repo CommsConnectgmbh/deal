@@ -127,13 +127,14 @@ serve(async (req) => {
       bytes[i] = binaryStr.charCodeAt(i)
     }
 
-    // ── Build filename ──
+    // ── Build filename (sanitized: only [A-Z0-9_], no path traversal) ──
+    const safe = (s: string) => String(s).replace(/[^A-Za-z0-9]/g, '').toUpperCase()
     const g = gender === 'male' ? 'M' : 'F'
-    const a = age.charAt(0).toUpperCase()
-    const o = origin.substring(0, 2).toUpperCase()
-    const h = hair.replace(/\s+/g, '').substring(0, 3).toUpperCase()
+    const a = safe(age).charAt(0) || 'X'
+    const o = safe(origin).substring(0, 2) || 'XX'
+    const h = safe(hair).substring(0, 3) || 'XXX'
     const ts = Date.now()
-    const prefix = mode === 'archetype' ? (archetype || 'custom').toUpperCase() : 'BASE'
+    const prefix = mode === 'archetype' ? (safe(archetype) || 'CUSTOM') : 'BASE'
     const fileName = `avatars/${prefix}_${g}_${a}_${o}_${h}_${ts}.webp`
 
     // ── Upload to Supabase Storage ──
