@@ -372,7 +372,7 @@ export default function ShopPage() {
         body: JSON.stringify({ product_type: productType })
       })
       const data = await res.json()
-      if (data.url) {
+      if (data.url && /^https:\/\/(checkout|billing)\.stripe\.com\//.test(data.url)) {
         trackStripeCheckoutStarted(productType, 0)
         window.location.href = data.url
       } else showToast('⚠️ ' + (data.error || t('shop.stripeError')))

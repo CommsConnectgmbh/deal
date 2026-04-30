@@ -27,11 +27,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { dealId, fileName, fileType, bucket: reqBucket } = body
-    const bucket = reqBucket || 'deal-media'
+    const { dealId, fileName, fileType } = body
+    const bucket = 'deal-media'
 
     if (!dealId || !fileName) {
       return NextResponse.json({ error: 'dealId und fileName erforderlich' }, { status: 400 })
+    }
+    if (!/^[a-zA-Z0-9-]{1,64}$/.test(String(dealId))) {
+      return NextResponse.json({ error: 'Ungültige dealId' }, { status: 400 })
     }
 
     const isVideo = (fileType || '').startsWith('video/') || /\.(mp4|mov|webm|m4v|3gp|mpeg)$/i.test(fileName)
