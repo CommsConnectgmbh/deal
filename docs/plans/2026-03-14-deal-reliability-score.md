@@ -219,7 +219,7 @@ After the winner/loser notifications (line ~348) and before side bets resolution
 
 ```bash
 cd "C:\Users\RainerRoloff\Downloads\DealBuddy-FINAL-FOR-FAISAL\dealbuddy-pwa"
-SUPABASE_ACCESS_TOKEN=sbp_26ab4b6c99f46ea170d15cc9cd13c91ae46bcbdb npx supabase functions deploy confirm-winner --project-ref vjygmfaefhkwznldegvq --use-api
+SUPABASE_ACCESS_TOKEN=$SUPABASE_ACCESS_TOKEN npx supabase functions deploy confirm-winner --project-ref vjygmfaefhkwznldegvq --use-api
 ```
 
 **Step 3: Commit**
@@ -839,7 +839,7 @@ serve(async (req) => {
 **Step 2: Deploy the edge function**
 
 ```bash
-SUPABASE_ACCESS_TOKEN=sbp_26ab4b6c99f46ea170d15cc9cd13c91ae46bcbdb npx supabase functions deploy expire-fulfillments --project-ref vjygmfaefhkwznldegvq --use-api
+SUPABASE_ACCESS_TOKEN=$SUPABASE_ACCESS_TOKEN npx supabase functions deploy expire-fulfillments --project-ref vjygmfaefhkwznldegvq --use-api
 ```
 
 **Step 3: Set up the cron job in Supabase**
