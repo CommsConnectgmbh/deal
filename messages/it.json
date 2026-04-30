@@ -579,7 +579,14 @@
     "usernameMax": "Massimo 20 caratteri",
     "usernameChars": "Solo a-z, 0-9 e _",
     "usernameTaken": "Questo nome utente è già in uso",
-    "displayNameTaken": "Questo nome è già in uso"
+    "displayNameTaken": "Questo nome è già in uso",
+    "billing": "Pagamenti",
+    "managePayments": "Gestisci pagamenti e ricevute",
+    "managePaymentsText": "Visualizza metodi di pagamento, fatture e acquisti passati",
+    "openBillingPortal": "Gestisci pagamenti",
+    "billingLoading": "APERTURA...",
+    "billingError": "Impossibile aprire il portale pagamenti.",
+    "billingNoPurchases": "Nessun acquisto – portale non disponibile."
   },
   "battlepass": {
     "title": "Battle Pass",

@@ -39,6 +39,8 @@ export default function SettingsPage() {
   const [pushLoading, setPushLoading]   = useState(false)
   const [photoSheetOpen, setPhotoSheetOpen] = useState(false)
   const [allowStoryDm, setAllowStoryDm] = useState(true)
+  const [billingLoading, setBillingLoading] = useState(false)
+  const [billingError, setBillingError] = useState('')
   const [displayNameError, setDisplayNameError] = useState('')
   const [usernameInput, setUsernameInput] = useState(profile?.username || '')
   const [usernameError, setUsernameError] = useState('')
@@ -182,18 +184,57 @@ export default function SettingsPage() {
     if (deleteInput !== t('settings.deleteConfirmWord')) return
     setDeletingAccount(true)
     try {
-      // Soft delete: anonymize profile
-      await supabase.from('profiles').update({
-        display_name: 'Gelöschter Nutzer',
-        username: `deleted_${profile!.id.slice(0,8)}`,
-        bio: null,
-        avatar_url: null,
-        deleted_at: new Date().toISOString()
-      }).eq('id', profile!.id)
+      // Server-side soft delete (anonymizes profile + revokes refresh tokens)
+      const { data: { session: authSession } } = await supabase.auth.getSession()
+      const res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authSession?.access_token
+            ? { Authorization: `Bearer ${authSession.access_token}` }
+            : {}),
+        },
+      })
+      if (!res.ok) {
+        setDeletingAccount(false)
+        return
+      }
       await signOut()
       router.replace('/auth/login')
     } catch {
       setDeletingAccount(false)
+    }
+  }
+
+  const openBillingPortal = async () => {
+    if (billingLoading) return
+    setBillingError('')
+    setBillingLoading(true)
+    try {
+      const { data: { session: authSession } } = await supabase.auth.getSession()
+      const res = await fetch('/api/billing/portal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authSession?.access_token
+            ? { Authorization: `Bearer ${authSession.access_token}` }
+            : {}),
+        },
+      })
+      const data: { url?: string; error?: string; code?: string } = await res.json()
+      if (!res.ok || !data.url) {
+        if (data.code === 'NO_PURCHASES') {
+          setBillingError(t('settings.billingNoPurchases'))
+        } else {
+          setBillingError(t('settings.billingError'))
+        }
+        setBillingLoading(false)
+        return
+      }
+      window.location.href = data.url
+    } catch {
+      setBillingError(t('settings.billingError'))
+      setBillingLoading(false)
     }
   }
 
@@ -554,6 +595,23 @@ export default function SettingsPage() {
           </div>
           <div style={{ fontSize: 20, color: '#5865F2' }}>→</div>
         </a>
+
+        {/* Billing */}
+        <p style={sectionTitle}>{t('settings.billing').toUpperCase()}</p>
+        <div style={card}>
+          <p style={{ fontSize:15, color:'var(--text-primary)', marginBottom:4 }}>{t('settings.managePayments')}</p>
+          <p style={{ fontSize:12, color:'var(--text-secondary)', marginBottom:14 }}>{t('settings.managePaymentsText')}</p>
+          {billingError && (
+            <p style={{ fontSize: 12, color: 'var(--status-error)', marginBottom: 10 }}>{billingError}</p>
+          )}
+          <button
+            onClick={openBillingPortal}
+            disabled={billingLoading}
+            style={{ width:'100%', padding:12, borderRadius:10, border:'1px solid var(--gold-glow)', background:'transparent', color:'var(--text-primary)', fontFamily:'var(--font-display)', fontSize:10, letterSpacing:1, cursor: billingLoading ? 'default' : 'pointer' }}
+          >
+            {billingLoading ? t('settings.billingLoading') : t('settings.openBillingPortal').toUpperCase()}
+          </button>
+        </div>
 
         {/* Danger Zone */}
         <p style={sectionTitle}>{t('settings.dangerZone').toUpperCase()}</p>

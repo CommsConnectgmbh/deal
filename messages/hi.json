@@ -579,7 +579,14 @@
     "usernameMax": "ज़्यादा से ज़्यादा 20 कैरेक्टर",
     "usernameChars": "सिर्फ़ a-z, 0-9 और _",
     "usernameTaken": "ये यूज़रनेम पहले से ले लिया गया है",
-    "displayNameTaken": "ये नाम पहले से ले लिया गया है"
+    "displayNameTaken": "ये नाम पहले से ले लिया गया है",
+    "billing": "भुगतान",
+    "managePayments": "भुगतान और रसीदें मैनेज करें",
+    "managePaymentsText": "पेमेंट मेथड्स, इनवॉइस और पुरानी खरीदारी देखें",
+    "openBillingPortal": "भुगतान मैनेज करें",
+    "billingLoading": "खोल रहे हैं...",
+    "billingError": "बिलिंग पोर्टल नहीं खोल पाए।",
+    "billingNoPurchases": "अभी तक कोई खरीदारी नहीं – पोर्टल उपलब्ध नहीं।"
   },
   "battlepass": {
     "title": "Battle Pass",

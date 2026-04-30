@@ -579,7 +579,14 @@
     "usernameMax": "20 حرفاً كحد أقصى",
     "usernameChars": "فقط a-z، 0-9 و _",
     "usernameTaken": "اسم المستخدم هذا مأخوذ بالفعل",
-    "displayNameTaken": "هذا الاسم مأخوذ بالفعل"
+    "displayNameTaken": "هذا الاسم مأخوذ بالفعل",
+    "billing": "المدفوعات",
+    "managePayments": "إدارة المدفوعات والإيصالات",
+    "managePaymentsText": "عرض طرق الدفع والفواتير والمشتريات السابقة",
+    "openBillingPortal": "إدارة المدفوعات",
+    "billingLoading": "جارٍ الفتح...",
+    "billingError": "تعذر فتح بوابة الدفع.",
+    "billingNoPurchases": "لا توجد مشتريات بعد – البوابة غير متاحة."
   },
   "battlepass": {
     "title": "Battle Pass",

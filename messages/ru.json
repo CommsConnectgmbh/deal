@@ -579,7 +579,14 @@
     "usernameMax": "Максимум 20 символов",
     "usernameChars": "Только a-z, 0-9 и _",
     "usernameTaken": "Это имя пользователя уже занято",
-    "displayNameTaken": "Это отображаемое имя уже занято"
+    "displayNameTaken": "Это отображаемое имя уже занято",
+    "billing": "Платежи",
+    "managePayments": "Управление платежами и квитанциями",
+    "managePaymentsText": "Посмотреть способы оплаты, счета и прошлые покупки",
+    "openBillingPortal": "Управлять платежами",
+    "billingLoading": "ОТКРЫТИЕ...",
+    "billingError": "Не удалось открыть платёжный портал.",
+    "billingNoPurchases": "Пока нет покупок – портал недоступен."
   },
   "battlepass": {
     "title": "Battle Pass",
