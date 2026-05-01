@@ -78,6 +78,13 @@
     "founderDesc": "Limited frame & badge for the first 1,000",
     "usernameHint": "3–20 characters · only a-z, 0-9, _ · uppercase is auto-converted"
   },
+  "consent": {
+    "title": "Privacy",
+    "body": "We use anonymous analytics (PostHog) to improve the app. Nothing is sold to third parties. You can opt out at any time.",
+    "privacyLink": "Privacy policy",
+    "accept": "Accept",
+    "decline": "Decline"
+  },
   "home": {
     "greeting_morning": "Good Morning",
     "greeting_day": "Good Day",
@@ -586,7 +593,19 @@
     "openBillingPortal": "Manage payments",
     "billingLoading": "OPENING...",
     "billingError": "Could not open the billing portal.",
-    "billingNoPurchases": "No purchases yet – portal not available."
+    "billingNoPurchases": "No purchases yet – portal not available.",
+    "analyticsTitle": "Analytics",
+    "analyticsLabel": "Analytics cookies",
+    "analyticsSub": "Anonymous usage stats to help us improve the app",
+    "analyticsUndecided": "You haven't decided yet. No analytics run until you opt in.",
+    "analyticsGranted": "Active – thanks! You can opt out at any time.",
+    "analyticsDenied": "Disabled. No analytics data is collected.",
+    "myDataTitle": "My data",
+    "exportData": "Export your data",
+    "exportDataText": "Download your profile, deals, inventory and purchases as a JSON file (GDPR Art. 20).",
+    "exportButton": "Export data (JSON)",
+    "exportLoading": "GENERATING...",
+    "exportError": "Could not generate the export. Please try again later."
   },
   "battlepass": {
     "title": "Battle Pass",

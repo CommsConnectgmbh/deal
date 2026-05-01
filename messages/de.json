@@ -78,6 +78,13 @@
     "founderDesc": "Limitierter Rahmen & Badge für die ersten 1.000",
     "usernameHint": "3–20 Zeichen · nur a-z, 0-9, _ · Grossbuchstaben werden automatisch umgewandelt"
   },
+  "consent": {
+    "title": "Datenschutz",
+    "body": "Wir nutzen anonyme Analyse (PostHog), um die App zu verbessern. Nichts wird an Dritte verkauft. Du kannst jederzeit widersprechen.",
+    "privacyLink": "Datenschutzerklärung",
+    "accept": "Akzeptieren",
+    "decline": "Ablehnen"
+  },
   "home": {
     "greeting_morning": "Guten Morgen",
     "greeting_day": "Guten Tag",
@@ -586,7 +593,19 @@
     "openBillingPortal": "Zahlungen verwalten",
     "billingLoading": "WIRD GEÖFFNET...",
     "billingError": "Konnte das Zahlungs-Portal nicht öffnen.",
-    "billingNoPurchases": "Noch keine Käufe vorhanden – Portal nicht verfügbar."
+    "billingNoPurchases": "Noch keine Käufe vorhanden – Portal nicht verfügbar.",
+    "analyticsTitle": "Analyse",
+    "analyticsLabel": "Analyse-Cookies",
+    "analyticsSub": "Anonyme Nutzungs-Statistiken zur App-Verbesserung",
+    "analyticsUndecided": "Du hast noch nicht entschieden. Wir starten keine Analyse, bis du zustimmst.",
+    "analyticsGranted": "Aktiv – danke! Du kannst jederzeit widersprechen.",
+    "analyticsDenied": "Deaktiviert. Es werden keine Analyse-Daten erhoben.",
+    "myDataTitle": "Meine Daten",
+    "exportData": "Daten exportieren",
+    "exportDataText": "Lade dein Profil, deine Deals, dein Inventar und deine Käufe als JSON-Datei (DSGVO Art. 20).",
+    "exportButton": "Daten exportieren (JSON)",
+    "exportLoading": "WIRD ERSTELLT...",
+    "exportError": "Export konnte nicht erstellt werden. Bitte später erneut versuchen."
   },
   "battlepass": {
     "title": "Battle Pass",

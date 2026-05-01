@@ -8,6 +8,7 @@ import ProfileImage from '@/components/ProfileImage'
 import PhotoUploadSheet from '@/components/PhotoUploadSheet'
 import { isPushSupported, subscribeToPush, unsubscribeFromPush } from '@/lib/pushNotifications'
 import { useTheme } from '@/hooks/useTheme'
+import { getAnalyticsConsent, setAnalyticsConsent } from '@/lib/analytics'
 
 const inputStyle: React.CSSProperties = {
   width:'100%', padding:'12px 16px', background:'var(--bg-elevated)', border:'1px solid var(--gold-glow)', borderRadius:10, color:'var(--text-primary)', fontSize:15, fontFamily:'var(--font-body)', outline:'none'
@@ -41,6 +42,9 @@ export default function SettingsPage() {
   const [allowStoryDm, setAllowStoryDm] = useState(true)
   const [billingLoading, setBillingLoading] = useState(false)
   const [billingError, setBillingError] = useState('')
+  const [analyticsConsent, setAnalyticsConsentState] = useState<'granted' | 'denied' | null>(null)
+  const [exportLoading, setExportLoading] = useState(false)
+  const [exportError, setExportError] = useState('')
   const [displayNameError, setDisplayNameError] = useState('')
   const [usernameInput, setUsernameInput] = useState(profile?.username || '')
   const [usernameError, setUsernameError] = useState('')
@@ -74,6 +78,52 @@ export default function SettingsPage() {
         .then(({ data }: any) => setPushEnabled(!!(data && data.length > 0)))
     }
   }, [profile?.id])
+
+  useEffect(() => {
+    setAnalyticsConsentState(getAnalyticsConsent())
+  }, [])
+
+  const toggleAnalyticsConsent = (enabled: boolean) => {
+    const next: 'granted' | 'denied' = enabled ? 'granted' : 'denied'
+    setAnalyticsConsent(next)
+    setAnalyticsConsentState(next)
+  }
+
+  const exportMyData = async () => {
+    if (exportLoading) return
+    setExportError('')
+    setExportLoading(true)
+    try {
+      const { data: { session: authSession } } = await supabase.auth.getSession()
+      const res = await fetch('/api/account/export', {
+        method: 'GET',
+        headers: {
+          ...(authSession?.access_token
+            ? { Authorization: `Bearer ${authSession.access_token}` }
+            : {}),
+        },
+      })
+      if (!res.ok) {
+        setExportError(t('settings.exportError'))
+        setExportLoading(false)
+        return
+      }
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const date = new Date().toISOString().slice(0, 10)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `dealbuddy-export-${date}.json`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch {
+      setExportError(t('settings.exportError'))
+    } finally {
+      setExportLoading(false)
+    }
+  }
 
   const saveProfile = async () => {
     if (!displayName.trim()) return
@@ -610,6 +660,41 @@ export default function SettingsPage() {
             style={{ width:'100%', padding:12, borderRadius:10, border:'1px solid var(--gold-glow)', background:'transparent', color:'var(--text-primary)', fontFamily:'var(--font-display)', fontSize:10, letterSpacing:1, cursor: billingLoading ? 'default' : 'pointer' }}
           >
             {billingLoading ? t('settings.billingLoading') : t('settings.openBillingPortal').toUpperCase()}
+          </button>
+        </div>
+
+        {/* Analytics / Privacy Consent */}
+        <p style={sectionTitle}>{t('settings.analyticsTitle').toUpperCase()}</p>
+        <div style={card}>
+          <ToggleRow
+            label={t('settings.analyticsLabel')}
+            sub={t('settings.analyticsSub')}
+            checked={analyticsConsent === 'granted'}
+            onChange={toggleAnalyticsConsent}
+          />
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.4 }}>
+            {analyticsConsent === null
+              ? t('settings.analyticsUndecided')
+              : analyticsConsent === 'granted'
+                ? t('settings.analyticsGranted')
+                : t('settings.analyticsDenied')}
+          </p>
+        </div>
+
+        {/* My Data — DSGVO Art. 20 export */}
+        <p style={sectionTitle}>{t('settings.myDataTitle').toUpperCase()}</p>
+        <div style={card}>
+          <p style={{ fontSize:15, color:'var(--text-primary)', marginBottom:4 }}>{t('settings.exportData')}</p>
+          <p style={{ fontSize:12, color:'var(--text-secondary)', marginBottom:14 }}>{t('settings.exportDataText')}</p>
+          {exportError && (
+            <p style={{ fontSize: 12, color: 'var(--status-error)', marginBottom: 10 }}>{exportError}</p>
+          )}
+          <button
+            onClick={exportMyData}
+            disabled={exportLoading}
+            style={{ width:'100%', padding:12, borderRadius:10, border:'1px solid var(--gold-glow)', background:'transparent', color:'var(--text-primary)', fontFamily:'var(--font-display)', fontSize:10, letterSpacing:1, cursor: exportLoading ? 'default' : 'pointer' }}
+          >
+            {exportLoading ? t('settings.exportLoading') : t('settings.exportButton').toUpperCase()}
           </button>
         </div>
 

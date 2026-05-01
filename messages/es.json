@@ -78,6 +78,13 @@
     "founderDesc": "Marco e insignia limitados para los primeros 1.000",
     "usernameHint": "3–20 caracteres · solo a-z, 0-9, _ · las mayúsculas se convierten automáticamente"
   },
+  "consent": {
+    "title": "Privacidad",
+    "body": "Usamos analítica anónima (PostHog) para mejorar la app. Nada se vende a terceros. Puedes oponerte en cualquier momento.",
+    "privacyLink": "Política de privacidad",
+    "accept": "Aceptar",
+    "decline": "Rechazar"
+  },
   "home": {
     "greeting_morning": "Buenos días",
     "greeting_day": "Buenas tardes",
@@ -586,7 +593,19 @@
     "openBillingPortal": "Gestionar pagos",
     "billingLoading": "ABRIENDO...",
     "billingError": "No se pudo abrir el portal de pagos.",
-    "billingNoPurchases": "Aún no hay compras – portal no disponible."
+    "billingNoPurchases": "Aún no hay compras – portal no disponible.",
+    "analyticsTitle": "Analítica",
+    "analyticsLabel": "Cookies de analítica",
+    "analyticsSub": "Estadísticas anónimas para ayudarnos a mejorar la app",
+    "analyticsUndecided": "Aún no has decidido. No se ejecuta analítica hasta que aceptes.",
+    "analyticsGranted": "Activa – ¡gracias! Puedes oponerte en cualquier momento.",
+    "analyticsDenied": "Desactivada. No se recopilan datos de analítica.",
+    "myDataTitle": "Mis datos",
+    "exportData": "Exportar mis datos",
+    "exportDataText": "Descarga tu perfil, deals, inventario y compras como archivo JSON (RGPD Art. 20).",
+    "exportButton": "Exportar datos (JSON)",
+    "exportLoading": "GENERANDO...",
+    "exportError": "No se pudo generar la exportación. Inténtalo de nuevo más tarde."
   },
   "battlepass": {
     "title": "Battle Pass",

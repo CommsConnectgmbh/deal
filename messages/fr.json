@@ -78,6 +78,13 @@
     "founderDesc": "Cadre et badge limités pour les 1 000 premiers",
     "usernameHint": "3–20 caractères · seulement a-z, 0-9, _ · les majuscules sont converties automatiquement"
   },
+  "consent": {
+    "title": "Confidentialité",
+    "body": "Nous utilisons des analyses anonymes (PostHog) pour améliorer l'app. Rien n'est vendu à des tiers. Vous pouvez vous désinscrire à tout moment.",
+    "privacyLink": "Politique de confidentialité",
+    "accept": "Accepter",
+    "decline": "Refuser"
+  },
   "home": {
     "greeting_morning": "Bonjour",
     "greeting_day": "Bonne journée",
@@ -586,7 +593,19 @@
     "openBillingPortal": "Gérer les paiements",
     "billingLoading": "OUVERTURE...",
     "billingError": "Impossible d'ouvrir le portail de paiement.",
-    "billingNoPurchases": "Aucun achat pour le moment – portail indisponible."
+    "billingNoPurchases": "Aucun achat pour le moment – portail indisponible.",
+    "analyticsTitle": "Analyse",
+    "analyticsLabel": "Cookies d'analyse",
+    "analyticsSub": "Statistiques anonymes pour nous aider à améliorer l'app",
+    "analyticsUndecided": "Vous n'avez pas encore décidé. Aucune analyse tant que vous n'avez pas accepté.",
+    "analyticsGranted": "Activé – merci ! Vous pouvez vous désinscrire à tout moment.",
+    "analyticsDenied": "Désactivé. Aucune donnée d'analyse n'est collectée.",
+    "myDataTitle": "Mes données",
+    "exportData": "Exporter mes données",
+    "exportDataText": "Téléchargez votre profil, vos deals, votre inventaire et vos achats au format JSON (RGPD art. 20).",
+    "exportButton": "Exporter les données (JSON)",
+    "exportLoading": "GÉNÉRATION...",
+    "exportError": "Impossible de générer l'export. Veuillez réessayer plus tard."
   },
   "battlepass": {
     "title": "Battle Pass",

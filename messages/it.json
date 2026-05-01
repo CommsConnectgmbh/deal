@@ -78,6 +78,13 @@
     "founderDesc": "Cornice e distintivo limitati per i primi 1.000",
     "usernameHint": "3–20 caratteri · solo a-z, 0-9, _ · le maiuscole vengono convertite automaticamente"
   },
+  "consent": {
+    "title": "Privacy",
+    "body": "Utilizziamo analisi anonime (PostHog) per migliorare l'app. Nulla viene venduto a terzi. Puoi opporti in qualsiasi momento.",
+    "privacyLink": "Informativa sulla privacy",
+    "accept": "Accetta",
+    "decline": "Rifiuta"
+  },
   "home": {
     "greeting_morning": "Buongiorno",
     "greeting_day": "Buon pomeriggio",
@@ -586,7 +593,19 @@
     "openBillingPortal": "Gestisci pagamenti",
     "billingLoading": "APERTURA...",
     "billingError": "Impossibile aprire il portale pagamenti.",
-    "billingNoPurchases": "Nessun acquisto – portale non disponibile."
+    "billingNoPurchases": "Nessun acquisto – portale non disponibile.",
+    "analyticsTitle": "Analisi",
+    "analyticsLabel": "Cookie di analisi",
+    "analyticsSub": "Statistiche anonime per aiutarci a migliorare l'app",
+    "analyticsUndecided": "Non hai ancora deciso. Nessuna analisi finché non acconsenti.",
+    "analyticsGranted": "Attivo – grazie! Puoi opporti in qualsiasi momento.",
+    "analyticsDenied": "Disattivato. Non vengono raccolti dati di analisi.",
+    "myDataTitle": "I miei dati",
+    "exportData": "Esporta i miei dati",
+    "exportDataText": "Scarica profilo, deal, inventario e acquisti come file JSON (GDPR Art. 20).",
+    "exportButton": "Esporta dati (JSON)",
+    "exportLoading": "GENERAZIONE...",
+    "exportError": "Impossibile generare l'esportazione. Riprova più tardi."
   },
   "battlepass": {
     "title": "Battle Pass",
