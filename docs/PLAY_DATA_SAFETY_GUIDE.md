@@ -106,7 +106,7 @@ Klick "Weiter".
 
 Im Hinweistext zur "Datenlöschungs-Anfrage" zusätzlich erwähnen:
 
-> Nutzer können ihr Konto direkt in der App unter "Profil → Konto löschen" entfernen. Dabei werden personenbezogene Daten anonymisiert bzw. gelöscht. Alternativ: Mail an support@deal-buddy.app.
+> Nutzer können ihr Konto direkt in der App unter "Profil → Konto löschen" entfernen. Dabei werden personenbezogene Daten anonymisiert bzw. gelöscht. Alternativ: Mail an info@deal-buddy.app.
 
 ## 6. Zielgruppe / Altersgate (Schritt 5)
 

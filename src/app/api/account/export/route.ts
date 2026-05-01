@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
       user_email: userEmail,
       app: 'DealBuddy',
       legal_basis: 'GDPR Art. 20 (Right to data portability)',
-      contact: 'support@deal-buddy.app',
+      contact: 'info@deal-buddy.app',
     },
     user_profile: userProfile,
     deals,

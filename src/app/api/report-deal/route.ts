@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         from: 'DealBuddy <noreply@deal-buddy.app>',
-        to: ['support@deal-buddy.de'],
+        to: ['info@deal-buddy.app'],
         subject: `[Report] Deal ${dealId.slice(0, 8)}... - ${reasonLabels[reason] || reason}`,
         html: `
           <h2>Deal Report</h2>
