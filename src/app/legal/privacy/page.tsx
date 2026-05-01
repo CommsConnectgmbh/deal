@@ -23,7 +23,7 @@ export default function PrivacyPage() {
       {/* Content */}
       <div style={{ padding: '24px 16px 64px', lineHeight: 1.7, fontSize: 14 }}>
 
-        <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>Stand: 24. M&auml;rz 2026</p>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>Stand: 1. Mai 2026</p>
 
         <Section title="1. Verantwortlicher">
           <p>
@@ -136,8 +136,14 @@ export default function PrivacyPage() {
             erfasst anonymisierte Nutzungsdaten wie Seitenaufrufe, Klickverhalten und Feature-Nutzung.
           </p>
           <p style={{ marginTop: 12 }}>
-            Die Verarbeitung erfolgt auf Grundlage unseres berechtigten Interesses (Art. 6 Abs. 1 lit. f DSGVO)
-            an der Verbesserung unseres Angebots.
+            Die Verarbeitung erfolgt auf Grundlage Ihrer Einwilligung (Art. 6 Abs. 1 lit. a DSGVO),
+            die Sie beim ersten App-Start &uuml;ber das Cookie-Consent-Banner erteilen.
+          </p>
+          <p style={{ marginTop: 12, padding: '12px 16px', background: 'rgba(96,165,250,0.08)', borderRadius: 10, borderLeft: '3px solid #60A5FA' }}>
+            <strong>Einwilligung widerrufen:</strong> Sie k&ouml;nnen Ihre Einwilligung in die
+            Analyse-Verarbeitung jederzeit mit Wirkung f&uuml;r die Zukunft widerrufen unter{' '}
+            <strong>Einstellungen &rarr; Datenschutz &rarr; Analyse</strong>. Bei Deaktivierung
+            werden keine weiteren Analyse-Daten erfasst.
           </p>
         </Section>
 
@@ -171,7 +177,14 @@ export default function PrivacyPage() {
             <li><strong>Recht auf Berichtigung</strong> (Art. 16 DSGVO) &ndash; Sie k&ouml;nnen unrichtige Daten korrigieren lassen.</li>
             <li><strong>Recht auf L&ouml;schung</strong> (Art. 17 DSGVO) &ndash; Sie k&ouml;nnen die L&ouml;schung Ihrer Daten verlangen.</li>
             <li><strong>Recht auf Einschr&auml;nkung</strong> (Art. 18 DSGVO) &ndash; Sie k&ouml;nnen die Einschr&auml;nkung der Verarbeitung verlangen.</li>
-            <li><strong>Recht auf Daten&uuml;bertragbarkeit</strong> (Art. 20 DSGVO) &ndash; Sie k&ouml;nnen Ihre Daten in einem g&auml;ngigen Format erhalten.</li>
+            <li>
+              <strong>Recht auf Daten&uuml;bertragbarkeit</strong> (Art. 20 DSGVO) &ndash; Sie
+              k&ouml;nnen Ihre Daten in einem g&auml;ngigen Format erhalten. F&uuml;r den Selbst-Export
+              steht Ihnen unter{' '}
+              <strong>Einstellungen &rarr; Meine Daten &rarr; Daten exportieren</strong>{' '}
+              ein Download-Button zur Verf&uuml;gung, der eine vollst&auml;ndige JSON-Datei mit allen
+              zu Ihrer Person gespeicherten Daten erzeugt.
+            </li>
             <li><strong>Widerspruchsrecht</strong> (Art. 21 DSGVO) &ndash; Sie k&ouml;nnen der Verarbeitung widersprechen.</li>
             <li><strong>Recht auf Widerruf</strong> &ndash; Erteilte Einwilligungen k&ouml;nnen jederzeit mit Wirkung f&uuml;r die Zukunft widerrufen werden.</li>
           </ul>

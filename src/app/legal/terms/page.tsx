@@ -23,7 +23,7 @@ export default function TermsPage() {
       {/* Content */}
       <div style={{ padding: '24px 16px 64px', lineHeight: 1.7, fontSize: 14 }}>
 
-        <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>Stand: 24. M&auml;rz 2026</p>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>Stand: 1. Mai 2026</p>
 
         <Section title="1. Geltungsbereich">
           <p>
