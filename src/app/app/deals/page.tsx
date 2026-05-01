@@ -53,7 +53,7 @@ function DealsContent() {
   }, [profile])
 
   const fetchDeals = async () => {
-    const { data } = await supabase.from('bets')
+    const { data } = await supabase.from('challenges')
       .select('*, creator:creator_id(id,username,display_name,level,streak,active_frame,is_founder,avatar_url), opponent:opponent_id(id,username,display_name,level,streak,active_frame,is_founder,avatar_url)')
       .or(`creator_id.eq.${profile!.id},opponent_id.eq.${profile!.id}`)
       .order('created_at', { ascending: false })
@@ -64,7 +64,7 @@ function DealsContent() {
     if (!editTarget || !editForm.title || !editForm.stake) return
     setLoading(true)
     try {
-      const { error } = await supabase.from('bets').update({ title: editForm.title, stake: editForm.stake }).eq('id', editTarget.id)
+      const { error } = await supabase.from('challenges').update({ title: editForm.title, stake: editForm.stake }).eq('id', editTarget.id)
       if (error) throw error
       setEditTarget(null); fetchDeals()
     } catch (_err) { /* edit error */ }
@@ -75,7 +75,7 @@ function DealsContent() {
     if (!deleteTarget) return
     setLoading(true)
     try {
-      const { error } = await supabase.from('bets').update({ status: 'cancelled' }).eq('id', deleteTarget.id)
+      const { error } = await supabase.from('challenges').update({ status: 'cancelled' }).eq('id', deleteTarget.id)
       if (error) throw error
       trackDealCancelled(deleteTarget.id)
       setDeleteTarget(null); fetchDeals()
@@ -83,12 +83,12 @@ function DealsContent() {
     setLoading(false)
   }
 
-  const declareResult = async (betId: string, winnerId: string) => {
+  const declareResult = async (challengeId: string, winnerId: string) => {
     setLoading(true)
     try {
-      const { error } = await supabase.from('bets').update({ status:'pending_confirmation', proposed_winner_id:winnerId, winner_proposed_by:profile!.id }).eq('id', betId)
+      const { error } = await supabase.from('challenges').update({ status:'pending_confirmation', proposed_winner_id:winnerId, winner_proposed_by:profile!.id }).eq('id', challengeId)
       if (error) throw error
-      trackResultSubmitted(betId)
+      trackResultSubmitted(challengeId)
       setDeclareTarget(null); fetchDeals()
     } catch (_err) { /* declare error */ }
     setLoading(false)

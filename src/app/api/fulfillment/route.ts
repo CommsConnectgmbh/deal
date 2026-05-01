@@ -19,54 +19,60 @@ export async function POST(req: NextRequest) {
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token)
     if (authErr || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { betId, status } = await req.json()
+    // Accept both `challengeId` (new) and `betId` (legacy) from clients.
+    const body = await req.json()
+    const challengeId: string | undefined = body.challengeId ?? body.betId
+    const status: string = body.status
 
     // Validate status
     if (!['fulfilled', 'unfulfilled'].includes(status)) {
       return NextResponse.json({ error: 'Invalid status. Must be fulfilled or unfulfilled.' }, { status: 400 })
     }
+    if (!challengeId) {
+      return NextResponse.json({ error: 'Missing challengeId' }, { status: 400 })
+    }
 
     // Fetch fulfillment record
-    const { data: bf, error: bfErr } = await supabaseAdmin
-      .from('bet_fulfillment')
+    const { data: cf, error: cfErr } = await supabaseAdmin
+      .from('challenge_fulfillment')
       .select('*')
-      .eq('bet_id', betId)
+      .eq('bet_id', challengeId)
       .single()
 
-    if (bfErr || !bf) {
+    if (cfErr || !cf) {
       return NextResponse.json({ error: 'Fulfillment record not found' }, { status: 404 })
     }
 
     // Only the entitled user (winner) can confirm
-    if (bf.entitled_user_id !== user.id) {
+    if (cf.entitled_user_id !== user.id) {
       return NextResponse.json({ error: 'Only the winner can confirm fulfillment' }, { status: 403 })
     }
 
     // Only pending records can be updated
-    if (bf.status !== 'pending_fulfillment') {
+    if (cf.status !== 'pending_fulfillment') {
       return NextResponse.json({ error: 'Fulfillment already resolved' }, { status: 400 })
     }
 
-    // Verify the deal is completed
-    const { data: bet } = await supabaseAdmin
-      .from('bets')
+    // Verify the challenge is completed
+    const { data: challenge } = await supabaseAdmin
+      .from('challenges')
       .select('status')
-      .eq('id', betId)
+      .eq('id', challengeId)
       .single()
 
-    if (!bet || bet.status !== 'completed') {
+    if (!challenge || challenge.status !== 'completed') {
       return NextResponse.json({ error: 'Deal is not completed' }, { status: 400 })
     }
 
     // Update fulfillment status (triggers recalc_reliability)
     const { error: updateErr } = await supabaseAdmin
-      .from('bet_fulfillment')
+      .from('challenge_fulfillment')
       .update({
         status,
         confirmed_by_user_id: user.id,
         confirmed_at: new Date().toISOString(),
       })
-      .eq('id', bf.id)
+      .eq('id', cf.id)
 
     if (updateErr) {
       return NextResponse.json({ error: updateErr.message }, { status: 500 })

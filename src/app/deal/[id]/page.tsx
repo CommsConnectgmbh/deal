@@ -21,12 +21,12 @@ const STATUS_LABELS: Record<string, string> = {
 /* ─── Fetch deal data ─── */
 async function getDeal(id: string) {
   const { data } = await getSupabaseAdmin()
-    .from('bets')
+    .from('challenges')
     .select(`
       id, title, stake, status, deadline, created_at, is_public,
       creator_id, opponent_id, winner_id, confirmed_winner_id,
-      creator:profiles!bets_creator_id_fkey(username, display_name, avatar_url),
-      opponent:profiles!bets_opponent_id_fkey(username, display_name, avatar_url)
+      creator:profiles!challenges_creator_id_fkey(username, display_name, avatar_url),
+      opponent:profiles!challenges_opponent_id_fkey(username, display_name, avatar_url)
     `)
     .eq('id', id)
     .single()

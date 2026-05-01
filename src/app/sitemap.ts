@@ -27,7 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     )
 
     const { data: publicDeals } = await supabase
-      .from('bets')
+      .from('challenges')
       .select('id, created_at')
       .eq('is_public', true)
       .order('created_at', { ascending: false })

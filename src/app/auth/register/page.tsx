@@ -202,7 +202,7 @@ function RegisterForm() {
             const dealId = pendingAcceptDealId.current
             // Only accept if deal is still open and has no opponent yet (race-condition safe)
             const { data: deal } = await supabase
-              .from('bets')
+              .from('challenges')
               .select('id, status, opponent_id, creator_id, is_public, title')
               .eq('id', dealId)
               .single()
@@ -216,7 +216,7 @@ function RegisterForm() {
                 update.shared_as_story_at = new Date().toISOString()
               }
               const { error: acceptErr } = await supabase
-                .from('bets')
+                .from('challenges')
                 .update(update)
                 .eq('id', dealId)
                 .eq('status', 'open')

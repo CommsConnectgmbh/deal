@@ -72,7 +72,7 @@ function CreateDealContent() {
   }, [profile, searchParams])
 
   async function loadDealForRematch(dealId: string) {
-    const { data } = await supabase.from('bets')
+    const { data } = await supabase.from('challenges')
       .select('*, creator:creator_id(id,username,display_name,level,avatar_url), opponent:opponent_id(id,username,display_name,level,avatar_url)')
       .eq('id', dealId).single()
     if (data) {
@@ -82,7 +82,7 @@ function CreateDealContent() {
   }
 
   async function loadDealForClone(dealId: string) {
-    const { data } = await supabase.from('bets')
+    const { data } = await supabase.from('challenges')
       .select('id, title, stake, category')
       .eq('id', dealId).single()
     if (data) dispatch({ type: 'APPLY_CLONE', deal: data })
@@ -186,7 +186,7 @@ function CreateDealContent() {
       }
       if (state.deadline) insertData.deadline = new Date(state.deadline).toISOString()
 
-      const { data: newDeal } = await supabase.from('bets').insert(insertData).select('id').single()
+      const { data: newDeal } = await supabase.from('challenges').insert(insertData).select('id').single()
 
       if (!newDeal?.id) throw new Error('Deal creation failed')
 
@@ -201,7 +201,7 @@ function CreateDealContent() {
             dispatch({ type: 'SET_UPLOAD_PROGRESS', progress: percent < 100 ? t('deals.uploading').replace('{percent}', String(percent)) : t('deals.saving') })
           })
           dispatch({ type: 'SET_UPLOAD_PROGRESS', progress: t('deals.saving') })
-          await supabase.from('bets').update({ media_url: url, media_type: type }).eq('id', newDeal.id)
+          await supabase.from('challenges').update({ media_url: url, media_type: type }).eq('id', newDeal.id)
           dispatch({ type: 'SET_UPLOAD_PROGRESS', progress: null })
         } catch (uploadErr: any) {
           console.error('Media upload error:', uploadErr)

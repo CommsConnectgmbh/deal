@@ -139,7 +139,7 @@ export default function ProfilePage() {
     if (!profile) return
     setDealsLoading(true)
     const { data } = await supabase
-      .from('bets')
+      .from('challenges')
       .select('id, title, stake, status, category, created_at, creator_id, opponent_id, creator:creator_id(username, display_name, avatar_url), opponent:opponent_id(username, display_name, avatar_url)')
       .or(`creator_id.eq.${profile.id},opponent_id.eq.${profile.id}`)
       .order('created_at', { ascending: false })

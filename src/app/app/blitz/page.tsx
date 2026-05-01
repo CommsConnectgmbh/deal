@@ -64,7 +64,7 @@ export default function BlitzPage() {
     async function loadVideos() {
       setLoading(true)
       const { data } = await supabase
-        .from('bets')
+        .from('challenges')
         .select('id, title, stake, status, media_url, media_type, created_at, creator:creator_id(username, display_name, avatar_url), opponent:opponent_id(username, display_name, avatar_url)')
         .eq('media_type', 'video')
         .not('media_url', 'is', null)

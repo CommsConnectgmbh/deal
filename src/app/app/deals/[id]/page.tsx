@@ -168,7 +168,7 @@ export default function DealDetailPage() {
   }
 
   const fetchDeal = async () => {
-    const { data } = await supabase.from('bets')
+    const { data } = await supabase.from('challenges')
       .select('*, creator:creator_id(id,username,display_name,level,streak,active_frame,is_founder,avatar_url), opponent:opponent_id(id,username,display_name,level,streak,active_frame,is_founder,avatar_url), winner:winner_id(id,username), proposed_winner:proposed_winner_id(id,username)')
       .eq('id', id).single()
     setDeal(data)
@@ -196,12 +196,12 @@ export default function DealDetailPage() {
     }
 
     // Fetch fulfillment status
-    const { data: bfData } = await supabase
-      .from('bet_fulfillment')
+    const { data: cfData } = await supabase
+      .from('challenge_fulfillment')
       .select('id, status, entitled_user_id, obligated_user_id')
       .eq('bet_id', id)
       .maybeSingle()
-    if (bfData) setFulfillment(bfData)
+    if (cfData) setFulfillment(cfData)
   }
 
   const fetchDealMedia = async () => {
@@ -254,14 +254,14 @@ export default function DealDetailPage() {
       })
       // Set as deal's main media if none exists yet (so it shows in feed cards + stories)
       if (!deal.media_url) {
-        await supabase.from('bets').update({
+        await supabase.from('challenges').update({
           media_url: result.url,
           media_type: betsMediaType,
           shared_as_story_at: new Date().toISOString(),
         }).eq('id', id)
       } else {
         // Auto-post as story
-        await supabase.from('bets').update({ shared_as_story_at: new Date().toISOString() }).eq('id', id)
+        await supabase.from('challenges').update({ shared_as_story_at: new Date().toISOString() }).eq('id', id)
       }
       setUploadProgress(100)
       fetchDealMedia()
@@ -289,7 +289,7 @@ export default function DealDetailPage() {
       if (deal.is_public !== false) {
         update.shared_as_story_at = new Date().toISOString()
       }
-      const { error } = await supabase.from('bets').update(update).eq('id', id)
+      const { error } = await supabase.from('challenges').update(update).eq('id', id)
       if (error) throw error
       // Push notification to creator
       if (deal.creator_id !== profile.id) {
@@ -338,7 +338,7 @@ export default function DealDetailPage() {
     if (!pendingWinnerId || !profile) return
     setLoading(true)
     try {
-      const { error } = await supabase.from('bets').update({
+      const { error } = await supabase.from('challenges').update({
         status: 'pending_confirmation', proposed_winner_id: pendingWinnerId,
         winner_proposed_by: profile.id,
       }).eq('id', id)
@@ -390,7 +390,7 @@ export default function DealDetailPage() {
       }
       fetchDeal()
     } catch {
-      await supabase.from('bets').update({
+      await supabase.from('challenges').update({
         status: 'completed', winner_id: deal.proposed_winner_id,
         confirmed_at: new Date().toISOString(),
       }).eq('id', id)
@@ -407,7 +407,7 @@ export default function DealDetailPage() {
   const completeDispute = async () => {
     setLoading(true)
     try {
-      const { error } = await supabase.from('bets').update({ status: 'disputed', proposed_winner_id: null, winner_proposed_by: null }).eq('id', id)
+      const { error } = await supabase.from('challenges').update({ status: 'disputed', proposed_winner_id: null, winner_proposed_by: null }).eq('id', id)
       if (error) throw error
       // Feed event: deal_disputed
       if (profile) {
@@ -436,7 +436,7 @@ export default function DealDetailPage() {
     if (!editForm.title || !editForm.stake) return
     setLoading(true)
     try {
-      const { error } = await supabase.from('bets').update({ title: editForm.title, stake: editForm.stake }).eq('id', id)
+      const { error } = await supabase.from('challenges').update({ title: editForm.title, stake: editForm.stake }).eq('id', id)
       if (error) throw error
       setEditOpen(false)
       showActionToast(t('deals.dealUpdated'))
@@ -450,7 +450,7 @@ export default function DealDetailPage() {
   const deleteDeal = async () => {
     setLoading(true)
     try {
-      const { error } = await supabase.from('bets').update({ status: 'cancelled' }).eq('id', id)
+      const { error } = await supabase.from('challenges').update({ status: 'cancelled' }).eq('id', id)
       if (error) throw error
       router.back()
     } catch (_err) {
@@ -465,7 +465,7 @@ export default function DealDetailPage() {
     await supabase.from('deal_comments').delete().eq('deal_id', id as string)
     await supabase.from('deal_side_bets').delete().eq('deal_id', id as string)
     await supabase.from('deal_actions').delete().eq('deal_id', id as string)
-    await supabase.from('bets').delete().eq('id', id as string)
+    await supabase.from('challenges').delete().eq('id', id as string)
     router.push('/app/deals')
   }
 
@@ -473,7 +473,7 @@ export default function DealDetailPage() {
     if (!profile) return
     setLoading(true)
     try {
-      const { error } = await supabase.from('bets').update({
+      const { error } = await supabase.from('challenges').update({
         frozen_by: profile.id, freeze_reason: 'cancel_request',
         frozen_at: new Date().toISOString(),
       }).eq('id', id)
@@ -491,7 +491,7 @@ export default function DealDetailPage() {
   const acceptCancel = async () => {
     setLoading(true)
     try {
-      const { error } = await supabase.from('bets').update({ status: 'cancelled', frozen_by: null, freeze_reason: null, frozen_at: null }).eq('id', id)
+      const { error } = await supabase.from('challenges').update({ status: 'cancelled', frozen_by: null, freeze_reason: null, frozen_at: null }).eq('id', id)
       if (error) throw error
       showActionToast(t('deals.dealCancelled'))
       fetchDeal()
@@ -503,7 +503,7 @@ export default function DealDetailPage() {
   const rejectCancel = async () => {
     setLoading(true)
     try {
-      const { error } = await supabase.from('bets').update({ frozen_by: null, freeze_reason: null, frozen_at: null }).eq('id', id)
+      const { error } = await supabase.from('challenges').update({ frozen_by: null, freeze_reason: null, frozen_at: null }).eq('id', id)
       if (error) throw error
       showActionToast(t('deals.cancelRejected'))
       fetchDeal()
@@ -524,7 +524,7 @@ export default function DealDetailPage() {
           'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ betId: deal.id, status }),
+        body: JSON.stringify({ challengeId: deal.id, status }),
       })
       if (res.ok) {
         setFulfillment(prev => prev ? { ...prev, status } : null)
@@ -584,7 +584,7 @@ export default function DealDetailPage() {
         deal_id: deal.id,
         metadata: { title: deal.title, stake: deal.stake },
       })
-      await supabase.from('bets').update({ shared_as_story_at: new Date().toISOString() }).eq('id', id)
+      await supabase.from('challenges').update({ shared_as_story_at: new Date().toISOString() }).eq('id', id)
       trackShareClicked('deal_story', 'feed')
       setStoryPosted(true)
       setDeal((prev: any) => prev ? { ...prev, shared_as_story_at: new Date().toISOString() } : prev)

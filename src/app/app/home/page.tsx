@@ -211,15 +211,15 @@ export default function HomePage() {
 
       const batch1: any[] = [
         /* 0 */ supabase.from('deal_media').select('deal_id').eq('user_id', profile.id).gte('created_at', since24h),
-        /* 1 */ supabase.from('bets').select(storySelect).not('shared_as_story_at', 'is', null).gte('shared_as_story_at', since24h).or(`creator_id.eq.${profile.id},opponent_id.eq.${profile.id}`).order('shared_as_story_at', { ascending: false }).limit(20),
+        /* 1 */ supabase.from('challenges').select(storySelect).not('shared_as_story_at', 'is', null).gte('shared_as_story_at', since24h).or(`creator_id.eq.${profile.id},opponent_id.eq.${profile.id}`).order('shared_as_story_at', { ascending: false }).limit(20),
         /* 2 */ supabase.from('story_views').select('deal_id').eq('user_id', profile.id).gte('viewed_at', since24h),
         /* 3 */ supabase.from('feed_events').select('*, user:user_id(id, username, display_name, avatar_url)').eq('event_type', 'tip_group_story').gte('created_at', since24h).order('created_at', { ascending: false }).limit(20),
       ]
       // Only add followed-user queries if we have follows
       if (fIds.length > 0) {
         batch1.push(
-          /* 4 */ supabase.from('bets').select(storySelect).gte('created_at', since24h).in('status', ['open', 'pending', 'active', 'pending_confirmation', 'completed']).or(userFilter).order('created_at', { ascending: false }).limit(50),
-          /* 5 */ supabase.from('bets').select(storySelect).gte('shared_as_story_at', since24h).eq('status', 'completed').or(userFilter).order('shared_as_story_at', { ascending: false }).limit(50),
+          /* 4 */ supabase.from('challenges').select(storySelect).gte('created_at', since24h).in('status', ['open', 'pending', 'active', 'pending_confirmation', 'completed']).or(userFilter).order('created_at', { ascending: false }).limit(50),
+          /* 5 */ supabase.from('challenges').select(storySelect).gte('shared_as_story_at', since24h).eq('status', 'completed').or(userFilter).order('shared_as_story_at', { ascending: false }).limit(50),
           /* 6 */ supabase.from('feed_events').select('deal_id').eq('event_type', 'deal_media_added').gte('created_at', since24h).in('user_id', fIds),
         )
       }
@@ -245,11 +245,11 @@ export default function HomePage() {
       const batch2Keys: string[] = []
 
       if (myMediaDealIds.length > 0) {
-        batch2.push(supabase.from('bets').select(storySelect).in('id', myMediaDealIds))
+        batch2.push(supabase.from('challenges').select(storySelect).in('id', myMediaDealIds))
         batch2Keys.push('myMediaDeals')
       }
       if (mediaDealIds.length > 0) {
-        batch2.push(supabase.from('bets').select(storySelect).in('id', mediaDealIds))
+        batch2.push(supabase.from('challenges').select(storySelect).in('id', mediaDealIds))
         batch2Keys.push('mediaDeals')
       }
       if (tipGroupIds.length > 0) {
@@ -460,7 +460,7 @@ export default function HomePage() {
 
     try {
       let query = supabase
-        .from('bets')
+        .from('challenges')
         .select(DEAL_SELECT)
         .in('status', ['open', 'pending', 'active', 'pending_confirmation', 'completed'])
         .order('created_at', { ascending: false })
@@ -478,7 +478,7 @@ export default function HomePage() {
       // Fallback: if 0 results, get ALL deals regardless
       if (initial && newDeals.length === 0) {
         const { data: fallback } = await supabase
-          .from('bets')
+          .from('challenges')
           .select(DEAL_SELECT)
           .order('created_at', { ascending: false })
           .limit(20)
@@ -579,7 +579,7 @@ export default function HomePage() {
 
     const { data: spotData } = await supabase
       .from('weekly_spotlight')
-      .select('*, bets!weekly_spotlight_deal_id_fkey(id, title, creator:creator_id(username))')
+      .select('*, challenges!weekly_spotlight_deal_id_fkey(id, title, creator:creator_id(username))')
       .eq('is_active', true)
       .gte('expires_at', new Date().toISOString())
       .order('featured_at', { ascending: false })
@@ -642,7 +642,7 @@ export default function HomePage() {
     if (!profile) return
     const ids = new Set<string>()
     // 1. Own deals (creator or opponent)
-    const { data: ownDeals } = await supabase.from('bets')
+    const { data: ownDeals } = await supabase.from('challenges')
       .select('id')
       .or(`creator_id.eq.${profile.id},opponent_id.eq.${profile.id}`)
     if (ownDeals) ownDeals.forEach((d: any) => ids.add(d.id))
@@ -671,7 +671,7 @@ export default function HomePage() {
       // Merge with deal info for Live Tipp tab
       const betDealIds = sideBets.map((b: any) => b.deal_id)
       if (betDealIds.length > 0) {
-        const { data: betDeals } = await supabase.from('bets')
+        const { data: betDeals } = await supabase.from('challenges')
           .select('id, title, status, stake, creator_id, opponent_id, confirmed_winner_id, winner_id, creator:creator_id(username, display_name, avatar_url), opponent:opponent_id(username, display_name, avatar_url)')
           .in('id', betDealIds)
         const dealMap: Record<string, any> = {}

@@ -41,7 +41,7 @@ serve(async (req) => {
 
     // Fetch the deal
     const { data: deal, error: dealError } = await supabase
-      .from('bets')
+      .from('challenges')
       .select('*')
       .eq('id', deal_id)
       .single()
@@ -98,7 +98,7 @@ serve(async (req) => {
 
     // Anti-farming: same opponent within 24h = 50% XP
     const { count: sameOpponentCount } = await supabase
-      .from('bets')
+      .from('challenges')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'completed')
       .gte('confirmed_at', since24h)
@@ -146,7 +146,7 @@ serve(async (req) => {
     const now = new Date().toISOString()
 
     // Update deal to completed
-    await supabase.from('bets').update({
+    await supabase.from('challenges').update({
       status: 'completed',
       winner_id,
       confirmed_at: now,
@@ -347,17 +347,17 @@ serve(async (req) => {
       data: { deal_id, xp: totalLoserXP }
     })
 
-    // ── Create bet_fulfillment record (Reliability Score) ──
-    // Only for bets with a stake (material obligation)
+    // ── Create challenge_fulfillment record (Reliability Score) ──
+    // Only for challenges with a stake (material obligation)
     if (deal.stake && deal.stake.trim() !== '') {
-      await supabase.from('bet_fulfillment').insert({
+      await supabase.from('challenge_fulfillment').insert({
         bet_id: deal_id,
         obligated_user_id: loser_id,
         entitled_user_id: winner_id,
         status: 'pending_fulfillment',
         expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
       }).catch((err: any) => {
-        console.error('bet_fulfillment insert error:', err)
+        console.error('challenge_fulfillment insert error:', err)
         // Non-blocking — don't fail the deal completion
       })
 
@@ -371,69 +371,70 @@ serve(async (req) => {
       }).catch(() => {})
     }
 
-    // ── Resolve deal side bets → award 25 coins to correct predictors ──
-    const SIDE_BET_REWARD = 25
-    const { data: sideBets } = await supabase
-      .from('deal_side_bets')
+    // ── Resolve deal side challenges → award 25 coins to correct predictors ──
+    const SIDE_CHALLENGE_REWARD = 25
+    const { data: sideChallenges } = await supabase
+      .from('deal_side_challenges')
       .select('*')
       .eq('deal_id', deal_id)
       .eq('status', 'open')
 
-    let sideBetsResolved = 0
-    if (sideBets && sideBets.length > 0) {
+    let sideChallengesResolved = 0
+    if (sideChallenges && sideChallenges.length > 0) {
       const winnerSide = winner_id === deal.creator_id ? 'a' : 'b'
 
-      for (const sb of sideBets) {
+      for (const sb of sideChallenges) {
         const isCorrect = sb.side === winnerSide
         const newStatus = isCorrect ? 'won' : 'lost'
-        const coinsAwarded = isCorrect ? SIDE_BET_REWARD : 0
+        const coinsAwarded = isCorrect ? SIDE_CHALLENGE_REWARD : 0
 
-        // Update side bet status
-        await supabase.from('deal_side_bets').update({
+        // Update side challenge status
+        await supabase.from('deal_side_challenges').update({
           status: newStatus,
           coins_awarded: coinsAwarded
         }).eq('id', sb.id)
 
         if (isCorrect) {
-          // Credit coins to bettor profile
-          const { data: bettorProfile } = await supabase
+          // Credit coins to predictor profile
+          const { data: predictorProfile } = await supabase
             .from('profiles')
             .select('coins')
             .eq('id', sb.user_id)
             .single()
 
           await supabase.from('profiles').update({
-            coins: (bettorProfile?.coins || 0) + SIDE_BET_REWARD
+            coins: (predictorProfile?.coins || 0) + SIDE_CHALLENGE_REWARD
           }).eq('id', sb.user_id)
 
-          // Wallet ledger entry
+          // Wallet ledger entry — `side_bet_won` is a stable enum string in
+          // wallet_ledger.reason; do not rename the value here, just the code.
           await supabase.from('wallet_ledger').insert({
             user_id: sb.user_id,
-            delta: SIDE_BET_REWARD,
+            delta: SIDE_CHALLENGE_REWARD,
             reason: 'side_bet_won',
             reference_id: deal_id
           })
 
-          // Notification
+          // Notification — type string is a stable enum, do not rename.
           await supabase.from('notifications').insert({
             user_id: sb.user_id,
             type: 'side_bet_won',
-            title: '🎯 Seitenwette gewonnen!',
-            body: `Dein Tipp war richtig! +${SIDE_BET_REWARD} Coins 🪙`,
-            data: { deal_id, coins: SIDE_BET_REWARD }
+            title: 'Seitentipp gewonnen!',
+            body: `Dein Tipp war richtig! +${SIDE_CHALLENGE_REWARD} Coins`,
+            data: { deal_id, coins: SIDE_CHALLENGE_REWARD }
           })
         } else {
-          // Notification for losing bet
+          // Notification for losing prediction
           await supabase.from('notifications').insert({
             user_id: sb.user_id,
             type: 'side_bet_lost',
-            title: 'Seitenwette verloren',
+            title: 'Seitentipp verloren',
             body: `Dein Tipp war leider falsch. Nächstes Mal!`,
             data: { deal_id }
           })
         }
 
-        sideBetsResolved++
+        sideChallengesResolved++
       }
     }
 
@@ -466,7 +467,7 @@ serve(async (req) => {
       winner_coins: winnerCoins,
       loser_xp: totalLoserXP,
       anti_farming_applied: winCapReached || sameOpponentPenalty,
-      side_bets_resolved: sideBetsResolved
+      side_bets_resolved: sideChallengesResolved
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   } catch (err) {
