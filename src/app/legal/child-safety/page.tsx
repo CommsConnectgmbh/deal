@@ -59,7 +59,7 @@ export default function ChildSafetyPage() {
             gemeldet werden. Außerdem direkt an:
           </p>
           <ul style={{ paddingLeft: 18, margin: 0 }}>
-            <li>E-Mail: <a href="mailto:safety@deal-buddy.app">safety@deal-buddy.app</a></li>
+            <li>E-Mail: <a href="mailto:info@deal-buddy.app">info@deal-buddy.app</a></li>
             <li>Postanschrift: Comms Connect GmbH, Tal 30, 80331 München, Deutschland</li>
           </ul>
         </Section>
@@ -102,7 +102,7 @@ export default function ChildSafetyPage() {
             Rainer Roloff, Geschäftsführer<br />
             Comms Connect GmbH<br />
             Tal 30, 80331 München, Deutschland<br />
-            E-Mail: <a href="mailto:safety@deal-buddy.app">safety@deal-buddy.app</a><br />
+            E-Mail: <a href="mailto:info@deal-buddy.app">info@deal-buddy.app</a><br />
             Eskalations-Mail: <a href="mailto:rainer.roloff@comms-connect.de">rainer.roloff@comms-connect.de</a>
           </p>
         </Section>
