@@ -36,6 +36,9 @@ const TYPE_ICON: Record<string, string> = {
   referral_completed:  '👥',
   frame_unlocked:      '✨',
   archetype_unlocked:  '🧬',
+  side_challenge_won:  '💰',
+  side_challenge_lost: '📉',
+  // Legacy notification types — kept so historical rows still render.
   side_bet_won:        '💰',
   side_bet_lost:       '📉',
   fulfillment_check:   '📋',
@@ -61,6 +64,9 @@ const TYPE_COLOR: Record<string, string> = {
   referral_completed:  '#22C55E',
   frame_unlocked:      '#A855F7',
   archetype_unlocked:  '#EC4899',
+  side_challenge_won:  '#22C55E',
+  side_challenge_lost: '#EF4444',
+  // Legacy notification types — kept so historical rows still render.
   side_bet_won:        '#22C55E',
   side_bet_lost:       '#EF4444',
   fulfillment_check:   '#FFB800',
@@ -142,7 +148,7 @@ export default function NotificationsPage() {
     else if (['battlepass_tier', 'battlepass_reward'].includes(n.type)) router.push('/app/battlepass')
     else if (['challenge_reminder', 'challenge_completed'].includes(n.type)) router.push('/app/challenges')
     else if (n.type === 'streak_milestone') router.push('/app/rewards')
-    else if (['coins_received', 'side_bet_won', 'side_bet_lost'].includes(n.type) && n.reference_id) router.push(`/app/deals/${n.reference_id}`)
+    else if (['coins_received', 'side_challenge_won', 'side_challenge_lost', 'side_bet_won', 'side_bet_lost'].includes(n.type) && n.reference_id) router.push(`/app/deals/${n.reference_id}`)
     else if (n.type === 'referral_completed') router.push('/app/invite')
     else if (n.type === 'fulfillment_check' && n.reference_id) router.push(`/app/deals/${n.reference_id}`)
     else if (['frame_unlocked', 'archetype_unlocked'].includes(n.type)) router.push('/app/shop')

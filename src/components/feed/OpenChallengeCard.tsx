@@ -11,7 +11,7 @@ import DealCardMenu from '@/components/DealCardMenu'
    ═══════════════════════════════════════════════════════════════ */
 export default function OpenChallengeCard({
   deal, expanded, onToggleExpand, feedEvents, feedMedia,
-  betQuotes, onCommentOpen, userId, onHide,
+  challengeQuotes, onCommentOpen, userId, onHide,
 }: DealCardProps) {
   const router = useRouter()
   const { t } = useLang()

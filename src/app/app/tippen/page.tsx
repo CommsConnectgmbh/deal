@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useLang } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
 import TipGroupInteractionBar from '@/components/tippen/TipGroupInteractionBar'
-import TipGroupBetWidget from '@/components/TipGroupBetWidget'
+import TipGroupChallengeWidget from '@/components/TipGroupChallengeWidget'
 
 const LEAGUE_OPTIONS = [
   { value: 'BL1', label: '🇩🇪 Bundesliga', type: 'LEAGUE' },
@@ -824,7 +824,7 @@ export default function TippenPage() {
 
                     {/* ═══ ALWAYS VISIBLE: Interaction + Tipps ═══ */}
                     <TipGroupInteractionBar groupId={g.id} inviteCode={g.invite_code} groupName={g.name} />
-                    <TipGroupBetWidget groupId={g.id} />
+                    <TipGroupChallengeWidget groupId={g.id} />
                   </div>
                   )
                 }

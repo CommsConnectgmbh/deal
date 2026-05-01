@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLang } from '@/contexts/LanguageContext'
 
-interface SideBet {
+interface SideChallenge {
   id: string
   user_id: string
   side: 'a' | 'b'
@@ -32,7 +32,7 @@ interface Props {
   opponentId?: string
 }
 
-export default function SideBetSheet({
+export default function SideChallengeSheet({
   dealId, open, onClose,
   creatorName, opponentName,
   creatorAvatarUrl, opponentAvatarUrl,
@@ -40,21 +40,21 @@ export default function SideBetSheet({
 }: Props) {
   const { profile } = useAuth()
   const { t } = useLang()
-  const [sideBets, setSideBets] = useState<SideBet[]>([])
+  const [sideChallenges, setSideChallenges] = useState<SideChallenge[]>([])
   const [selectedSide, setSelectedSide] = useState<'a' | 'b' | null>(null)
   const [stake, setStake] = useState('')
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [myBet, setMyBet] = useState<SideBet | null>(null)
+  const [myChallenge, setMyChallenge] = useState<SideChallenge | null>(null)
 
   useEffect(() => {
-    if (open) loadSideBets()
+    if (open) loadSideChallenges()
   }, [open, dealId])
 
-  const loadSideBets = async () => {
+  const loadSideChallenges = async () => {
     setLoading(true)
     const { data } = await supabase
-      .from('deal_side_bets')
+      .from('deal_side_challenges')
       .select('id, user_id, side, stake, status, coins_awarded, created_at')
       .eq('deal_id', dealId)
       .order('created_at', { ascending: false })
@@ -68,34 +68,34 @@ export default function SideBetSheet({
         ...b,
         user: profileMap.get(b.user_id) || { username: '?' },
       }))
-      setSideBets(enriched)
+      setSideChallenges(enriched)
 
       if (profile) {
         const mine = enriched.find((b: any) => b.user_id === profile.id)
-        setMyBet(mine || null)
+        setMyChallenge(mine || null)
         if (mine) {
           setSelectedSide(mine.side)
           setStake(mine.stake)
         }
       }
     } else {
-      setSideBets([])
-      setMyBet(null)
+      setSideChallenges([])
+      setMyChallenge(null)
     }
     setLoading(false)
   }
 
-  const placeBet = async () => {
+  const placeChallenge = async () => {
     if (!profile || !selectedSide || !stake.trim() || sending) return
     setSending(true)
-    const { error } = await supabase.from('deal_side_bets').upsert({
+    const { error } = await supabase.from('deal_side_challenges').upsert({
       deal_id: dealId,
       user_id: profile.id,
       side: selectedSide,
       stake: stake.trim(),
     }, { onConflict: 'deal_id,user_id' })
     if (!error) {
-      await loadSideBets()
+      await loadSideChallenges()
       setStake('')
       setSelectedSide(null)
     }
@@ -104,11 +104,11 @@ export default function SideBetSheet({
 
   if (!open) return null
 
-  const sideACount = sideBets.filter(b => b.side === 'a').length
-  const sideBCount = sideBets.filter(b => b.side === 'b').length
+  const sideACount = sideChallenges.filter(b => b.side === 'a').length
+  const sideBCount = sideChallenges.filter(b => b.side === 'b').length
   const isResolved = dealStatus === 'completed' && winnerId
   const winningSide: 'a' | 'b' | null = isResolved ? (winnerId === creatorId ? 'a' : 'b') : null
-  const canBet = !myBet && (dealStatus === 'active' || dealStatus === 'open' || dealStatus === 'pending')
+  const canPredict = !myChallenge && (dealStatus === 'active' || dealStatus === 'open' || dealStatus === 'pending')
 
   return (
     <div style={{
@@ -128,7 +128,7 @@ export default function SideBetSheet({
           padding: '16px 20px 12px', borderBottom: '1px solid var(--border-subtle)',
         }}>
           <span style={{ fontFamily: 'var(--font-display)', fontSize: 14, color: 'var(--text-primary)', letterSpacing: 2 }}>
-            {t('components.sideBets')}
+            {t('components.sideChallenges')}
           </span>
           <button onClick={onClose} style={{
             background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 20, cursor: 'pointer',
@@ -154,7 +154,7 @@ export default function SideBetSheet({
               padding: '12px 16px', marginBottom: 16, textAlign: 'center',
             }}>
               <p style={{ fontFamily: 'var(--font-display)', fontSize: 13, color: 'var(--gold-primary)', letterSpacing: 1, margin: 0 }}>
-                {t('components.coinsOnCorrectBet')}
+                {t('components.coinsOnCorrectChallenge')}
               </p>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0' }}>
                 {t('components.tipOnWinnerEarnCoins')}
@@ -163,7 +163,7 @@ export default function SideBetSheet({
           )}
 
           {/* Side Selection */}
-          {canBet && (
+          {canPredict && (
             <>
               <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 12, textAlign: 'center' }}>{t('components.whoWins')}</p>
               <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
@@ -178,7 +178,7 @@ export default function SideBetSheet({
                   <span style={{ fontSize: 12, fontWeight: 600, color: selectedSide === 'a' ? 'var(--gold-primary)' : '#9CA3AF' }}>
                     @{creatorName}
                   </span>
-                  <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{sideACount} {t('components.bets')}</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{sideACount} {t('components.challenges')}</span>
                 </button>
 
                 {/* Side B */}
@@ -192,7 +192,7 @@ export default function SideBetSheet({
                   <span style={{ fontSize: 12, fontWeight: 600, color: selectedSide === 'b' ? '#3B82F6' : '#9CA3AF' }}>
                     @{opponentName}
                   </span>
-                  <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{sideBCount} {t('components.bets')}</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{sideBCount} {t('components.challenges')}</span>
                 </button>
               </div>
 
@@ -211,7 +211,7 @@ export default function SideBetSheet({
                     }}
                   />
                   <button
-                    onClick={placeBet}
+                    onClick={placeChallenge}
                     disabled={!stake.trim() || sending}
                     style={{
                       width: '100%', padding: 14, borderRadius: 12, border: 'none', cursor: 'pointer',
@@ -221,36 +221,36 @@ export default function SideBetSheet({
                       marginBottom: 20,
                     }}
                   >
-                    {sending ? t('components.placing') : t('components.placeBet')}
+                    {sending ? t('components.placing') : t('components.placeChallenge')}
                   </button>
                 </>
               )}
             </>
           )}
 
-          {myBet && (
+          {myChallenge && (
             <div style={{
-              background: myBet.status === 'won' ? 'rgba(34,197,94,0.06)' : myBet.status === 'lost' ? 'rgba(239,68,68,0.06)' : 'rgba(245,158,11,0.06)',
-              border: `1px solid ${myBet.status === 'won' ? 'rgba(34,197,94,0.3)' : myBet.status === 'lost' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`,
+              background: myChallenge.status === 'won' ? 'rgba(34,197,94,0.06)' : myChallenge.status === 'lost' ? 'rgba(239,68,68,0.06)' : 'rgba(245,158,11,0.06)',
+              border: `1px solid ${myChallenge.status === 'won' ? 'rgba(34,197,94,0.3)' : myChallenge.status === 'lost' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`,
               borderRadius: 12, padding: 16, marginBottom: 16, textAlign: 'center',
             }}>
-              {myBet.status === 'won' ? (
+              {myChallenge.status === 'won' ? (
                 <>
                   <p style={{ fontSize: 13, color: '#22C55E', marginBottom: 4, fontWeight: 700 }}>{t('components.won')}</p>
-                  <p style={{ fontSize: 14, color: '#22C55E', fontWeight: 700 }}>+{myBet.coins_awarded || 25} Coins 🪙</p>
+                  <p style={{ fontSize: 14, color: '#22C55E', fontWeight: 700 }}>+{myChallenge.coins_awarded || 25} Coins 🪙</p>
                 </>
-              ) : myBet.status === 'lost' ? (
+              ) : myChallenge.status === 'lost' ? (
                 <>
                   <p style={{ fontSize: 13, color: '#EF4444', marginBottom: 4, fontWeight: 700 }}>{t('components.lost')}</p>
-                  <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('components.tipWrongShort').replace('{name}', myBet.side === 'a' ? creatorName : opponentName)}</p>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('components.tipWrongShort').replace('{name}', myChallenge.side === 'a' ? creatorName : opponentName)}</p>
                 </>
               ) : (
                 <>
-                  <p style={{ fontSize: 13, color: 'var(--gold-primary)', marginBottom: 4 }}>{t('components.yourBet')}</p>
+                  <p style={{ fontSize: 13, color: 'var(--gold-primary)', marginBottom: 4 }}>{t('components.yourChallenge')}</p>
                   <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                    {t('components.youBetOn')} <span style={{ color: 'var(--gold-primary)', fontWeight: 600 }}>@{myBet.side === 'a' ? creatorName : opponentName}</span>
+                    {t('components.youChallengeOn')} <span style={{ color: 'var(--gold-primary)', fontWeight: 600 }}>@{myChallenge.side === 'a' ? creatorName : opponentName}</span>
                   </p>
-                  <p style={{ fontSize: 12, color: 'var(--text-primary)', marginTop: 4 }}>{t('components.stake')}: {myBet.stake}</p>
+                  <p style={{ fontSize: 12, color: 'var(--text-primary)', marginTop: 4 }}>{t('components.stake')}: {myChallenge.stake}</p>
                   <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{t('components.coinsOnCorrectTip')}</p>
                 </>
               )}
@@ -258,12 +258,12 @@ export default function SideBetSheet({
           )}
 
           {/* Existing side bets */}
-          {sideBets.length > 0 && (
+          {sideChallenges.length > 0 && (
             <>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', letterSpacing: 1, marginBottom: 8, fontFamily: 'var(--font-display)' }}>
-                {t('components.currentSideBets')} ({sideBets.length})
+                {t('components.currentSideChallenges')} ({sideChallenges.length})
               </p>
-              {sideBets.map(b => (
+              {sideChallenges.map(b => (
                 <div key={b.id} style={{
                   display: 'flex', alignItems: 'center', gap: 8,
                   padding: '8px 0', borderBottom: '1px solid var(--bg-elevated)',
@@ -271,7 +271,7 @@ export default function SideBetSheet({
                   <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                     @{b.user?.username}
                   </span>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('components.betsOn')}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('components.challengesOn')}</span>
                   <span style={{
                     fontSize: 12, fontWeight: 600,
                     color: b.side === 'a' ? 'var(--gold-primary)' : '#3B82F6',
@@ -294,9 +294,9 @@ export default function SideBetSheet({
             </>
           )}
 
-          {!loading && sideBets.length === 0 && myBet === null && (
+          {!loading && sideChallenges.length === 0 && myChallenge === null && (
             <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, padding: 16 }}>
-              {t('components.noSideBetsYet')}
+              {t('components.noSideChallengesYet')}
             </p>
           )}
         </div>

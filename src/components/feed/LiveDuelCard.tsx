@@ -2,7 +2,7 @@
 import { useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import InteractionBar from '@/components/InteractionBar'
-import DealBetWidget from '@/components/DealBetWidget'
+import DealChallengeWidget from '@/components/DealChallengeWidget'
 import { type DealCardProps } from '@/lib/deal-feed-types'
 import { useLang } from '@/contexts/LanguageContext'
 import DealCardMenu from '@/components/DealCardMenu'
@@ -13,7 +13,7 @@ import DealCardMenu from '@/components/DealCardMenu'
    ═══════════════════════════════════════════════════════════════ */
 export default function LiveDuelCard({
   deal, expanded, onToggleExpand, feedEvents, feedMedia,
-  betQuotes, onCommentOpen, userId, onHide,
+  challengeQuotes, onCommentOpen, userId, onHide,
 }: DealCardProps) {
   const router = useRouter()
   const { t } = useLang()
@@ -141,7 +141,7 @@ export default function LiveDuelCard({
         </div>
 
         {/* ═══ Tipp Widget ═══ */}
-        <DealBetWidget
+        <DealChallengeWidget
           dealId={deal.id}
           creatorId={deal.creator_id}
           opponentId={deal.opponent_id || undefined}

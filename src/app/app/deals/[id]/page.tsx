@@ -14,7 +14,7 @@ import CoinIcon from '@/components/CoinIcon'
 import InteractionBar from '@/components/InteractionBar'
 
 const ProofUploadSheet = dynamic(() => import('@/components/ProofUploadSheet'), { ssr: false })
-const DealBetWidget = dynamic(() => import('@/components/DealBetWidget'), { ssr: false })
+const DealChallengeWidget = dynamic(() => import('@/components/DealChallengeWidget'), { ssr: false })
 import WinCelebrationModal from '@/components/WinCelebrationModal'
 import { trackDealAccepted, trackResultSubmitted, trackResultConfirmed, trackScreenView, trackShareClicked } from '@/lib/analytics'
 import { uploadDealMedia as uploadDealMediaUtil } from '@/lib/mediaUpload'
@@ -199,7 +199,7 @@ export default function DealDetailPage() {
     const { data: cfData } = await supabase
       .from('challenge_fulfillment')
       .select('id, status, entitled_user_id, obligated_user_id')
-      .eq('bet_id', id)
+      .eq('challenge_id', id)
       .maybeSingle()
     if (cfData) setFulfillment(cfData)
   }
@@ -463,7 +463,7 @@ export default function DealDetailPage() {
     await supabase.from('deal_likes').delete().eq('deal_id', id as string)
     await supabase.from('deal_reposts').delete().eq('original_deal_id', id as string)
     await supabase.from('deal_comments').delete().eq('deal_id', id as string)
-    await supabase.from('deal_side_bets').delete().eq('deal_id', id as string)
+    await supabase.from('deal_side_challenges').delete().eq('deal_id', id as string)
     await supabase.from('deal_actions').delete().eq('deal_id', id as string)
     await supabase.from('challenges').delete().eq('id', id as string)
     router.push('/app/deals')
@@ -1203,7 +1203,7 @@ export default function DealDetailPage() {
 
       {/* ═══ COMMUNITY TIPPS + InteractionBar — wie Home Feed, ein Container ═══ */}
       <div style={{ margin: '12px 16px 16px', borderRadius: 14, overflow: 'visible', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
-        <DealBetWidget
+        <DealChallengeWidget
           dealId={deal.id}
           creatorId={deal.creator_id}
           opponentId={deal.opponent_id}

@@ -299,7 +299,7 @@ export default function TippgruppeDetailPage() {
     if (!groupId || !user) return
     const load = async () => {
       const { data } = await supabase
-        .from('tip_group_winner_bets')
+        .from('tip_group_winner_challenges')
         .select('id, predicted_winner_id, status, coins_awarded')
         .eq('group_id', groupId)
         .eq('user_id', user.id)
@@ -317,7 +317,7 @@ export default function TippgruppeDetailPage() {
     if (!user || !groupId || !selectedWinner || winnerBetSaving) return
     setWinnerBetSaving(true)
     const { data, error } = await supabase
-      .from('tip_group_winner_bets')
+      .from('tip_group_winner_challenges')
       .upsert({
         group_id: groupId,
         user_id: user.id,

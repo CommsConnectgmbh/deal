@@ -42,7 +42,7 @@ export default function PostCreationModal({ open, onClose, onPostCreated }: Prop
   const loadDeals = async () => {
     if (dealsLoaded || !profile) return
     const { data } = await supabase
-      .from('bets')
+      .from('challenges')
       .select('id, title, stake, status, created_at')
       .or(`creator_id.eq.${profile.id},opponent_id.eq.${profile.id}`)
       .order('created_at', { ascending: false })

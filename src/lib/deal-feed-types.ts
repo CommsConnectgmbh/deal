@@ -148,7 +148,7 @@ export interface DealCardProps {
   onToggleExpand: () => void
   feedEvents: any[]
   feedMedia: Record<string, any[]>
-  betQuotes: Record<string, { a: number; b: number }>
+  challengeQuotes: Record<string, { a: number; b: number }>
   onCommentOpen: (dealId: string) => void
   userId: string
   onHide?: (dealId: string) => void

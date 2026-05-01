@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const { data: cf, error: cfErr } = await supabaseAdmin
       .from('challenge_fulfillment')
       .select('*')
-      .eq('bet_id', challengeId)
+      .eq('challenge_id', challengeId)
       .single()
 
     if (cfErr || !cf) {

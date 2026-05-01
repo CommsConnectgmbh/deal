@@ -177,7 +177,7 @@ serve(async (req) => {
         event_type: 'deal_won',
         xp_gained: totalWinnerXP,
         description: `Deal gewonnen 🏆 (${sameOpponentPenalty ? '50% Bonus' : 'Full'})`,
-        related_bet_id: deal_id
+        related_challenge_id: deal_id
       })
     }
 
@@ -187,7 +187,7 @@ serve(async (req) => {
       event_type: 'deal_completed',
       xp_gained: totalLoserXP,
       description: 'Deal abgeschlossen',
-      related_bet_id: deal_id
+      related_challenge_id: deal_id
     })
 
     // Wallet ledger entries
@@ -351,7 +351,7 @@ serve(async (req) => {
     // Only for challenges with a stake (material obligation)
     if (deal.stake && deal.stake.trim() !== '') {
       await supabase.from('challenge_fulfillment').insert({
-        bet_id: deal_id,
+        challenge_id: deal_id,
         obligated_user_id: loser_id,
         entitled_user_id: winner_id,
         status: 'pending_fulfillment',
@@ -406,28 +406,29 @@ serve(async (req) => {
             coins: (predictorProfile?.coins || 0) + SIDE_CHALLENGE_REWARD
           }).eq('id', sb.user_id)
 
-          // Wallet ledger entry — `side_bet_won` is a stable enum string in
-          // wallet_ledger.reason; do not rename the value here, just the code.
+          // Wallet ledger entry. Phase 2 introduces `side_challenge_won`;
+          // legacy 'side_bet_won' rows remain valid but are no longer written.
           await supabase.from('wallet_ledger').insert({
             user_id: sb.user_id,
             delta: SIDE_CHALLENGE_REWARD,
-            reason: 'side_bet_won',
+            reason: 'side_challenge_won',
             reference_id: deal_id
           })
 
-          // Notification — type string is a stable enum, do not rename.
+          // Notification (Phase 2 type). Legacy 'side_bet_won' kept readable
+          // by the notifications UI but no longer inserted.
           await supabase.from('notifications').insert({
             user_id: sb.user_id,
-            type: 'side_bet_won',
+            type: 'side_challenge_won',
             title: 'Seitentipp gewonnen!',
             body: `Dein Tipp war richtig! +${SIDE_CHALLENGE_REWARD} Coins`,
             data: { deal_id, coins: SIDE_CHALLENGE_REWARD }
           })
         } else {
-          // Notification for losing prediction
+          // Notification for losing prediction (Phase 2 type).
           await supabase.from('notifications').insert({
             user_id: sb.user_id,
-            type: 'side_bet_lost',
+            type: 'side_challenge_lost',
             title: 'Seitentipp verloren',
             body: `Dein Tipp war leider falsch. Nächstes Mal!`,
             data: { deal_id }

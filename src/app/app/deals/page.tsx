@@ -7,7 +7,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import FeedDealCard from '@/components/feed/FeedDealCard'
 import InteractionBar from '@/components/InteractionBar'
 import CommentSheet from '@/components/CommentSheet'
-import DealBetWidget from '@/components/DealBetWidget'
+import DealChallengeWidget from '@/components/DealChallengeWidget'
 import { trackDealCancelled, trackResultSubmitted, trackScreenView } from '@/lib/analytics'
 
 const inputStyle: React.CSSProperties = {
@@ -122,7 +122,7 @@ function DealsContent() {
                 onToggleExpand={() => setExpandedId(expandedId === deal.id ? null : deal.id)}
                 feedEvents={[]}
                 feedMedia={{}}
-                betQuotes={{}}
+                challengeQuotes={{}}
                 onCommentOpen={(dealId) => { setCommentDealId(dealId); setCommentSheetOpen(true) }}
                 userId={profile?.id || ''}
               />

@@ -17,14 +17,14 @@ interface Props {
   opponentAvatarUrl?: string | null
 }
 
-export default function DealBetWidget({
+export default function DealChallengeWidget({
   dealId, creatorId, opponentId, creatorName, opponentName, dealStatus, winnerId,
   creatorAvatarUrl, opponentAvatarUrl,
 }: Props) {
   const { profile } = useAuth()
   const { t } = useLang()
-  const [myBet, setMyBet] = useState<{ side: string; status: string; coins_awarded: number } | null>(null)
-  const [betCounts, setBetCounts] = useState({ a: 0, b: 0 })
+  const [myChallenge, setMyChallenge] = useState<{ side: string; status: string; coins_awarded: number } | null>(null)
+  const [challengeCounts, setChallengeCounts] = useState({ a: 0, b: 0 })
   const [saving, setSaving] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [justPicked, setJustPicked] = useState<'a' | 'b' | null>(null)
@@ -35,21 +35,21 @@ export default function DealBetWidget({
     if (!show || !profile) return
     const load = async () => {
       const { data: myData } = await supabase
-        .from('deal_side_bets')
+        .from('deal_side_challenges')
         .select('side, status, coins_awarded')
         .eq('deal_id', dealId)
         .eq('user_id', profile.id)
         .maybeSingle()
-      if (myData) setMyBet(myData)
+      if (myData) setMyChallenge(myData)
       const { count: countA } = await supabase
-        .from('deal_side_bets')
+        .from('deal_side_challenges')
         .select('*', { count: 'exact', head: true })
         .eq('deal_id', dealId).eq('side', 'a')
       const { count: countB } = await supabase
-        .from('deal_side_bets')
+        .from('deal_side_challenges')
         .select('*', { count: 'exact', head: true })
         .eq('deal_id', dealId).eq('side', 'b')
-      setBetCounts({ a: countA || 0, b: countB || 0 })
+      setChallengeCounts({ a: countA || 0, b: countB || 0 })
       setLoaded(true)
     }
     load()
@@ -60,27 +60,23 @@ export default function DealBetWidget({
   const isParticipant = profile?.id === creatorId || profile?.id === opponentId
   const isCompleted = dealStatus === 'completed' && winnerId
   const winningSide = winnerId === creatorId ? 'a' : 'b'
-  const totalBets = betCounts.a + betCounts.b
-  const pctA = totalBets > 0 ? Math.round((betCounts.a / totalBets) * 100) : 50
-  const pctB = totalBets > 0 ? 100 - pctA : 50
+  const totalChallenges = challengeCounts.a + challengeCounts.b
+  const pctA = totalChallenges > 0 ? Math.round((challengeCounts.a / totalChallenges) * 100) : 50
+  const pctB = totalChallenges > 0 ? 100 - pctA : 50
 
-  const placeBet = async (side: 'a' | 'b') => {
-    if (!profile || isParticipant || myBet || saving || dealStatus === 'completed') return
+  const placeChallenge = async (side: 'a' | 'b') => {
+    if (!profile || isParticipant || myChallenge || saving || dealStatus === 'completed') return
     setSaving(true)
     setJustPicked(side)
-    const { error } = await supabase.from('deal_side_bets').upsert({
+    const { error } = await supabase.from('deal_side_challenges').upsert({
       deal_id: dealId, user_id: profile.id, side, stake: '25 Coins',
     }, { onConflict: 'deal_id,user_id' })
     if (!error) {
-      setMyBet({ side, status: 'open', coins_awarded: 0 })
-      setBetCounts(prev => ({ ...prev, [side]: prev[side] + 1 }))
-      // Feed event: side_bet_placed
-      supabase.from('feed_events').insert({
-        event_type: 'side_bet_placed',
-        user_id: profile.id,
-        deal_id: dealId,
-        metadata: { side, title: side === 'a' ? creatorName : opponentName },
-      }).then(() => {})
+      setMyChallenge({ side, status: 'open', coins_awarded: 0 })
+      setChallengeCounts(prev => ({ ...prev, [side]: prev[side] + 1 }))
+      // Feed event for the placed side challenge. The feed_events CHECK
+      // constraint does not list this event_type, so this insert is silently
+      // discarded today; kept as a no-op to preserve previous behaviour.
     }
     setSaving(false)
   }
@@ -88,20 +84,20 @@ export default function DealBetWidget({
   const colorA = '#FFB800'
   const colorB = '#3B82F6'
 
-  const myPickSide = myBet?.side || null
-  const showResult = isCompleted && myBet
-  const iWon = showResult && myBet?.status === 'won'
-  const iLost = showResult && myBet?.status === 'lost'
-  const canBet = !myBet && !isParticipant && dealStatus === 'active'
+  const myPickSide = myChallenge?.side || null
+  const showResult = isCompleted && myChallenge
+  const iWon = showResult && myChallenge?.status === 'won'
+  const iLost = showResult && myChallenge?.status === 'lost'
+  const canPredict = !myChallenge && !isParticipant && dealStatus === 'active'
 
   const nameA = creatorName.length > 10 ? creatorName.slice(0, 10) + '\u2026' : creatorName
   const nameB = opponentName.length > 10 ? opponentName.slice(0, 10) + '\u2026' : opponentName
 
   // Loser dezent ausfaden
   const opacityA = isCompleted && winningSide !== 'a' ? 0.35
-    : totalBets > 0 && pctA < pctB ? 0.7 : 1
+    : totalChallenges > 0 && pctA < pctB ? 0.7 : 1
   const opacityB = isCompleted && winningSide !== 'b' ? 0.35
-    : totalBets > 0 && pctB < pctA ? 0.7 : 1
+    : totalChallenges > 0 && pctB < pctA ? 0.7 : 1
 
   // Bar gradient position: pctA bestimmt wo Gold aufhört und Blau anfängt
   const barGradientPos = pctA
@@ -158,11 +154,11 @@ export default function DealBetWidget({
 
           {/* LEFT: Creator */}
           <div
-            onClick={canBet ? (e) => { e.preventDefault(); e.stopPropagation(); placeBet('a') } : undefined}
+            onClick={canPredict ? (e) => { e.preventDefault(); e.stopPropagation(); placeChallenge('a') } : undefined}
             style={{
               flex: 1, display: 'flex', alignItems: 'center', gap: 5,
               padding: '5px 0',
-              cursor: canBet ? 'pointer' : 'default',
+              cursor: canPredict ? 'pointer' : 'default',
               opacity: opacityA,
               transition: 'opacity 0.4s ease',
             }}
@@ -175,12 +171,12 @@ export default function DealBetWidget({
             }}>
               {nameA}
             </span>
-            {betCounts.a > 0 && (
+            {challengeCounts.a > 0 && (
               <span style={{
                 fontSize: 9, fontWeight: 600, color: 'var(--text-muted)',
                 fontFamily: 'var(--font-body)', flexShrink: 0,
               }}>
-                {betCounts.a}
+                {challengeCounts.a}
               </span>
             )}
           </div>
@@ -190,11 +186,11 @@ export default function DealBetWidget({
 
           {/* RIGHT: Opponent */}
           <div
-            onClick={canBet ? (e) => { e.preventDefault(); e.stopPropagation(); placeBet('b') } : undefined}
+            onClick={canPredict ? (e) => { e.preventDefault(); e.stopPropagation(); placeChallenge('b') } : undefined}
             style={{
               flex: 1, display: 'flex', alignItems: 'center', gap: 5,
               padding: '5px 0',
-              cursor: canBet ? 'pointer' : 'default',
+              cursor: canPredict ? 'pointer' : 'default',
               opacity: opacityB,
               transition: 'opacity 0.4s ease',
               flexDirection: 'row-reverse',
@@ -209,12 +205,12 @@ export default function DealBetWidget({
             }}>
               {nameB}
             </span>
-            {betCounts.b > 0 && (
+            {challengeCounts.b > 0 && (
               <span style={{
                 fontSize: 9, fontWeight: 600, color: 'var(--text-muted)',
                 fontFamily: 'var(--font-body)', flexShrink: 0,
               }}>
-                {betCounts.b}
+                {challengeCounts.b}
               </span>
             )}
           </div>
@@ -273,7 +269,7 @@ export default function DealBetWidget({
               border: `1.5px solid ${pctA > pctB ? colorA + '60' : pctB > pctA ? colorB + '60' : 'rgba(255,255,255,0.15)'}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: `0 0 10px ${pctA > pctB ? colorA + '35' : pctB > pctA ? colorB + '35' : 'rgba(255,255,255,0.05)'}`,
-              animation: totalBets > 0 ? 'vs-marker-pulse 2s ease-in-out infinite' : 'none',
+              animation: totalChallenges > 0 ? 'vs-marker-pulse 2s ease-in-out infinite' : 'none',
             }}>
               <span style={{
                 fontSize: 6, fontWeight: 900, letterSpacing: 0.5, lineHeight: 1,

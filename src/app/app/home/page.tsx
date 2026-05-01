@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import ProfileImage from '@/components/ProfileImage'
 import TipGroupInteractionBar from '@/components/tippen/TipGroupInteractionBar'
-import TipGroupBetWidget from '@/components/TipGroupBetWidget'
+import TipGroupChallengeWidget from '@/components/TipGroupChallengeWidget'
 import MiniEventCard, { aggregateFeedEvents } from '@/components/MiniEventCard'
 import type { FeedEvent, FeedEventItem } from '@/components/MiniEventCard'
 import FeedDealCard from '@/components/feed/FeedDealCard'
@@ -95,7 +95,7 @@ export default function HomePage() {
 
   // Fight Night collapsible cards + community quotes
   const [expandedDeals, setExpandedDeals] = useState<Set<string>>(new Set())
-  const [betQuotes, setBetQuotes] = useState<Record<string, { a: number; b: number }>>({})
+  const [challengeQuotes, setChallengeQuotes] = useState<Record<string, { a: number; b: number }>>({})
   const toggleDealExpand = (id: string) => {
     setExpandedDeals(prev => {
       const next = new Set(prev)
@@ -142,7 +142,7 @@ export default function HomePage() {
 
   // Single filter bar: DEALS | CHALLENGES | TIPPRUNDEN | AKTIVITAT
   const [feedTab, setFeedTab] = useState<'alle' | 'herausforderungen' | 'tipprunden' | 'live_tipp'>('alle')
-  const [myBets, setMyBets] = useState<any[]>([])
+  const [myChallenges, setMyChallenges] = useState<any[]>([])
   const [interactionDealIds, setInteractionDealIds] = useState<Set<string>>(new Set())
   // Legacy compat — DEALS/CHALLENGES/INTERAKTIONEN = only deals, TIPPRUNDEN = only tip groups
   const contentTab = feedTab === 'tipprunden' ? 'tipprunden' : 'deals'
@@ -545,19 +545,19 @@ export default function HomePage() {
         }
       }
 
-      // Batch-fetch community bet quotes for all deals
+      // Batch-fetch community challenge quotes for all deals
       if (dealIds.length > 0) {
-        const { data: betData } = await supabase
-          .from('deal_side_bets')
+        const { data: challengeData } = await supabase
+          .from('deal_side_challenges')
           .select('deal_id, side')
           .in('deal_id', dealIds)
-        if (betData && betData.length > 0) {
+        if (challengeData && challengeData.length > 0) {
           const quotes: Record<string, { a: number; b: number }> = {}
-          for (const b of betData) {
+          for (const b of challengeData) {
             if (!quotes[b.deal_id]) quotes[b.deal_id] = { a: 0, b: 0 }
             quotes[b.deal_id][b.side as 'a' | 'b']++
           }
-          setBetQuotes(prev => ({ ...prev, ...quotes }))
+          setChallengeQuotes(prev => ({ ...prev, ...quotes }))
         }
       }
     } catch (_e) {
@@ -661,22 +661,22 @@ export default function HomePage() {
       .select('original_deal_id')
       .eq('user_id', profile.id)
     if (reposted) reposted.forEach((d: any) => ids.add(d.original_deal_id))
-    // 5. Side-betted deals
-    const { data: sideBets } = await supabase.from('deal_side_bets')
+    // 5. Side-tipped deals
+    const { data: sideChallenges } = await supabase.from('deal_side_challenges')
       .select('deal_id, side, status, coins_awarded, created_at')
       .eq('user_id', profile.id)
       .order('created_at', { ascending: false })
-    if (sideBets) {
-      sideBets.forEach((d: any) => ids.add(d.deal_id))
+    if (sideChallenges) {
+      sideChallenges.forEach((d: any) => ids.add(d.deal_id))
       // Merge with deal info for Live Tipp tab
-      const betDealIds = sideBets.map((b: any) => b.deal_id)
-      if (betDealIds.length > 0) {
-        const { data: betDeals } = await supabase.from('challenges')
+      const challengeDealIds = sideChallenges.map((b: any) => b.deal_id)
+      if (challengeDealIds.length > 0) {
+        const { data: challengeDeals } = await supabase.from('challenges')
           .select('id, title, status, stake, creator_id, opponent_id, confirmed_winner_id, winner_id, creator:creator_id(username, display_name, avatar_url), opponent:opponent_id(username, display_name, avatar_url)')
-          .in('id', betDealIds)
+          .in('id', challengeDealIds)
         const dealMap: Record<string, any> = {}
-        if (betDeals) betDeals.forEach((d: any) => { dealMap[d.id] = d })
-        setMyBets(sideBets.map((b: any) => ({ ...b, deal: dealMap[b.deal_id] || null })).filter((b: any) => b.deal))
+        if (challengeDeals) challengeDeals.forEach((d: any) => { dealMap[d.id] = d })
+        setMyChallenges(sideChallenges.map((b: any) => ({ ...b, deal: dealMap[b.deal_id] || null })).filter((b: any) => b.deal))
       }
     }
     setInteractionDealIds(ids)
@@ -1227,7 +1227,7 @@ export default function HomePage() {
                     }}>
                     {t('home.join')}
                   </button>
-                  <TipGroupBetWidget groupId={tg.id} />
+                  <TipGroupChallengeWidget groupId={tg.id} />
                   <TipGroupInteractionBar groupId={tg.id} inviteCode={tg.invite_code} groupName={tg.name} />
 
                 </div>
@@ -1236,10 +1236,10 @@ export default function HomePage() {
             })}
             {/* ── DEALS + EVENTS UNIFIED TIMELINE (hide on TIPPRUNDEN tab) ── */}
             {feedTab !== 'tipprunden' && (() => {
-              // ═══ LIVE TIPP TAB → show user's placed side bets ═══
+              // ═══ LIVE TIPP TAB → show user's placed side challenges ═══
               if (feedTab === 'live_tipp') {
-                if (myBets.length === 0) return [(
-                  <div key="empty-bets" style={{ textAlign: 'center', padding: '32px 24px' }}>
+                if (myChallenges.length === 0) return [(
+                  <div key="empty-tips" style={{ textAlign: 'center', padding: '32px 24px' }}>
                     <p style={{ fontSize: 32, marginBottom: 8, opacity: 0.4 }}>{'\uD83C\uDFB2'}</p>
                     <p style={{ fontFamily: 'var(--font-display)', fontSize: 11, color: 'var(--text-muted)', letterSpacing: 1 }}>
                       {t('home.noLiveTips')}
@@ -1249,18 +1249,18 @@ export default function HomePage() {
                     </p>
                   </div>
                 )]
-                return myBets.map((bet: any) => {
-                  const d = bet.deal
+                return myChallenges.map((sc: any) => {
+                  const d = sc.deal
                   const creatorName = d.creator?.display_name || d.creator?.username || '?'
                   const opponentName = d.opponent?.display_name || d.opponent?.username || '?'
-                  const tippedName = bet.side === 'a' ? creatorName : opponentName
+                  const tippedName = sc.side === 'a' ? creatorName : opponentName
                   const winnerId = d.confirmed_winner_id || d.winner_id
-                  const isWinner = winnerId && ((bet.side === 'a' && winnerId === d.creator_id) || (bet.side === 'b' && winnerId === d.opponent_id))
+                  const isWinner = winnerId && ((sc.side === 'a' && winnerId === d.creator_id) || (sc.side === 'b' && winnerId === d.opponent_id))
                   const isLoser = winnerId && !isWinner
-                  const statusColor = bet.status === 'won' || isWinner ? '#4ade80' : bet.status === 'lost' || isLoser ? '#ef4444' : '#FFB800'
-                  const statusLabel = bet.status === 'won' || isWinner ? t('home.statusWon') : bet.status === 'lost' || isLoser ? t('home.statusLost') : t('home.statusOpen')
+                  const statusColor = sc.status === 'won' || isWinner ? '#4ade80' : sc.status === 'lost' || isLoser ? '#ef4444' : '#FFB800'
+                  const statusLabel = sc.status === 'won' || isWinner ? t('home.statusWon') : sc.status === 'lost' || isLoser ? t('home.statusLost') : t('home.statusOpen')
                   return (
-                    <div key={bet.deal_id}
+                    <div key={sc.deal_id}
                       onClick={() => router.push(`/app/deals/${d.id}`)}
                       style={{
                         marginBottom: 12, borderRadius: 12, overflow: 'hidden',
@@ -1390,7 +1390,7 @@ export default function HomePage() {
                     onToggleExpand={() => toggleDealExpand(deal.id)}
                     feedEvents={feedEvents}
                     feedMedia={feedMedia}
-                    betQuotes={betQuotes}
+                    challengeQuotes={challengeQuotes}
                     onCommentOpen={(id: string) => { setCommentDealId(id); setCommentSheetOpen(true) }}
                     userId={profile?.id || ''}
                     onHide={(id: string) => setHiddenFeedIds(prev => new Set(prev).add(id))}

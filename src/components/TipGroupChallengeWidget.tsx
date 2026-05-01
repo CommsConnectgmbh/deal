@@ -15,13 +15,13 @@ interface Props {
  * Expanded: shows all members with animated vote bars, percentages, tip counts.
  * Supports 50+ members via scrollable expanded view.
  */
-export default function TipGroupBetWidget({ groupId, compact = true }: Props) {
+export default function TipGroupChallengeWidget({ groupId, compact = true }: Props) {
   const { profile } = useAuth()
   const { t } = useLang()
-  const [myBet, setMyBet] = useState<{ predicted_winner_id: string; status: string } | null>(null)
+  const [myPrediction, setMyPrediction] = useState<{ predicted_winner_id: string; status: string } | null>(null)
   const [allMembers, setAllMembers] = useState<{ user_id: string; username: string; total_points: number }[]>([])
-  const [betsByMember, setBetsByMember] = useState<Record<string, number>>({})
-  const [totalBets, setTotalBets] = useState(0)
+  const [predictionsByMember, setPredictionsByMember] = useState<Record<string, number>>({})
+  const [totalPredictions, setTotalPredictions] = useState(0)
   const [saving, setSaving] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [expanded, setExpanded] = useState(false)
@@ -32,12 +32,12 @@ export default function TipGroupBetWidget({ groupId, compact = true }: Props) {
     const load = async () => {
       // Load my existing prediction
       const { data: myData } = await supabase
-        .from('tip_group_winner_bets')
+        .from('tip_group_winner_challenges')
         .select('predicted_winner_id, status')
         .eq('group_id', groupId)
         .eq('user_id', profile.id)
         .maybeSingle()
-      if (myData) setMyBet(myData)
+      if (myData) setMyPrediction(myData)
 
       // Load ALL members (not just top 3 — needed for full dropdown)
       const { data: members } = await supabase
@@ -54,19 +54,19 @@ export default function TipGroupBetWidget({ groupId, compact = true }: Props) {
       })))
 
       // Load all bets for this group
-      const { data: allBets } = await supabase
-        .from('tip_group_winner_bets')
+      const { data: allPredictions } = await supabase
+        .from('tip_group_winner_challenges')
         .select('predicted_winner_id')
         .eq('group_id', groupId)
 
       const counts: Record<string, number> = {}
       let total = 0
-      for (const b of (allBets || [])) {
+      for (const b of (allPredictions || [])) {
         counts[b.predicted_winner_id] = (counts[b.predicted_winner_id] || 0) + 1
         total++
       }
-      setBetsByMember(counts)
-      setTotalBets(total)
+      setPredictionsByMember(counts)
+      setTotalPredictions(total)
       setLoaded(true)
     }
     load()
@@ -74,51 +74,51 @@ export default function TipGroupBetWidget({ groupId, compact = true }: Props) {
 
   if (!loaded || allMembers.length === 0) return null
 
-  const placeBet = async (winnerId: string) => {
+  const placePrediction = async (winnerId: string) => {
     if (!profile || saving) return
     setSaving(true)
-    const { error } = await supabase.from('tip_group_winner_bets').upsert({
+    const { error } = await supabase.from('tip_group_winner_challenges').upsert({
       group_id: groupId,
       user_id: profile.id,
       predicted_winner_id: winnerId,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'group_id,user_id' })
     if (!error) {
-      const wasNew = !myBet
-      const oldPick = myBet?.predicted_winner_id
-      setMyBet({ predicted_winner_id: winnerId, status: 'active' })
-      setBetsByMember(prev => {
+      const wasNew = !myPrediction
+      const oldPick = myPrediction?.predicted_winner_id
+      setMyPrediction({ predicted_winner_id: winnerId, status: 'active' })
+      setPredictionsByMember(prev => {
         const next = { ...prev }
         if (oldPick) next[oldPick] = Math.max(0, (next[oldPick] || 0) - 1)
         next[winnerId] = (next[winnerId] || 0) + 1
         return next
       })
-      if (wasNew) setTotalBets(prev => prev + 1)
+      if (wasNew) setTotalPredictions(prev => prev + 1)
       setAnimatePulse(true)
       setTimeout(() => setAnimatePulse(false), 600)
     }
     setSaving(false)
   }
 
-  const won = myBet?.status === 'won'
-  const lost = myBet?.status === 'lost'
+  const won = myPrediction?.status === 'won'
+  const lost = myPrediction?.status === 'lost'
   const isResolved = won || lost
 
   // Find leader
   const leader = allMembers.reduce((best, m) => {
-    const c = betsByMember[m.user_id] || 0
-    return c > (betsByMember[best.user_id] || 0) ? m : best
+    const c = predictionsByMember[m.user_id] || 0
+    return c > (predictionsByMember[best.user_id] || 0) ? m : best
   }, allMembers[0])
-  const leaderBets = betsByMember[leader.user_id] || 0
-  const leaderPct = totalBets > 0 ? Math.round((leaderBets / totalBets) * 100) : 0
+  const leaderPredictions = predictionsByMember[leader.user_id] || 0
+  const leaderPct = totalPredictions > 0 ? Math.round((leaderPredictions / totalPredictions) * 100) : 0
 
   // My pick name
-  const myPickName = myBet ? allMembers.find(m => m.user_id === myBet.predicted_winner_id)?.username || '?' : null
+  const myPickName = myPrediction ? allMembers.find(m => m.user_id === myPrediction.predicted_winner_id)?.username || '?' : null
 
   // Medal colors
   const MEMBER_COLORS = ['#FFB800', '#94A3B8', '#CD7F32', '#8B5CF6', '#3B82F6', '#22C55E', '#EC4899', '#F97316']
   const MEDAL = ['🥇', '🥈', '🥉']
-  const maxBets = Math.max(1, ...allMembers.map(m => betsByMember[m.user_id] || 0))
+  const maxPredictions = Math.max(1, ...allMembers.map(m => predictionsByMember[m.user_id] || 0))
 
   return (
     <div
@@ -149,7 +149,7 @@ export default function TipGroupBetWidget({ groupId, compact = true }: Props) {
             </span>
           ) : (
             <>
-              {totalBets > 0 && (
+              {totalPredictions > 0 && (
                 <span style={{
                   display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
                   background: '#22C55E', flexShrink: 0,
@@ -159,16 +159,16 @@ export default function TipGroupBetWidget({ groupId, compact = true }: Props) {
               )}
               <span style={{
                 fontSize: 9, fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: 1,
-                color: totalBets > 0 ? '#22C55E' : 'var(--text-muted)',
+                color: totalPredictions > 0 ? '#22C55E' : 'var(--text-muted)',
                 whiteSpace: 'nowrap',
               }}>
-                {totalBets > 0 ? t('components.liveWithTips').replace('{count}', String(totalBets)) : t('components.whoWinsQuestion')}
+                {totalPredictions > 0 ? t('components.liveWithTips').replace('{count}', String(totalPredictions)) : t('components.whoWinsQuestion')}
               </span>
             </>
           )}
 
           {/* Leader / my pick info */}
-          {myBet && !isResolved && (
+          {myPrediction && !isResolved && (
             <span style={{
               fontSize: 9, color: 'var(--gold-primary)', fontWeight: 600,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -176,7 +176,7 @@ export default function TipGroupBetWidget({ groupId, compact = true }: Props) {
               {t('components.yourTip')}: @{myPickName}
             </span>
           )}
-          {!myBet && totalBets > 0 && (
+          {!myPrediction && totalPredictions > 0 && (
             <span style={{
               fontSize: 9, color: 'var(--text-muted)',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -220,22 +220,22 @@ export default function TipGroupBetWidget({ groupId, compact = true }: Props) {
           {/* Members vote bars */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, position: 'relative' }}>
             {allMembers.map((m, i) => {
-              const memberBets = betsByMember[m.user_id] || 0
-              const pct = totalBets > 0 ? Math.round((memberBets / totalBets) * 100) : 0
-              const barWidth = totalBets > 0 ? Math.max(6, (memberBets / maxBets) * 100) : 20
-              const isMyPick = myBet?.predicted_winner_id === m.user_id
+              const memberPredictions = predictionsByMember[m.user_id] || 0
+              const pct = totalPredictions > 0 ? Math.round((memberPredictions / totalPredictions) * 100) : 0
+              const barWidth = totalPredictions > 0 ? Math.max(6, (memberPredictions / maxPredictions) * 100) : 20
+              const isMyPick = myPrediction?.predicted_winner_id === m.user_id
               const color = MEMBER_COLORS[i % MEMBER_COLORS.length]
-              const canBet = !saving && !isResolved
+              const canPredict = !saving && !isResolved
               const shortName = m.username.length > 12 ? m.username.slice(0, 12) + '…' : m.username
 
               return (
                 <button
                   key={m.user_id}
-                  onClick={canBet ? (e: React.MouseEvent) => { e.stopPropagation(); e.preventDefault(); placeBet(m.user_id) } : (e: React.MouseEvent) => { e.stopPropagation(); e.preventDefault() }}
-                  disabled={!canBet}
+                  onClick={canPredict ? (e: React.MouseEvent) => { e.stopPropagation(); e.preventDefault(); placePrediction(m.user_id) } : (e: React.MouseEvent) => { e.stopPropagation(); e.preventDefault() }}
+                  disabled={!canPredict}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '6px 10px', borderRadius: 8, cursor: canBet ? 'pointer' : 'default',
+                    padding: '6px 10px', borderRadius: 8, cursor: canPredict ? 'pointer' : 'default',
                     background: 'rgba(0,0,0,0.2)',
                     border: isMyPick ? `1.5px solid ${color}55` : '1.5px solid transparent',
                     position: 'relative', overflow: 'hidden',
@@ -296,13 +296,13 @@ export default function TipGroupBetWidget({ groupId, compact = true }: Props) {
                   )}
 
                   {/* Tip count + pct */}
-                  {totalBets > 0 && (
+                  {totalPredictions > 0 && (
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 4,
                       position: 'relative', zIndex: 1,
                     }}>
                       <span style={{ fontSize: 8, color: 'var(--text-muted)' }}>
-                        {memberBets}
+                        {memberPredictions}
                       </span>
                       <span style={{
                         fontSize: 11, fontWeight: 800, color: color,
@@ -329,7 +329,7 @@ export default function TipGroupBetWidget({ groupId, compact = true }: Props) {
           </div>
 
           {/* Hint text */}
-          {!myBet && !isResolved && (
+          {!myPrediction && !isResolved && (
             <div style={{
               textAlign: 'center', marginTop: 6,
               fontSize: 9, color: 'var(--text-muted)', fontStyle: 'italic',
