@@ -158,4 +158,21 @@ Features werden progressiv aktiviert basierend auf User-Verhalten:
 
 ---
 
+## Compliance
+
+Stand 2026-05-01: Code-seitige Compliance (Account-Loeschung Native+PWA, iOS PrivacyInfo, Stripe Billing Portal, PostHog Opt-In, DSGVO Datenexport, Cookie-Banner Homepage, DB-Rename `bets`→`challenges`) ist live. Manuelle Schritte siehe Guides.
+
+Reports im Workspace-Parent `C:\Claude Code\DealBuddy\` (ausserhalb des PWA-Repos):
+- `COMPLIANCE_AUDIT_2026-05-01.md` – Ergebnis-Matrix der 21 Audit-Punkte.
+- `COMPLIANCE_FIXES_2026-05-01.md` – Erste Welle: Account-Delete, PrivacyInfo, Stripe Portal.
+- `COMPLIANCE_FIXES_2026-05-01-rename.md` – DB-Rename `bets` → `challenges`.
+- `COMPLIANCE_POLISH_2026-05-01.md` – Zweite Welle: PostHog Consent, Datenexport, Cookie-Banner, Native Git-Remote.
+
+Manuelle Schritte (Guides im PWA-Repo unter [`docs/`](./docs/)):
+- [`docs/APP_STORE_PRIVACY_GUIDE.md`](./docs/APP_STORE_PRIVACY_GUIDE.md) – Apple ASC App-Datenschutz-Fragen vor jeder iOS-Submission.
+- [`docs/PLAY_DATA_SAFETY_GUIDE.md`](./docs/PLAY_DATA_SAFETY_GUIDE.md) – Google Play Data-Safety-Section vor Android-Submission.
+- [`docs/HOMEPAGE_FTP_UPLOAD.md`](./docs/HOMEPAGE_FTP_UPLOAD.md) – Manueller FTP-Upload der Homepage (Cookie-Banner-Rollout).
+
+---
+
 *Built with Supabase, Next.js & Expo by the DealBuddy Team.*
