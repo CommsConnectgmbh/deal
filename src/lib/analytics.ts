@@ -1,25 +1,75 @@
 // PostHog Analytics – DealBuddy Event Tracking
 // Kostenlos bis 1M Events/Monat auf EU Cloud
 // posthog-js is lazy-loaded to avoid blocking initial page load (~350KB savings)
+//
+// DSGVO: Strict Opt-In. PostHog is initialized ONLY when the user has explicitly
+// granted consent via the cookie banner (localStorage `db_analytics_consent` === 'granted').
+// All track()/identify() calls become no-ops when consent has not been granted.
+
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY || ''
 const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com'
 
-let initialized = false
-let posthogInstance: any = null
-let loadingPromise: Promise<any> | null = null
+export const ANALYTICS_CONSENT_KEY = 'db_analytics_consent'
+export type AnalyticsConsent = 'granted' | 'denied' | null
 
-function getPostHog(): Promise<any> {
-  if (posthogInstance) return Promise.resolve(posthogInstance)
-  if (loadingPromise) return loadingPromise
+let initialized = false
+let posthogInstance: unknown = null
+let loadingPromise: Promise<unknown> | null = null
+
+interface PostHogLike {
+  init: (key: string, options: Record<string, unknown>) => void
+  identify: (id: string, properties?: Record<string, unknown>) => void
+  reset: () => void
+  capture: (event: string, properties?: Record<string, unknown>) => void
+  opt_out_capturing?: () => void
+}
+
+function getPostHog(): Promise<PostHogLike> {
+  if (posthogInstance) return Promise.resolve(posthogInstance as PostHogLike)
+  if (loadingPromise) return loadingPromise as Promise<PostHogLike>
   loadingPromise = import('posthog-js').then((mod) => {
     posthogInstance = mod.default
-    return posthogInstance
+    return posthogInstance as PostHogLike
   })
-  return loadingPromise
+  return loadingPromise as Promise<PostHogLike>
+}
+
+/**
+ * Read current consent value from localStorage. SSR-safe.
+ */
+export function getAnalyticsConsent(): AnalyticsConsent {
+  if (typeof window === 'undefined') return null
+  const v = window.localStorage.getItem(ANALYTICS_CONSENT_KEY)
+  if (v === 'granted' || v === 'denied') return v
+  return null
+}
+
+/**
+ * Persist consent decision and (de)activate analytics accordingly.
+ * - 'granted': initializes PostHog if not yet running
+ * - 'denied': stops further tracking; existing instance opts out of capturing
+ */
+export function setAnalyticsConsent(value: 'granted' | 'denied'): void {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(ANALYTICS_CONSENT_KEY, value)
+  if (value === 'granted') {
+    initAnalytics()
+  } else {
+    initialized = false
+    if (posthogInstance) {
+      const ph = posthogInstance as PostHogLike
+      try {
+        ph.opt_out_capturing?.()
+      } catch {
+        /* no-op */
+      }
+    }
+  }
 }
 
 export function initAnalytics() {
   if (initialized || !POSTHOG_KEY || typeof window === 'undefined') return
+  if (getAnalyticsConsent() !== 'granted') return
   initialized = true
   getPostHog().then((posthog) => {
     posthog.init(POSTHOG_KEY, {
@@ -37,11 +87,13 @@ export function initAnalytics() {
 
 export function identifyUser(userId: string, properties?: Record<string, unknown>) {
   if (!POSTHOG_KEY) return
+  if (getAnalyticsConsent() !== 'granted') return
   getPostHog().then((posthog) => posthog.identify(userId, properties))
 }
 
 export function resetUser() {
   if (!POSTHOG_KEY) return
+  if (getAnalyticsConsent() !== 'granted') return
   getPostHog().then((posthog) => posthog.reset())
 }
 
@@ -49,6 +101,7 @@ export function resetUser() {
 
 export function track(event: string, properties?: Record<string, unknown>) {
   if (!POSTHOG_KEY) return
+  if (getAnalyticsConsent() !== 'granted') return
   getPostHog().then((posthog) => posthog.capture(event, properties))
 }
 

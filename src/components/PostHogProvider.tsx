@@ -1,12 +1,14 @@
 'use client'
 import { useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { initAnalytics, identifyUser, resetUser } from '@/lib/analytics'
+import { initAnalytics, identifyUser, resetUser, getAnalyticsConsent } from '@/lib/analytics'
 
 export default function PostHogProvider({ children }: { children: React.ReactNode }) {
   const { user, profile } = useAuth()
 
   useEffect(() => {
+    // Opt-in only: skip init unless user explicitly granted consent.
+    if (getAnalyticsConsent() !== 'granted') return
     const timer = setTimeout(() => {
       initAnalytics()
     }, 3000)
@@ -14,6 +16,7 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
   }, [])
 
   useEffect(() => {
+    if (getAnalyticsConsent() !== 'granted') return
     if (user && profile) {
       identifyUser(user.id, {
         username: profile.username,

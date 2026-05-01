@@ -5,6 +5,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ThemeScript } from '@/hooks/useTheme'
 import PostHogProvider from '@/components/PostHogProvider'
 import ServiceWorkerUpdater from '@/components/ServiceWorkerUpdater'
+import CookieConsent from '@/components/CookieConsent'
 
 export const metadata: Metadata = {
   title: { default: 'DealBuddy – Compete. Win. Reign.', template: '%s | DealBuddy' },
@@ -73,6 +74,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <PostHogProvider>
               <ServiceWorkerUpdater />
               {children}
+              <CookieConsent />
             </PostHogProvider>
           </AuthProvider>
         </LanguageProvider>
