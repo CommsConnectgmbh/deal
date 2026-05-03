@@ -68,16 +68,28 @@ export default function TermsPage() {
           </p>
         </Section>
 
-        <Section title="4. Coins und virtuelle W&auml;hrung">
+        <Section title="4. Coins, Battle Cards und virtuelle Inhalte">
           <p>
-            Innerhalb der App k&ouml;nnen Nutzer &bdquo;Coins&ldquo; erwerben. Coins sind eine
-            <strong> virtuelle W&auml;hrung ohne realen Geldwert</strong>. Es besteht kein Anspruch auf
-            R&uuml;ckerstattung oder Auszahlung von Coins in Echtgeld.
+            Innerhalb der App k&ouml;nnen Nutzer &bdquo;Coins&ldquo;, &bdquo;Battle Cards&ldquo;,
+            &bdquo;Skins&ldquo; oder andere virtuelle Inhalte erwerben oder durch Aktivit&auml;t freischalten.
+            Diese sind eine <strong>rein virtuelle Repr&auml;sentation ohne realen Geldwert</strong>.
           </p>
           <p style={{ marginTop: 12 }}>
-            Coins k&ouml;nnen ausschlie&szlig;lich innerhalb der App f&uuml;r die vorgesehenen
-            Funktionen verwendet werden. Der Kauf von Coins erfolgt &uuml;ber den Zahlungsdienstleister
-            Stripe in Euro (EUR).
+            <strong>Sammelkarten und virtuelle Inhalte sind ausdr&uuml;cklich nicht &uuml;bertragbar,
+            nicht verkaufsf&auml;hig und nicht in Echtgeld oder geldwerte Leistungen einzutauschen.</strong>
+            Es besteht kein Anspruch auf R&uuml;ckerstattung, Auszahlung oder &Uuml;bertragung an Dritte.
+            Ein Sekund&auml;rmarkt &uuml;ber DealBuddy oder &uuml;ber DealBuddy-zugeh&ouml;rige Kan&auml;le
+            (Discord, App-Inhalte) ist nicht vorgesehen und nicht gestattet.
+          </p>
+          <p style={{ marginTop: 12 }}>
+            Coins und Battle Cards k&ouml;nnen ausschlie&szlig;lich innerhalb der App f&uuml;r die
+            vorgesehenen Funktionen verwendet werden. Der Kauf erfolgt &uuml;ber den Zahlungsdienstleister
+            Stripe in Euro (EUR) bzw. &uuml;ber Apple In-App-Purchase / Google Play Billing in der jeweiligen
+            Landesw&auml;hrung.
+          </p>
+          <p style={{ marginTop: 12 }}>
+            Diese Regelung ist Voraussetzung f&uuml;r die Einordnung der App au&szlig;erhalb des
+            Glücksspielbegriffs gem&auml;&szlig; § 3 Abs. 1 Glücksspielstaatsvertrag (GlüStV) 2021.
           </p>
         </Section>
 
@@ -137,6 +149,53 @@ export default function TermsPage() {
             DealBuddy beh&auml;lt sich das Recht vor, Nutzerkonten bei Verst&ouml;&szlig;en gegen
             diese AGB ohne Vorank&uuml;ndigung zu sperren oder zu l&ouml;schen. Erworbene Coins
             verfallen in diesem Fall ersatzlos.
+          </p>
+        </Section>
+
+        <Section title="8a. Widerrufsrecht f&uuml;r Verbraucher">
+          <p>
+            Verbraucher (§ 13 BGB) haben bei kostenpflichtigen In-App-K&auml;ufen (Coins, Battle Pass,
+            Premium-Funktionen) ein gesetzliches Widerrufsrecht von <strong>14 Tagen</strong> ohne Angabe
+            von Gr&uuml;nden gem&auml;&szlig; § 312g Abs. 1 BGB.
+          </p>
+          <p style={{ marginTop: 12 }}>
+            <strong>Erl&ouml;schen des Widerrufsrechts gem&auml;&szlig; § 356 Abs. 5 BGB:</strong>
+            Bei digitalen Inhalten und Dienstleistungen erlischt das Widerrufsrecht, wenn der
+            Verbraucher (a) ausdr&uuml;cklich zugestimmt hat, dass mit der Ausf&uuml;hrung des Vertrags
+            vor Ablauf der Widerrufsfrist begonnen wird, (b) seine Kenntnis davon best&auml;tigt hat,
+            dass er durch diese Zustimmung mit Beginn der Ausf&uuml;hrung sein Widerrufsrecht verliert,
+            und (c) der Anbieter dem Verbraucher eine Best&auml;tigung gem&auml;&szlig; § 312f Abs. 3 BGB
+            zur Verf&uuml;gung gestellt hat.
+          </p>
+          <p style={{ marginTop: 12 }}>
+            Beim Kauf von Coins, Battle Cards oder Premium-Inhalten wird der Nutzer im Checkout-Prozess
+            ausdr&uuml;cklich nach diesen Zustimmungen gefragt. Werden diese erteilt, wird die Leistung
+            sofort freigeschaltet und das Widerrufsrecht erlischt mit dem Beginn der Ausf&uuml;hrung.
+          </p>
+          <p style={{ marginTop: 12 }}>
+            Zur Aus&uuml;bung eines etwaig bestehenden Widerrufsrechts wenden Sie sich an:
+            <br />
+            <strong>info@deal-buddy.app</strong>
+          </p>
+          <p style={{ marginTop: 12, padding: '12px 16px', background: 'var(--gold-subtle)', borderRadius: 10, borderLeft: '3px solid var(--gold-primary)' }}>
+            <strong>Muster-Widerrufsformular (Anlage 2 zu Art. 246a EGBGB):</strong><br />
+            An: Comms Connect GmbH, Tal 30, 80331 M&uuml;nchen, info@deal-buddy.app<br />
+            Hiermit widerrufe(n) ich/wir (*) den von mir/uns (*) abgeschlossenen Vertrag &uuml;ber den Kauf
+            der folgenden Waren (*) / die Erbringung der folgenden Dienstleistung (*).<br />
+            Bestellt am (*) / erhalten am (*): __________<br />
+            Name: __________ &middot; Anschrift: __________<br />
+            Datum: __________ &middot; Unterschrift (nur bei Mitteilung auf Papier): __________<br />
+            (*) Unzutreffendes bitte streichen.
+          </p>
+        </Section>
+
+        <Section title="8b. Mindestalter und gesetzliche Vertretung Minderj&auml;hriger">
+          <p>
+            Die Nutzung der App und insbesondere kostenpflichtiger Funktionen ist Personen ab vollendetem
+            <strong> 18. Lebensjahr</strong> vorbehalten (siehe bereits § 3). Erkl&auml;rungen und K&auml;ufe
+            durch Minderj&auml;hrige sind ohne Zustimmung der gesetzlichen Vertreter gem&auml;&szlig;
+            §§ 107 ff. BGB schwebend unwirksam. Eltern, die einen unberechtigten Kauf durch ein Kind
+            feststellen, k&ouml;nnen sich umgehend an info@deal-buddy.app wenden.
           </p>
         </Section>
 
