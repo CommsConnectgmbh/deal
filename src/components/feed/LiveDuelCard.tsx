@@ -1,11 +1,15 @@
 'use client'
 import { useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import InteractionBar from '@/components/InteractionBar'
 import DealChallengeWidget from '@/components/DealChallengeWidget'
 import { type DealCardProps } from '@/lib/deal-feed-types'
 import { useLang } from '@/contexts/LanguageContext'
 import DealCardMenu from '@/components/DealCardMenu'
+import { detectStepChallenge } from '@/components/LiveMetricTracker'
+
+const LiveMetricTracker = dynamic(() => import('@/components/LiveMetricTracker'), { ssr: false })
 
 /* ═══════════════════════════════════════════════════════════════
    LiveDuelCard — Titel oben, Media + Lesezeichen, Einsatz mittig, Tipp Widget
@@ -152,6 +156,37 @@ export default function LiveDuelCard({
           creatorAvatarUrl={deal.creator?.avatar_url}
           opponentAvatarUrl={deal.opponent?.avatar_url}
         />
+
+        {/* ═══ Live Metric Tracker — only for participants of an active deal ═══ */}
+        {deal.status === 'active' && deal.creator?.id && deal.opponent?.id && userId &&
+          (userId === deal.creator_id || userId === deal.opponent_id) && (() => {
+          const isStepChallenge = detectStepChallenge(deal.title)
+          const metric = isStepChallenge ? 'steps' : 'progress'
+          const metricLabel = isStepChallenge ? t('liveTracker.stepsLabel') : t('liveTracker.progressLabel')
+          return (
+            <div style={{ paddingBottom: 8 }}>
+              <LiveMetricTracker
+                dealId={deal.id}
+                metric={metric}
+                metricLabel={metricLabel}
+                creator={{
+                  id: deal.creator.id,
+                  username: deal.creator.username,
+                  display_name: deal.creator.display_name,
+                  avatar_url: deal.creator.avatar_url,
+                }}
+                opponent={{
+                  id: deal.opponent.id,
+                  username: deal.opponent.username,
+                  display_name: deal.opponent.display_name,
+                  avatar_url: deal.opponent.avatar_url,
+                }}
+                currentUserId={userId}
+                isParticipant={true}
+              />
+            </div>
+          )
+        })()}
 
         {/* ═══ Interaction bar mit Badge mittig ═══ */}
         <InteractionBar
