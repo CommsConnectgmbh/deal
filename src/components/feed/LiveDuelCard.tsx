@@ -158,7 +158,7 @@ export default function LiveDuelCard({
         />
 
         {/* ═══ Live Metric Tracker — only for participants of an active deal ═══ */}
-        {deal.status === 'active' && deal.creator && deal.opponent && userId &&
+        {deal.status === 'active' && deal.creator?.id && deal.opponent?.id && userId &&
           (userId === deal.creator_id || userId === deal.opponent_id) && (() => {
           const isStepChallenge = detectStepChallenge(deal.title)
           const metric = isStepChallenge ? 'steps' : 'progress'
@@ -169,8 +169,18 @@ export default function LiveDuelCard({
                 dealId={deal.id}
                 metric={metric}
                 metricLabel={metricLabel}
-                creator={deal.creator}
-                opponent={deal.opponent}
+                creator={{
+                  id: deal.creator.id,
+                  username: deal.creator.username,
+                  display_name: deal.creator.display_name,
+                  avatar_url: deal.creator.avatar_url,
+                }}
+                opponent={{
+                  id: deal.opponent.id,
+                  username: deal.opponent.username,
+                  display_name: deal.opponent.display_name,
+                  avatar_url: deal.opponent.avatar_url,
+                }}
                 currentUserId={userId}
                 isParticipant={true}
               />
