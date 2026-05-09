@@ -15,6 +15,8 @@ import InteractionBar from '@/components/InteractionBar'
 
 const ProofUploadSheet = dynamic(() => import('@/components/ProofUploadSheet'), { ssr: false })
 const DealChallengeWidget = dynamic(() => import('@/components/DealChallengeWidget'), { ssr: false })
+const LiveMetricTracker = dynamic(() => import('@/components/LiveMetricTracker'), { ssr: false })
+import { detectStepChallenge } from '@/components/LiveMetricTracker'
 import WinCelebrationModal from '@/components/WinCelebrationModal'
 import { trackDealAccepted, trackResultSubmitted, trackResultConfirmed, trackScreenView, trackShareClicked } from '@/lib/analytics'
 import { uploadDealMedia as uploadDealMediaUtil } from '@/lib/mediaUpload'
@@ -985,6 +987,24 @@ export default function DealDetailPage() {
         )}
         <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{timeAgo(deal.created_at)}</span>
       </div>
+
+      {/* ═══ LIVE METRIC TRACKER (active deals only) ═══ */}
+      {deal.status === 'active' && deal.creator && deal.opponent && (() => {
+        const isStepChallenge = detectStepChallenge(deal.title)
+        const metric = isStepChallenge ? 'steps' : 'progress'
+        const metricLabel = isStepChallenge ? t('liveTracker.stepsLabel') : t('liveTracker.progressLabel')
+        return (
+          <LiveMetricTracker
+            dealId={deal.id}
+            metric={metric}
+            metricLabel={metricLabel}
+            creator={deal.creator}
+            opponent={deal.opponent}
+            currentUserId={profile?.id || null}
+            isParticipant={isParticipant}
+          />
+        )
+      })()}
 
       {/* ═══ ACTIONS ═══ */}
       <div style={{ margin: '8px 16px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
