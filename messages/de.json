@@ -1411,5 +1411,19 @@
     "addText": "HINZUFÜGEN",
     "exporting": "WIRD EXPORTIERT",
     "editMedia": "BEARBEITEN"
+  },
+  "liveTracker": {
+    "live": "LIVE",
+    "stepsLabel": "Schritte",
+    "progressLabel": "Fortschritt",
+    "tied": "GLEICHSTAND",
+    "loading": "Lädt …",
+    "enterMyValue": "Meine {metric} eintragen",
+    "updateMyValue": "Meine {metric} aktualisieren",
+    "save": "SPEICHERN",
+    "placeholder": "Aktuelle {metric}",
+    "invalidValue": "Bitte eine gültige Zahl eingeben.",
+    "mustBeHigher": "Neuer Wert muss ≥ deinem letzten sein.",
+    "hint": "Manuell eingegeben. Sobald die native App da ist, kommen Apple Health und Health Connect automatisch."
   }
 }

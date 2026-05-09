@@ -1411,5 +1411,19 @@
     "addText": "ADD",
     "exporting": "EXPORTING",
     "editMedia": "EDIT"
+  },
+  "liveTracker": {
+    "live": "LIVE",
+    "stepsLabel": "Steps",
+    "progressLabel": "Progress",
+    "tied": "TIED",
+    "loading": "Loading …",
+    "enterMyValue": "Log my {metric}",
+    "updateMyValue": "Update my {metric}",
+    "save": "SAVE",
+    "placeholder": "Current {metric}",
+    "invalidValue": "Please enter a valid number.",
+    "mustBeHigher": "New value must be ≥ your last entry.",
+    "hint": "Manual entry for now. Apple Health and Health Connect will sync automatically once the native app ships."
   }
 }

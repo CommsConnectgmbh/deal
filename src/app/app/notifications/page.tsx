@@ -144,7 +144,7 @@ export default function NotificationsPage() {
     if (n.type === 'new_message' && n.reference_id) router.push(`/app/chat/${n.reference_id}`)
     else if (n.type === 'follow_request') router.push('/app/profile')
     else if (n.type === 'follow_accepted' && n.reference_id) router.push(`/app/profile/${n.reference_id}`)
-    else if (['deal_request', 'deal_update', 'deal_completed', 'deal_won', 'deal_lost'].includes(n.type) && n.reference_id) router.push(`/app/deals/${n.reference_id}`)
+    else if (['deal_request', 'deal_update', 'deal_completed', 'deal_won', 'deal_lost', 'challenge_received'].includes(n.type) && n.reference_id) router.push(`/app/deals/${n.reference_id}`)
     else if (['battlepass_tier', 'battlepass_reward'].includes(n.type)) router.push('/app/battlepass')
     else if (['challenge_reminder', 'challenge_completed'].includes(n.type)) router.push('/app/challenges')
     else if (n.type === 'streak_milestone') router.push('/app/rewards')

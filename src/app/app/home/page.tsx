@@ -1022,6 +1022,54 @@ export default function HomePage() {
           </div>
         ) : (
           <div>
+            {/* ── Pending Challenge Invites (prominent at top) ── */}
+            {pendingInvites.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                {pendingInvites.map((inv: any) => (
+                  <Link
+                    key={`pending-${inv.id}`}
+                    href={`/app/deals/${inv.id}`}
+                    style={{ textDecoration: 'none', display: 'block', marginBottom: 8 }}
+                  >
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '14px 14px',
+                      borderRadius: 14,
+                      background: 'linear-gradient(135deg, rgba(212,175,55,0.18), rgba(212,175,55,0.06))',
+                      border: '1px solid var(--gold-primary)',
+                      boxShadow: '0 0 0 1px rgba(212,175,55,0.2) inset',
+                    }}>
+                      <div style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>{'⚔️'}</div>
+                      <ProfileImage
+                        size={40}
+                        avatarUrl={inv.creator?.avatar_url}
+                        name={inv.creator?.display_name || inv.creator?.username}
+                        goldBorder
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p className="font-display" style={{
+                          fontSize: 9, letterSpacing: 2, color: 'var(--gold-primary)', marginBottom: 2,
+                        }}>
+                          {t('deals.newChallengeNotifTitle')}
+                        </p>
+                        <p style={{
+                          fontSize: 13, color: 'var(--text-primary)', fontWeight: 600,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                          @{inv.creator?.username} {t('feed.challengesYou')}: {inv.title}
+                        </p>
+                      </div>
+                      <span className="font-display" style={{
+                        fontSize: 9, letterSpacing: 1.5, color: 'var(--gold-primary)', flexShrink: 0,
+                      }}>
+                        {t('feed.accept')} ›
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+
             {/* ── Public Tip Group Feed Cards (on ALLE or TIPPRUNDEN tab) ── */}
             {/* Empty state for TIPPRUNDEN tab */}
             {contentTab === 'tipprunden' && publicTipGroups.filter(tg => !hiddenFeedIds.has(`tg-${tg.id}`)).length === 0 && (
