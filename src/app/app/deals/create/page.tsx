@@ -233,12 +233,25 @@ function CreateDealContent() {
         }
       }
 
-      // Push notification to opponent
+      // Notify opponent: in-app notification + push
       if (state.opponent?.id && state.opponent.id !== profile.id) {
+        const notifTitle = t('deals.newChallengeNotifTitle')
+        const notifBody = t('deals.newChallengeNotifBody').replace('{username}', profile.username)
+
+        supabase.from('notifications').insert({
+          user_id: state.opponent.id,
+          type: 'challenge_received',
+          title: notifTitle,
+          body: `${notifBody}: ${state.title.trim()}`,
+          action_url: `/app/deals/${newDeal.id}`,
+          reference_id: newDeal.id,
+          data: { challenge_id: newDeal.id, creator_id: profile.id, title: state.title.trim() },
+        }).then(() => {})
+
         triggerPush(
           state.opponent.id,
-          `\u2694\uFE0F ${t('deals.newChallengeNotifTitle')}`,
-          t('deals.newChallengeNotifBody').replace('{username}', profile.username),
+          `\u2694\uFE0F ${notifTitle}`,
+          notifBody,
           `/app/deals/${newDeal.id}`
         )
       }
