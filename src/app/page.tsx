@@ -147,6 +147,14 @@ export default function RootPage() {
           font-size: 14px;
           flex: 1;
           justify-content: center;
+          text-decoration: none;
+          transition: border-color .2s, color .2s, transform .2s;
+        }
+        a.store-badge { color: var(--text-primary); }
+        a.store-badge:hover {
+          border-color: var(--gold-primary);
+          color: var(--gold-primary);
+          transform: translateY(-2px);
         }
       `}</style>
 
@@ -260,10 +268,15 @@ export default function RootPage() {
         <FadeIn>
           <section style={{ paddingBottom: '48px' }}>
             <div style={{ display: 'flex', gap: '12px' }}>
-              <div className="store-badge">
+              <a
+                className="store-badge"
+                href="https://apps.apple.com/de/app/dealbuddy/id6763754507"
+                target="_blank"
+                rel="noopener"
+              >
                 <span style={{ fontSize: '20px' }}></span>
-                <span>Bald im App Store</span>
-              </div>
+                <span>Im App Store laden</span>
+              </a>
               <div className="store-badge">
                 <span style={{ fontSize: '20px' }}>▶️</span>
                 <span>Bald bei Google Play</span>

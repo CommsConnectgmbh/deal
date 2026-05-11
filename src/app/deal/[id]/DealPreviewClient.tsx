@@ -301,7 +301,7 @@ export default function DealPreviewClient({ deal }: { deal: DealPreview }) {
             const timeout = setTimeout(() => {
               window.location.href = /android/i.test(navigator.userAgent)
                 ? 'https://play.google.com/store/apps/details?id=de.dealbuddy.app'
-                : 'https://apps.apple.com/app/dealbuddy/id0000000000'
+                : 'https://apps.apple.com/de/app/dealbuddy/id6763754507'
             }, 1500)
             window.addEventListener('blur', () => clearTimeout(timeout), { once: true })
             window.location.href = deepLink
