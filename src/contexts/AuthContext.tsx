@@ -46,6 +46,8 @@ interface AuthCtx {
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string, username: string) => Promise<void>
+  requestEmailOtp: (email: string) => Promise<void>
+  verifyEmailOtp: (email: string, code: string) => Promise<{ user: User; isNewUser: boolean }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
   updateProfile: (updates: Partial<Profile>) => Promise<void>
@@ -100,6 +102,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const requestEmailOtp = async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true },
+    })
+    if (error) throw error
+  }
+
+  const verifyEmailOtp = async (email: string, code: string) => {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token: code,
+      type: 'email',
+    })
+    if (error) throw error
+    if (!data.user) throw new Error('Verification failed')
+    // New users have created_at within seconds of last_sign_in_at on first OTP verify.
+    // Returning users have an older created_at.
+    const created = new Date(data.user.created_at).getTime()
+    const lastSignIn = data.user.last_sign_in_at ? new Date(data.user.last_sign_in_at).getTime() : created
+    const isNewUser = Math.abs(lastSignIn - created) < 10_000
+    return { user: data.user, isNewUser }
+  }
+
   const signOut = async () => {
     await supabase.auth.signOut()
   }
@@ -115,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, refreshProfile, updateProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, requestEmailOtp, verifyEmailOtp, signOut, refreshProfile, updateProfile }}>
       {children}
     </AuthContext.Provider>
   )

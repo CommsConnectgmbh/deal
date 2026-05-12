@@ -19,38 +19,6 @@ const labelStyle: React.CSSProperties = {
   letterSpacing: 2, color: 'var(--text-secondary)', marginBottom: 8,
 }
 
-function PasswordStrengthInner({ password }: { password: string }) {
-  const { t } = useLang()
-  if (!password) return null
-  const checks = [
-    { label: t('auth.pwCheckMinChars'), ok: password.length >= 6 },
-    { label: t('auth.pwCheckLetters'), ok: /[a-zA-Z]/.test(password) },
-    { label: t('auth.pwCheckSpecial'), ok: /[0-9!@#$%^&*]/.test(password) },
-  ]
-  const score = checks.filter(c => c.ok).length
-  const colors = ['var(--status-error)', 'var(--gold-primary)', '#4ade80']
-  const labels = [t('auth.pwWeak'), t('auth.pwMedium'), t('auth.pwStrong')]
-  return (
-    <div style={{ marginTop: 8 }}>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
-        {[0, 1, 2].map(i => (
-          <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i < score ? colors[score - 1] : 'var(--border-subtle)', transition: 'background 0.3s' }} />
-        ))}
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {checks.map(c => (
-            <span key={c.label} style={{ fontSize: 10, color: c.ok ? '#4ade80' : 'var(--text-muted)' }}>
-              {c.ok ? '✓' : '○'} {c.label}
-            </span>
-          ))}
-        </div>
-        {score > 0 && <span style={{ fontSize: 10, color: colors[score - 1], fontFamily: 'var(--font-display)' }}>{labels[score - 1]}</span>}
-      </div>
-    </div>
-  )
-}
-
 export default function RegisterPage() {
   return (
     <Suspense fallback={null}>
@@ -60,74 +28,69 @@ export default function RegisterPage() {
 }
 
 function RegisterForm() {
+  const [step, setStep] = useState<'email' | 'code'>('email')
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [username, setUsername] = useState('')
+  const [code, setCode] = useState('')
   const [emailErr, setEmailErr] = useState('')
-  const [pwErr, setPwErr] = useState('')
-  const [unErr, setUnErr] = useState('')
+  const [codeErr, setCodeErr] = useState('')
   const [ageAccepted, setAgeAccepted] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [consentErr, setConsentErr] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { signUp } = useAuth()
+  const [resendIn, setResendIn] = useState(0)
+  const { requestEmailOtp, verifyEmailOtp } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const referralCode = useRef<string | null>(null)
   const pendingAcceptDealId = useRef<string | null>(null)
+  const codeInputRef = useRef<HTMLInputElement>(null)
   const { t } = useLang()
 
-  // Track page view + capture referral code on mount
   useEffect(() => {
     trackScreenView('register')
     trackSignupStarted()
-    // Referral: check URL param first, then localStorage (set by /join/[code])
     const urlRef = searchParams.get('ref') || searchParams.get('code')
     const storedRef = typeof window !== 'undefined' ? localStorage.getItem('dealbuddy_referral') : null
     referralCode.current = urlRef || storedRef || null
 
-    // Pending deal accept: ?accept=<dealId> OR localStorage (set by public /deal/[id] page)
     const urlAccept = searchParams.get('accept')
     const storedAccept = typeof window !== 'undefined' ? localStorage.getItem('dealbuddy_pending_accept') : null
     pendingAcceptDealId.current = urlAccept || storedAccept || null
   }, [searchParams])
 
+  useEffect(() => {
+    if (resendIn <= 0) return
+    const id = setInterval(() => setResendIn(s => Math.max(0, s - 1)), 1000)
+    return () => clearInterval(id)
+  }, [resendIn])
+
+  useEffect(() => {
+    if (step === 'code') {
+      setTimeout(() => codeInputRef.current?.focus(), 50)
+    }
+  }, [step])
+
   const mapError = (msg: string): string => {
-    if (msg.includes('already registered') || msg.includes('already exists')) return t('auth.errorAlreadyRegistered')
-    if (msg.includes('Password should be')) return t('auth.errorPasswordTooShort')
+    if (msg.includes('Token has expired')) return t('auth.otpErrorExpired')
+    if (msg.includes('invalid') && msg.toLowerCase().includes('otp')) return t('auth.otpErrorInvalid')
+    if (msg.includes('Invalid token')) return t('auth.otpErrorInvalid')
+    if (msg.includes('Email rate limit') || msg.includes('Too many requests')) return t('auth.errorTooManyRequests')
     if (msg.includes('invalid email')) return t('auth.errorEmailInvalid')
-    if (msg.includes('Database error')) return t('auth.errorDatabase')
     if (msg.includes('network')) return t('auth.errorNetwork')
     return msg
   }
 
-  const validateUsername = (v: string) => {
-    if (!v) return t('auth.errorUsernameRequired')
-    if (v.length < 3) return t('auth.errorMinThreeChars')
-    if (v.length > 20) return t('auth.errorMaxTwentyChars')
-    if (!/^[a-zA-Z0-9_]+$/.test(v)) return t('auth.errorUsernameChars')
-    return ''
-  }
   const validateEmail = (v: string) => {
     if (!v) return t('auth.errorEmailRequired')
     if (!/\S+@\S+\.\S+/.test(v)) return t('auth.errorEmailInvalid')
     return ''
   }
-  const validatePassword = (v: string) => {
-    if (!v) return t('auth.errorPasswordRequired')
-    if (v.length < 6) return t('auth.errorMinChars')
-    return ''
-  }
 
-  const handle = async () => {
-    const uErr = validateUsername(username)
+  const sendCode = async () => {
     const eErr = validateEmail(email)
-    const pErr = validatePassword(password)
-    setUnErr(uErr)
     setEmailErr(eErr)
-    setPwErr(pErr)
-    if (uErr || eErr || pErr) return
+    if (eErr) return
 
     if (!ageAccepted || !termsAccepted) {
       setConsentErr(
@@ -144,13 +107,47 @@ function RegisterForm() {
     setError('')
     setLoading(true)
     try {
-      await signUp(email, password, username)
-      trackSignupCompleted('email')
+      await requestEmailOtp(email.trim())
+      setStep('code')
+      setResendIn(30)
+    } catch (e: unknown) {
+      setError(mapError((e as Error).message))
+    } finally {
+      setLoading(false)
+    }
+  }
 
-      // After signUp, the user may need email confirmation OR be auto-confirmed
-      // Try to grant founder items client-side (trigger does it too, belt+suspenders)
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
+  const resend = async () => {
+    if (resendIn > 0 || loading) return
+    setError('')
+    setLoading(true)
+    try {
+      await requestEmailOtp(email.trim())
+      setResendIn(30)
+      setCode('')
+      setCodeErr('')
+    } catch (e: unknown) {
+      setError(mapError((e as Error).message))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const verify = async (raw?: string) => {
+    const value = (raw ?? code).replace(/\D/g, '')
+    if (value.length !== 6) {
+      setCodeErr(t('auth.otpErrorInvalid'))
+      return
+    }
+    setCodeErr('')
+    setError('')
+    setLoading(true)
+    try {
+      const { user, isNewUser } = await verifyEmailOtp(email.trim(), value)
+      trackSignupCompleted(isNewUser ? 'email_otp_new' : 'email_otp_returning')
+
+      if (isNewUser) {
+        // Founder grant: belt + suspenders (DB trigger handles it too)
         try {
           await supabase.from('user_inventory').upsert(
             [
@@ -164,11 +161,8 @@ function RegisterForm() {
             active_badge: 'season1_founder',
             is_founder: true,
           }).eq('id', user.id)
-        } catch {
-          // Non-fatal – trigger handles it too
-        }
+        } catch { /* non-fatal */ }
 
-        // Referral tracking: link new user to referrer
         if (referralCode.current) {
           try {
             const { data: referrer } = await supabase
@@ -178,71 +172,62 @@ function RegisterForm() {
               .single()
             if (referrer) {
               await supabase.from('profiles').update({
-                referred_by: referrer.id
+                referred_by: referrer.id,
               }).eq('id', user.id)
-              // Award referral bonus coins to referrer (50 coins)
               await supabase.from('wallet_ledger').insert({
                 user_id: referrer.id,
                 delta: 50,
                 reason: 'referral_bonus',
-                reference_id: user.id
+                reference_id: user.id,
               })
               try { await supabase.rpc('add_coins', { p_user_id: referrer.id, p_amount: 50 }) } catch { /* noop */ }
             }
-            // Clear stored referral code
             localStorage.removeItem('dealbuddy_referral')
-          } catch {
-            // Non-fatal
-          }
-        }
-
-        // Pending deal accept: if user came via a public /deal/[id] invite, auto-accept now
-        if (pendingAcceptDealId.current) {
-          try {
-            const dealId = pendingAcceptDealId.current
-            // Only accept if deal is still open and has no opponent yet (race-condition safe)
-            const { data: deal } = await supabase
-              .from('challenges')
-              .select('id, status, opponent_id, creator_id, is_public, title')
-              .eq('id', dealId)
-              .single()
-
-            if (deal && deal.status === 'open' && !deal.opponent_id && deal.creator_id !== user.id) {
-              const update: Record<string, unknown> = {
-                status: 'active',
-                opponent_id: user.id,
-              }
-              if (deal.is_public !== false) {
-                update.shared_as_story_at = new Date().toISOString()
-              }
-              const { error: acceptErr } = await supabase
-                .from('challenges')
-                .update(update)
-                .eq('id', dealId)
-                .eq('status', 'open')
-                .is('opponent_id', null)
-
-              if (!acceptErr && deal.is_public) {
-                try {
-                  await supabase.from('feed_events').insert([
-                    { event_type: 'deal_accepted', user_id: user.id, deal_id: dealId, metadata: { title: deal.title } },
-                    { event_type: 'challenge_joined', user_id: user.id, deal_id: dealId, metadata: { title: deal.title } },
-                  ])
-                } catch { /* non-fatal */ }
-              }
-            }
-            localStorage.removeItem('dealbuddy_pending_accept')
-            localStorage.setItem('dealbuddy_skip_avatar_setup', '1')
-            router.replace(`/app/deals/${dealId}`)
-            return
-          } catch {
-            // Fall through to default redirect on error
-          }
+          } catch { /* non-fatal */ }
         }
       }
 
-      // Redirect to avatar card creation for new users
-      router.replace('/app/avatar-card/create')
+      if (pendingAcceptDealId.current) {
+        try {
+          const dealId = pendingAcceptDealId.current
+          const { data: deal } = await supabase
+            .from('challenges')
+            .select('id, status, opponent_id, creator_id, is_public, title')
+            .eq('id', dealId)
+            .single()
+
+          if (deal && deal.status === 'open' && !deal.opponent_id && deal.creator_id !== user.id) {
+            const update: Record<string, unknown> = {
+              status: 'active',
+              opponent_id: user.id,
+            }
+            if (deal.is_public !== false) {
+              update.shared_as_story_at = new Date().toISOString()
+            }
+            const { error: acceptErr } = await supabase
+              .from('challenges')
+              .update(update)
+              .eq('id', dealId)
+              .eq('status', 'open')
+              .is('opponent_id', null)
+
+            if (!acceptErr && deal.is_public) {
+              try {
+                await supabase.from('feed_events').insert([
+                  { event_type: 'deal_accepted', user_id: user.id, deal_id: dealId, metadata: { title: deal.title } },
+                  { event_type: 'challenge_joined', user_id: user.id, deal_id: dealId, metadata: { title: deal.title } },
+                ])
+              } catch { /* non-fatal */ }
+            }
+          }
+          localStorage.removeItem('dealbuddy_pending_accept')
+          localStorage.setItem('dealbuddy_skip_avatar_setup', '1')
+          router.replace(`/app/deals/${dealId}`)
+          return
+        } catch { /* fall through */ }
+      }
+
+      router.replace(isNewUser ? '/app/avatar-card/create' : '/app/home')
     } catch (e: unknown) {
       setError(mapError((e as Error).message))
     } finally {
@@ -260,7 +245,6 @@ function RegisterForm() {
       </div>
 
       <div style={{ width: '100%', background: 'var(--bg-surface)', borderRadius: 16, border: '1px solid var(--border-subtle)', padding: 24 }}>
-        {/* Founder badge */}
         <div style={{ background: 'var(--gold-subtle)', border: '1px solid var(--gold-glow)', borderRadius: 10, padding: '10px 14px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 20 }}>⚡</span>
           <div>
@@ -276,103 +260,130 @@ function RegisterForm() {
           </div>
         )}
 
-        <div style={{ marginBottom: 16 }}>
-          <label style={labelStyle}>{t('auth.username').toUpperCase()}</label>
-          <input
-            value={username}
-            onChange={e => { setUsername(e.target.value.toLowerCase()); if (unErr) setUnErr('') }}
-            onBlur={() => setUnErr(validateUsername(username))}
-            onKeyDown={e => e.key === 'Enter' && handle()}
-            placeholder={t('auth.usernamePlaceholder')}
-            style={inputStyle(!!unErr)}
-            autoCapitalize="none"
-            autoComplete="username"
-            spellCheck={false}
-          />
-          {unErr
-            ? <p style={{ color: 'var(--status-error)', fontSize: 12, marginTop: 6 }}>{unErr}</p>
-            : <p style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 6 }}>{t('auth.usernameHint')}</p>
-          }
-        </div>
+        {step === 'email' ? (
+          <>
+            <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>{t('auth.otpHint')}</p>
 
-        <div style={{ marginBottom: 16 }}>
-          <label style={labelStyle}>{t('auth.email').toUpperCase()}</label>
-          <input
-            type="email"
-            value={email}
-            onChange={e => { setEmail(e.target.value); if (emailErr) setEmailErr('') }}
-            onBlur={() => setEmailErr(validateEmail(email))}
-            onKeyDown={e => e.key === 'Enter' && handle()}
-            placeholder={t('auth.emailPlaceholder')}
-            style={inputStyle(!!emailErr)}
-            autoComplete="email"
-            inputMode="email"
-            autoCapitalize="none"
-            spellCheck={false}
-          />
-          {emailErr && <p style={{ color: 'var(--status-error)', fontSize: 12, marginTop: 6 }}>{emailErr}</p>}
-        </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>{t('auth.email').toUpperCase()}</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => { setEmail(e.target.value); if (emailErr) setEmailErr('') }}
+                onBlur={() => setEmailErr(validateEmail(email))}
+                onKeyDown={e => e.key === 'Enter' && sendCode()}
+                placeholder={t('auth.emailPlaceholder')}
+                style={inputStyle(!!emailErr)}
+                autoComplete="email"
+                inputMode="email"
+                autoCapitalize="none"
+                spellCheck={false}
+                autoFocus
+              />
+              {emailErr && <p style={{ color: 'var(--status-error)', fontSize: 12, marginTop: 6 }}>{emailErr}</p>}
+            </div>
 
-        <div style={{ marginBottom: 24 }}>
-          <label style={labelStyle}>{t('auth.password').toUpperCase()}</label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => { setPassword(e.target.value); if (pwErr) setPwErr('') }}
-            onBlur={() => setPwErr(validatePassword(password))}
-            onKeyDown={e => e.key === 'Enter' && handle()}
-            placeholder={t('auth.errorMinChars')}
-            style={inputStyle(!!pwErr)}
-            autoComplete="new-password"
-          />
-          {pwErr
-            ? <p style={{ color: 'var(--status-error)', fontSize: 12, marginTop: 6 }}>{pwErr}</p>
-            : <PasswordStrengthInner password={password} />
-          }
-        </div>
+            <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, lineHeight: 1.45, color: 'var(--text-secondary)' }}>
+                <input
+                  type="checkbox"
+                  checked={ageAccepted}
+                  onChange={e => { setAgeAccepted(e.target.checked); if (consentErr) setConsentErr('') }}
+                  style={{ width: 18, height: 18, marginTop: 1, accentColor: 'var(--gold-primary)', cursor: 'pointer', flexShrink: 0 }}
+                />
+                <span>Ich bin mindestens <strong style={{ color: 'var(--text-primary)' }}>18 Jahre</strong> alt.</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, lineHeight: 1.45, color: 'var(--text-secondary)' }}>
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={e => { setTermsAccepted(e.target.checked); if (consentErr) setConsentErr('') }}
+                  style={{ width: 18, height: 18, marginTop: 1, accentColor: 'var(--gold-primary)', cursor: 'pointer', flexShrink: 0 }}
+                />
+                <span>
+                  Ich akzeptiere die{' '}
+                  <Link href="/legal/terms" target="_blank" style={{ color: 'var(--gold-primary)', textDecoration: 'underline' }}>AGB</Link>
+                  {' '}und die{' '}
+                  <Link href="/legal/privacy" target="_blank" style={{ color: 'var(--gold-primary)', textDecoration: 'underline' }}>Datenschutzerklärung</Link>.
+                </span>
+              </label>
+              {consentErr && (
+                <p style={{ color: 'var(--status-error)', fontSize: 12, margin: 0 }}>{consentErr}</p>
+              )}
+            </div>
 
-        {/* AGE + TERMS GATE (§ 14 JuSchG + DSGVO Art. 7) */}
-        <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, lineHeight: 1.45, color: 'var(--text-secondary)' }}>
-            <input
-              type="checkbox"
-              checked={ageAccepted}
-              onChange={e => { setAgeAccepted(e.target.checked); if (consentErr) setConsentErr('') }}
-              style={{ width: 18, height: 18, marginTop: 1, accentColor: 'var(--gold-primary)', cursor: 'pointer', flexShrink: 0 }}
-            />
-            <span>Ich bin mindestens <strong style={{ color: 'var(--text-primary)' }}>18 Jahre</strong> alt.</span>
-          </label>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, lineHeight: 1.45, color: 'var(--text-secondary)' }}>
-            <input
-              type="checkbox"
-              checked={termsAccepted}
-              onChange={e => { setTermsAccepted(e.target.checked); if (consentErr) setConsentErr('') }}
-              style={{ width: 18, height: 18, marginTop: 1, accentColor: 'var(--gold-primary)', cursor: 'pointer', flexShrink: 0 }}
-            />
-            <span>
-              Ich akzeptiere die{' '}
-              <Link href="/legal/terms" target="_blank" style={{ color: 'var(--gold-primary)', textDecoration: 'underline' }}>AGB</Link>
-              {' '}und die{' '}
-              <Link href="/legal/privacy" target="_blank" style={{ color: 'var(--gold-primary)', textDecoration: 'underline' }}>Datenschutzerklärung</Link>.
-            </span>
-          </label>
-          {consentErr && (
-            <p style={{ color: 'var(--status-error)', fontSize: 12, margin: 0 }}>{consentErr}</p>
-          )}
-        </div>
+            <button
+              onClick={sendCode}
+              disabled={loading}
+              style={{ width: '100%', padding: 18, borderRadius: 12, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', background: loading ? 'var(--gold-subtle)' : 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary), var(--gold-bright))', color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700, letterSpacing: 3, opacity: loading ? 0.7 : 1 }}
+            >
+              {loading ? t('auth.otpSending').toUpperCase() : t('auth.otpSendCode').toUpperCase()}
+            </button>
 
-        <button
-          onClick={handle}
-          disabled={loading}
-          style={{ width: '100%', padding: 18, borderRadius: 12, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', background: loading ? 'var(--gold-subtle)' : 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary), var(--gold-bright))', color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700, letterSpacing: 3, opacity: loading ? 0.7 : 1 }}
-        >
-          {loading ? t('auth.registering').toUpperCase() : t('auth.registerTitle').toUpperCase()}
-        </button>
+            <div style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: 'var(--text-secondary)' }}>
+              {t('auth.hasAccount')}{' '}
+              <Link href="/auth/login" style={{ color: 'var(--gold-primary)', fontWeight: 600 }}>{t('auth.login')}</Link>
+            </div>
+          </>
+        ) : (
+          <>
+            <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--text-primary)', marginBottom: 6, fontFamily: 'var(--font-display)' }}>
+              {t('auth.otpSentTitle')}
+            </p>
+            <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>
+              {t('auth.otpSentTo').replace('{email}', email)}
+            </p>
+            <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', marginBottom: 20 }}>
+              {t('auth.otpCheckInbox')}
+            </p>
 
-        <div style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: 'var(--text-secondary)' }}>
-          {t('auth.hasAccount')}{' '}
-          <Link href="/auth/login" style={{ color: 'var(--gold-primary)', fontWeight: 600 }}>{t('auth.login')}</Link>
-        </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>{t('auth.otpCodeLabel').toUpperCase()}</label>
+              <input
+                ref={codeInputRef}
+                type="text"
+                value={code}
+                onChange={e => {
+                  const v = e.target.value.replace(/\D/g, '').slice(0, 6)
+                  setCode(v)
+                  if (codeErr) setCodeErr('')
+                  if (v.length === 6) verify(v)
+                }}
+                onKeyDown={e => e.key === 'Enter' && verify()}
+                placeholder={t('auth.otpCodePlaceholder')}
+                style={{ ...inputStyle(!!codeErr), textAlign: 'center', fontSize: 24, letterSpacing: 8, fontFamily: 'var(--font-display)' }}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+              />
+              {codeErr && <p style={{ color: 'var(--status-error)', fontSize: 12, marginTop: 6 }}>{codeErr}</p>}
+            </div>
+
+            <button
+              onClick={() => verify()}
+              disabled={loading || code.length !== 6}
+              style={{ width: '100%', padding: 18, borderRadius: 12, border: 'none', cursor: (loading || code.length !== 6) ? 'not-allowed' : 'pointer', background: (loading || code.length !== 6) ? 'var(--gold-subtle)' : 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary), var(--gold-bright))', color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700, letterSpacing: 3, opacity: (loading || code.length !== 6) ? 0.7 : 1 }}
+            >
+              {loading ? t('auth.otpVerifying').toUpperCase() : t('auth.otpVerify').toUpperCase()}
+            </button>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 }}>
+              <button
+                onClick={() => { setStep('email'); setCode(''); setCodeErr(''); setError('') }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13 }}
+              >
+                ← {t('auth.otpChangeEmail')}
+              </button>
+              <button
+                onClick={resend}
+                disabled={resendIn > 0 || loading}
+                style={{ background: 'none', border: 'none', cursor: (resendIn > 0 || loading) ? 'not-allowed' : 'pointer', color: (resendIn > 0 || loading) ? 'var(--text-muted)' : 'var(--gold-primary)', fontSize: 13, fontWeight: 600 }}
+              >
+                {resendIn > 0 ? t('auth.otpResendIn').replace('{sec}', String(resendIn)) : t('auth.otpResend')}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

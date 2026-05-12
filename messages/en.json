@@ -76,7 +76,22 @@
     "pwStrong": "Strong",
     "founderStatus": "Founder Status",
     "founderDesc": "Limited frame & badge for the first 1,000",
-    "usernameHint": "3–20 characters · only a-z, 0-9, _ · uppercase is auto-converted"
+    "usernameHint": "3–20 characters · only a-z, 0-9, _ · uppercase is auto-converted",
+    "otpSendCode": "Send code",
+    "otpSending": "Sending...",
+    "otpSentTitle": "Code sent",
+    "otpSentTo": "We sent a 6-digit code to {email}.",
+    "otpCodeLabel": "Verification code",
+    "otpCodePlaceholder": "123456",
+    "otpVerify": "Verify",
+    "otpVerifying": "Verifying...",
+    "otpResend": "Resend code",
+    "otpResendIn": "Resend in {sec}s",
+    "otpChangeEmail": "Use different email",
+    "otpErrorInvalid": "The code is incorrect or expired.",
+    "otpErrorExpired": "The code has expired. Please request a new one.",
+    "otpHint": "Ready in under 30 seconds",
+    "otpCheckInbox": "Also check your spam folder."
   },
   "consent": {
     "title": "Privacy",
