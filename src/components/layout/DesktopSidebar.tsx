@@ -70,10 +70,8 @@ export default function DesktopSidebar({
     <aside className="dt-only dt-flex" style={{
       position: 'fixed', top: 0, left: 0, bottom: 0,
       width: 245, padding: '20px 12px',
-      background: 'var(--glass-bg)',
-      backdropFilter: 'blur(24px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-      borderRight: '1px solid var(--glass-border)',
+      background: 'var(--bg-surface)',
+      borderRight: '1px solid rgba(0,0,0,0.05)',
       flexDirection: 'column', gap: 4,
       zIndex: 100,
     }}>

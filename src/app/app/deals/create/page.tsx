@@ -436,7 +436,7 @@ function CreateDealContent() {
                 style={{
                   flexShrink: 0, padding: '6px 12px', borderRadius: 20,
                   border: state.title === chipText ? '1.5px solid var(--gold-primary)' : '1px solid var(--border-subtle)',
-                  background: state.title === chipText ? 'rgba(255,184,0,0.08)' : 'var(--bg-surface)',
+                  background: state.title === chipText ? 'var(--gold-tint-3)' : 'var(--bg-surface)',
                   color: state.title === chipText ? 'var(--gold-primary)' : 'var(--text-muted)',
                   fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap',
                   fontFamily: 'var(--font-body)',
@@ -524,7 +524,7 @@ function CreateDealContent() {
               >
                 <div style={{
                   width: 40, height: 40, borderRadius: '50%',
-                  background: 'rgba(255,184,0,0.08)',
+                  background: 'var(--gold-tint-3)',
                   border: '1.5px solid var(--gold-primary)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0,
@@ -581,7 +581,7 @@ function CreateDealContent() {
                   style={{
                     flex: 1, padding: '10px 8px', borderRadius: 10,
                     border: active ? '1.5px solid var(--gold-primary)' : '1px solid var(--border-subtle)',
-                    background: active ? 'rgba(255,184,0,0.06)' : 'var(--bg-surface)',
+                    background: active ? 'var(--gold-tint-2)' : 'var(--bg-surface)',
                     cursor: 'pointer',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
                   }}
@@ -630,7 +630,7 @@ function CreateDealContent() {
                 style={{
                   position: 'absolute', top: 8, right: 44,
                   height: 28, borderRadius: 14, paddingLeft: 10, paddingRight: 10,
-                  background: 'rgba(255,184,0,0.85)', border: 'none',
+                  background: 'var(--gold-strong)', border: 'none',
                   color: '#060606', fontSize: 10, fontWeight: 800,
                   fontFamily: 'var(--font-display)', letterSpacing: 1,
                   cursor: 'pointer', display: 'flex',
@@ -645,8 +645,8 @@ function CreateDealContent() {
               onClick={() => mediaRef.current?.click()}
               style={{
                 width: '100%', padding: '14px 16px', borderRadius: 12,
-                border: '1.5px dashed rgba(255,184,0,0.3)',
-                background: 'rgba(255,184,0,0.03)',
+                border: '1.5px dashed var(--gold-tint-5)',
+                background: 'var(--gold-tint-1)',
                 cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}
@@ -683,8 +683,8 @@ function CreateDealContent() {
             onClick={() => setShowAdvanced(!showAdvanced)}
             style={{
               width: '100%', padding: '14px 16px', borderRadius: 12,
-              border: showAdvanced ? '1.5px solid var(--gold-primary)' : '1.5px solid rgba(255,184,0,0.25)',
-              background: showAdvanced ? 'rgba(255,184,0,0.06)' : 'rgba(255,184,0,0.02)',
+              border: showAdvanced ? '1.5px solid var(--gold-primary)' : '1.5px solid var(--gold-tint-5)',
+              background: showAdvanced ? 'var(--gold-tint-2)' : 'var(--gold-tint-1)',
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}
@@ -741,7 +741,7 @@ function CreateDealContent() {
                           style={{
                             flex: 1, padding: '10px 8px', borderRadius: 10,
                             border: active ? '1.5px solid var(--gold-primary)' : '1px solid var(--border-subtle)',
-                            background: active ? 'rgba(255,184,0,0.06)' : 'var(--bg-surface)',
+                            background: active ? 'var(--gold-tint-2)' : 'var(--bg-surface)',
                             cursor: 'pointer',
                             fontSize: 12, fontFamily: 'var(--font-display)',
                             fontWeight: 700, letterSpacing: 1,

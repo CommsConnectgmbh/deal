@@ -174,7 +174,7 @@ export default function WelcomePage() {
             fontSize: 56, marginBottom: 20,
             opacity: animate ? 1 : 0,
             transform: animate ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.9)',
-            transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transition: 'all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
             {'\uD83C\uDF0D'}
           </div>
@@ -184,7 +184,7 @@ export default function WelcomePage() {
             color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: 8, letterSpacing: 2,
             opacity: animate ? 1 : 0,
             transform: animate ? 'translateY(0)' : 'translateY(20px)',
-            transition: 'all 0.5s 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transition: 'all 0.5s 0.15s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
             {t('welcome.chooseLanguage')}
           </h1>
@@ -285,7 +285,7 @@ export default function WelcomePage() {
             marginBottom: 24,
             opacity: animate ? 1 : 0,
             transform: animate ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.9)',
-            transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transition: 'all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
             <ProfileImage size={80} avatarUrl={profile?.avatar_url} name={name} goldBorder />
           </div>
@@ -295,7 +295,7 @@ export default function WelcomePage() {
             color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: 8,
             opacity: animate ? 1 : 0,
             transform: animate ? 'translateY(0)' : 'translateY(20px)',
-            transition: 'all 0.5s 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transition: 'all 0.5s 0.15s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
             {t('welcome.welcomeTitle')}<br/>
             <span style={{ color: 'var(--gold-primary)' }}>@{profile?.username || 'Champion'}</span>
@@ -314,7 +314,7 @@ export default function WelcomePage() {
           <div style={{
             opacity: coinsVisible ? 1 : 0,
             transform: coinsVisible ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.8)',
-            transition: 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transition: 'all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
             <div style={{
               width: 160, height: 160, borderRadius: '50%',
@@ -394,7 +394,7 @@ export default function WelcomePage() {
             fontSize: 56, marginBottom: 20, lineHeight: 1,
             opacity: animate ? 1 : 0,
             transform: animate ? 'translateY(0)' : 'translateY(20px)',
-            transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transition: 'all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
             {'\u2694\uFE0F'}
           </div>
@@ -531,7 +531,7 @@ export default function WelcomePage() {
             fontSize: 56, marginBottom: 20,
             opacity: animate ? 1 : 0,
             transform: animate ? 'translateY(0)' : 'translateY(20px)',
-            transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transition: 'all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
             {'\uD83D\uDC65'}
           </div>
@@ -694,7 +694,7 @@ export default function WelcomePage() {
             fontSize: 56, marginBottom: 20,
             opacity: animate ? 1 : 0,
             transform: animate ? 'translateY(0)' : 'translateY(20px)',
-            transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transition: 'all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
             {'\uD83D\uDD14'}
           </div>

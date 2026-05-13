@@ -24,6 +24,14 @@
   --gold-dim: #8B6010;
   --gold-subtle: rgba(198, 139, 18, 0.06);
   --gold-glow: rgba(198, 139, 18, 0.18);
+  /* Gold tints – canonical alpha-stack derived from --gold-primary
+     (replaces legacy hardcoded rgba(255,184,0,*) drift) */
+  --gold-tint-1: rgba(198, 139, 18, 0.03);
+  --gold-tint-2: rgba(198, 139, 18, 0.06);
+  --gold-tint-3: rgba(198, 139, 18, 0.08);
+  --gold-tint-4: rgba(198, 139, 18, 0.18);
+  --gold-tint-5: rgba(198, 139, 18, 0.30);
+  --gold-strong: rgba(198, 139, 18, 0.85);
 
   /* Borders – 3 levels (Apple separators) */
   --border-subtle: #ECECEE;
@@ -152,6 +160,13 @@
   --gold-dim: #B45309;
   --gold-subtle: rgba(245, 158, 11, 0.08);
   --gold-glow: rgba(245, 158, 11, 0.25);
+  /* Gold tints – Dark theme override */
+  --gold-tint-1: rgba(245, 158, 11, 0.04);
+  --gold-tint-2: rgba(245, 158, 11, 0.08);
+  --gold-tint-3: rgba(245, 158, 11, 0.12);
+  --gold-tint-4: rgba(245, 158, 11, 0.25);
+  --gold-tint-5: rgba(245, 158, 11, 0.40);
+  --gold-strong: rgba(245, 158, 11, 0.90);
 
   --border-subtle: #1F2025;
   --border-default: #2A2B31;
