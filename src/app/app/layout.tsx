@@ -120,10 +120,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="mb-only" style={{
         position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)',
         width: '100%', maxWidth: 430, zIndex: 100,
-        background: 'var(--glass-bg)',
-        backdropFilter: 'blur(24px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-        borderBottom: '1px solid var(--glass-border)',
+        background: 'var(--bg-surface)',
+        borderBottom: '1px solid rgba(0,0,0,0.05)',
         padding: 'env(safe-area-inset-top) 0 0',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
@@ -142,16 +140,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
           {/* Center: W/L · Level · #Rank → links to leaderboard */}
           <Link href="/app/leaderboard" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            {/* W/L */}
+            {/* W/L – secondary */}
             <div style={{ textAlign: 'center' }}>
               <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700,
-                color: 'var(--gold-primary)', letterSpacing: 1,
+                fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700,
+                color: 'var(--text-primary)', letterSpacing: 0.8,
               }}>
-                {wins}<span style={{ color: 'var(--text-muted)', fontSize: 12 }}>/</span>{losses}
+                {wins}<span style={{ color: 'var(--text-muted)', fontSize: 11 }}>/</span>{losses}
               </span>
               <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 7, letterSpacing: 2,
+                fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 1.2,
                 color: 'var(--text-muted)', display: 'block', marginTop: -2,
               }}>
                 W/L
@@ -161,16 +159,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {/* Divider */}
             <div style={{ width: 1, height: 22, background: 'var(--border-subtle)' }} />
 
-            {/* Level */}
+            {/* Level – secondary */}
             <div style={{ textAlign: 'center' }}>
               <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700,
-                color: 'var(--gold-primary)', letterSpacing: 0.5,
+                fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700,
+                color: 'var(--text-primary)', letterSpacing: 0.5,
               }}>
                 {level}
               </span>
               <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 7, letterSpacing: 2,
+                fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 1.2,
                 color: 'var(--text-muted)', display: 'block', marginTop: -2,
               }}>
                 {t('nav.level')}
@@ -180,16 +178,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {/* Divider */}
             <div style={{ width: 1, height: 22, background: 'var(--border-subtle)' }} />
 
-            {/* Global rank position */}
+            {/* Global rank position \u2013 secondary */}
             <div style={{ textAlign: 'center' }}>
               <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700,
-                color: 'var(--gold-primary)', letterSpacing: 0.5,
+                fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700,
+                color: 'var(--text-primary)', letterSpacing: 0.5,
               }}>
                 #{globalRank || '\u2013'}
               </span>
               <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 7, letterSpacing: 2,
+                fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 1.2,
                 color: 'var(--text-muted)', display: 'block', marginTop: -2,
               }}>
                 {t('nav.rank')}
@@ -199,17 +197,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {/* Divider */}
             <div style={{ width: 1, height: 22, background: 'var(--border-subtle)' }} />
 
-            {/* Reliability Score */}
+            {/* Reliability Score – PRIMARY (single distinctive value) */}
             <div style={{ textAlign: 'center' }}>
               <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700,
+                fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800,
                 color: 'var(--gold-primary)', letterSpacing: 0.5,
               }}>
                 {scoreDisplay}
               </span>
               <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 7, letterSpacing: 2,
-                color: 'var(--text-muted)', display: 'block', marginTop: -2,
+                fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 1.2,
+                color: 'var(--text-secondary)', display: 'block', marginTop: -2,
+                fontWeight: 600,
               }}>
                 {t('nav.score')}
               </span>

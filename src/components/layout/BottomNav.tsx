@@ -49,10 +49,9 @@ export default function BottomNav({ tabs, createHref = '/app/deals/create' }: Pr
     <nav style={{
       position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
       width: '100%', maxWidth: 430,
-      background: 'var(--glass-bg)',
-      backdropFilter: 'blur(24px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-      borderTop: '1px solid var(--glass-border)',
+      background: 'var(--bg-surface)',
+      borderTop: '1px solid rgba(0,0,0,0.05)',
+      boxShadow: '0 -1px 0 rgba(0,0,0,0.04)',
       display: 'flex', alignItems: 'flex-end',
       paddingBottom: 'env(safe-area-inset-bottom)',
       zIndex: 100, overflow: 'visible',
