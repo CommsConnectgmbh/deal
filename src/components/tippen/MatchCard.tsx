@@ -47,7 +47,49 @@ function deadlinePassed(iso: string) { return new Date(iso).getTime() < Date.now
 function formatKickoff(iso: string | null, dayNames: string[]) {
   if (!iso) return ''
   const d = new Date(iso)
-  return `${dayNames[d.getDay()]} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+  const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const day = dayNames[d.getDay()]
+  // Innerhalb der nächsten 6 Tage: nur Wochentag + Uhrzeit (Bundesliga-Stil).
+  // Sonst (Turnier-Matches Wochen voraus): Wochentag + Datum + Uhrzeit.
+  const diffDays = (d.getTime() - Date.now()) / (24 * 3600 * 1000)
+  if (diffDays > -1 && diffDays < 6) return `${day} ${time}`
+  const date = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
+  return `${day} ${date} ${time}`
+}
+
+/** FIFA-TLA → ISO-Alpha-2 für Flag-Emoji (nur Länderteams; Vereine ohne Mapping). */
+const TLA_TO_ISO2: Record<string, string> = {
+  GER: 'DE', ENG: 'GB', SCO: 'GB', WAL: 'GB', NIR: 'GB', IRL: 'IE',
+  ESP: 'ES', POR: 'PT', FRA: 'FR', ITA: 'IT', NED: 'NL', BEL: 'BE',
+  SUI: 'CH', AUT: 'AT', DEN: 'DK', SWE: 'SE', NOR: 'NO', FIN: 'FI',
+  POL: 'PL', CZE: 'CZ', SVK: 'SK', HUN: 'HU', ROU: 'RO', BUL: 'BG',
+  CRO: 'HR', SRB: 'RS', SVN: 'SI', UKR: 'UA', RUS: 'RU', TUR: 'TR',
+  GRE: 'GR', ALB: 'AL', ARM: 'AM', AZE: 'AZ', BIH: 'BA', GEO: 'GE',
+  KOS: 'XK', MKD: 'MK', MNE: 'ME', MDA: 'MD', BLR: 'BY', LTU: 'LT',
+  LVA: 'LV', EST: 'EE', ISL: 'IS', ISR: 'IL',
+  USA: 'US', CAN: 'CA', MEX: 'MX', CRC: 'CR', PAN: 'PA', JAM: 'JM',
+  HON: 'HN', GUA: 'GT', SLV: 'SV', HAI: 'HT',
+  BRA: 'BR', ARG: 'AR', URU: 'UY', PAR: 'PY', CHI: 'CL', COL: 'CO',
+  PER: 'PE', ECU: 'EC', VEN: 'VE', BOL: 'BO',
+  JPN: 'JP', KOR: 'KR', PRK: 'KP', CHN: 'CN', AUS: 'AU', NZL: 'NZ',
+  KSA: 'SA', IRN: 'IR', IRQ: 'IQ', QAT: 'QA', UAE: 'AE', JOR: 'JO',
+  LIB: 'LB', SYR: 'SY', YEM: 'YE', OMA: 'OM', BHR: 'BH', KUW: 'KW',
+  IND: 'IN', PAK: 'PK', BAN: 'BD', THA: 'TH', VIE: 'VN', IDN: 'ID',
+  MAS: 'MY', SGP: 'SG', PHI: 'PH', UZB: 'UZ', KAZ: 'KZ',
+  EGY: 'EG', MAR: 'MA', ALG: 'DZ', TUN: 'TN', LBY: 'LY', SDN: 'SD',
+  NGA: 'NG', GHA: 'GH', CIV: 'CI', SEN: 'SN', CMR: 'CM', RSA: 'ZA',
+  KEN: 'KE', UGA: 'UG', TAN: 'TZ', ETH: 'ET', RWA: 'RW', ZIM: 'ZW',
+  ANG: 'AO', MOZ: 'MZ', NAM: 'NA', ZAM: 'ZM', BFA: 'BF', MLI: 'ML',
+  TOG: 'TG', BEN: 'BJ', GAB: 'GA', CGO: 'CG', COD: 'CD', GUI: 'GN',
+  CPV: 'CV', MTN: 'MR', NIG: 'NE', LBR: 'LR', SLE: 'SL', GAM: 'GM',
+  COM: 'KM', MAD: 'MG', SEY: 'SC', MRI: 'MU',
+}
+
+function flagFor(tla: string | null | undefined): string {
+  if (!tla) return ''
+  const iso = TLA_TO_ISO2[tla.toUpperCase()]
+  if (!iso) return ''
+  return String.fromCodePoint(...[...iso].map(c => 0x1F1E6 + c.charCodeAt(0) - 65))
 }
 
 function formatDeadlineCountdown(iso: string) {
@@ -115,9 +157,11 @@ export default function MatchCard({
           }}>
             {q.home_team_short || q.home_team || 'TBA'}
           </span>
-          {q.home_team_logo && (
+          {q.home_team_logo ? (
             <img src={q.home_team_logo} alt="" style={{ width: 24, height: 24, objectFit: 'contain', flexShrink: 0 }} />
-          )}
+          ) : flagFor(q.home_team_short) ? (
+            <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>{flagFor(q.home_team_short)}</span>
+          ) : null}
         </div>
 
         {/* Score / Input area */}
@@ -207,9 +251,11 @@ export default function MatchCard({
 
         {/* Away team */}
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
-          {q.away_team_logo && (
+          {q.away_team_logo ? (
             <img src={q.away_team_logo} alt="" style={{ width: 24, height: 24, objectFit: 'contain', flexShrink: 0 }} />
-          )}
+          ) : flagFor(q.away_team_short) ? (
+            <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>{flagFor(q.away_team_short)}</span>
+          ) : null}
           <span style={{
             fontSize: 13, fontWeight: 600, color: 'var(--text-primary)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
