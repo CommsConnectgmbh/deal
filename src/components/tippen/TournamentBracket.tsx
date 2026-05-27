@@ -15,6 +15,8 @@ interface Props {
   stages: string[] // e.g. ['ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL']
   onSave: (stage: string, position: number, teamName: string) => Promise<void>
   teamOptions: string[]
+  /** team-name → crest-url (optional). */
+  teamLogos?: Record<string, string>
   locked: boolean
 }
 
@@ -40,7 +42,7 @@ const STAGE_POSITIONS: Record<string, number> = {
  * TournamentBracket — Visual KO bracket using CSS grid.
  * Each stage shows slots for predicted teams.
  */
-export default function TournamentBracket({ tips, stages, onSave, teamOptions, locked }: Props) {
+export default function TournamentBracket({ tips, stages, onSave, teamOptions, teamLogos, locked }: Props) {
   const [saving, setSaving] = useState<string | null>(null)
 
   const tipMap: Record<string, BracketTip> = {}
@@ -48,8 +50,14 @@ export default function TournamentBracket({ tips, stages, onSave, teamOptions, l
 
   if (stages.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '40px 0' }}>
-        <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>Turnierbaum wird nach der Gruppenphase verfügbar.</p>
+      <div style={{ textAlign: 'center', padding: '40px 16px' }}>
+        <p style={{ fontSize: 40, lineHeight: 1, marginBottom: 12 }}>🏆</p>
+        <p style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 6 }}>
+          Turnierbaum wird nach der Gruppenphase freigeschaltet
+        </p>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 280, margin: '0 auto', lineHeight: 1.45 }}>
+          Sobald die Achtelfinal-Paarungen feststehen, kannst du hier deine Tipps für die K.o.-Runde abgeben.
+        </p>
       </div>
     )
   }
@@ -97,17 +105,23 @@ export default function TournamentBracket({ tips, stages, onSave, teamOptions, l
                       borderRadius: 10, padding: '8px 10px',
                     }}>
                       {locked || predicted ? (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{
-                            fontSize: 12, fontWeight: 600,
-                            color: predicted ? 'var(--text-primary)' : 'var(--text-muted)',
-                          }}>
-                            {predicted || '–'}
-                          </span>
-                          {isCorrect === true && <span style={{ fontSize: 14 }}>✓</span>}
-                          {isCorrect === false && <span style={{ fontSize: 14 }}>✗</span>}
-                          {actual && (
-                            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
+                            {predicted && teamLogos?.[predicted] && (
+                              <img src={teamLogos[predicted]} alt="" style={{ width: 18, height: 18, objectFit: 'contain', flexShrink: 0 }} />
+                            )}
+                            <span style={{
+                              fontSize: 12, fontWeight: 600,
+                              color: predicted ? 'var(--text-primary)' : 'var(--text-muted)',
+                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                            }}>
+                              {predicted || '–'}
+                            </span>
+                          </div>
+                          {isCorrect === true && <span style={{ fontSize: 14, color: '#22C55E', flexShrink: 0 }}>✓</span>}
+                          {isCorrect === false && <span style={{ fontSize: 14, color: 'var(--status-error)', flexShrink: 0 }}>✗</span>}
+                          {actual && actual !== predicted && (
+                            <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>
                               ({actual})
                             </span>
                           )}

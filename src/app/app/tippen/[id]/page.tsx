@@ -13,6 +13,7 @@ import RankingTable from '@/components/tippen/RankingTable'
 import BonusQuestionCard from '@/components/tippen/BonusQuestionCard'
 import BonusQuestionAdmin from '@/components/tippen/BonusQuestionAdmin'
 import TournamentBracket from '@/components/tippen/TournamentBracket'
+import GroupStageView from '@/components/tippen/GroupStageView'
 import GroupSettingsPanel from '@/components/tippen/GroupSettingsPanel'
 
 /* ═══════════════════════════════════════════════════════════════
@@ -27,6 +28,7 @@ interface TipGroup {
   competition_id: number | null; competition_code: string | null
   competition_name: string | null; competition_type: string | null
   season_year: string | null; auto_sync: boolean; last_synced_at: string | null
+  contest_starts_at?: string | null
 }
 
 interface TipQuestion {
@@ -82,7 +84,7 @@ interface ChatMsg {
   profiles?: { username: string; display_name: string; avatar_url: string | null }
 }
 
-type Tab = 'spieltag' | 'uebersicht' | 'rangliste' | 'bonus' | 'bracket' | 'chat' | 'settings'
+type Tab = 'spieltag' | 'gruppen' | 'uebersicht' | 'rangliste' | 'bonus' | 'bracket' | 'chat' | 'settings'
 
 /* ═══════════════════════════════════════════════════════════════
    HELPERS
@@ -168,6 +170,15 @@ export default function TippgruppeDetailPage() {
   const isTournament = group?.competition_type === 'TOURNAMENT' || group?.competition_type === 'CUP'
   const isCustomGroup = group?.category === 'custom'
   const hasLiveMatches = questions.some(q => q.is_live)
+  const hasGroupStage = isTournament && questions.some(q =>
+    (q.competition_stage === 'GROUP_STAGE' || q.competition_stage === 'GROUP_PHASE') && q.group_label
+  )
+
+  // Default-Tab für Turniere: Gruppen-Ansicht statt Spieltag (sobald Gruppen-Daten da sind).
+  useEffect(() => {
+    if (hasGroupStage && activeTab === 'spieltag') setActiveTab('gruppen')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasGroupStage])
 
   /* ── Load group + membership ── */
   useEffect(() => {
@@ -652,11 +663,12 @@ export default function TippgruppeDetailPage() {
      TAB CONFIG
      ═══════════════════════════════════════════════════════════════ */
   const tabs: { key: Tab; label: string; show: boolean }[] = [
-    { key: 'spieltag', label: isCustomGroup ? 'CHALLENGES' : t('tippen.tabMatchday'), show: true },
-    { key: 'uebersicht', label: t('tippen.tabOverview'), show: !isCustomGroup },
-    { key: 'rangliste', label: t('tippen.tabRanking'), show: true },
-    { key: 'bonus', label: t('tippen.tabBonus'), show: !isCustomGroup },
+    { key: 'gruppen', label: 'GRUPPEN', show: hasGroupStage },
+    { key: 'spieltag', label: isCustomGroup ? 'CHALLENGES' : t('tippen.tabMatchday'), show: !hasGroupStage || isCustomGroup },
     { key: 'bracket', label: 'BRACKET', show: isTournament && !isCustomGroup },
+    { key: 'bonus', label: hasGroupStage ? 'SPEZIAL' : t('tippen.tabBonus'), show: !isCustomGroup },
+    { key: 'uebersicht', label: t('tippen.tabOverview'), show: !isCustomGroup && !hasGroupStage },
+    { key: 'rangliste', label: t('tippen.tabRanking'), show: true },
     { key: 'chat', label: 'CHAT', show: true },
     { key: 'settings', label: '\u2699\uFE0F', show: true },
   ]
@@ -856,6 +868,94 @@ export default function TippgruppeDetailPage() {
       )}
 
       {/* ════════════════════════════════════════════════════════════
+         GRUPPEN TAB (Turnier-Gruppenphase A–H)
+         ════════════════════════════════════════════════════════════ */}
+      {activeTab === 'gruppen' && hasGroupStage && (
+        <div>
+          {/* Admin sync + save bar */}
+          {isAdmin && (
+            <div style={{ display: 'flex', gap: 8, padding: '10px 16px 0' }}>
+              {group.competition_code && (
+                <button onClick={syncMatches} style={{
+                  flex: 1, padding: '10px', background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-subtle)', borderRadius: 10,
+                  color: 'var(--gold-primary)', fontSize: 11, fontFamily: 'var(--font-display)',
+                  fontWeight: 700, cursor: 'pointer', letterSpacing: 0.5,
+                }}>
+                  ⟳ SYNC
+                </button>
+              )}
+              {questions.some(q => q.match_status === 'FINISHED' && q.status !== 'resolved') && (
+                <button onClick={resolveMatchday} style={{
+                  flex: 1, padding: '10px', background: 'var(--bg-elevated)',
+                  border: '1px solid var(--gold-primary)', borderRadius: 10,
+                  color: 'var(--gold-primary)', fontSize: 11, fontFamily: 'var(--font-display)',
+                  fontWeight: 700, cursor: 'pointer', letterSpacing: 0.5,
+                }}>
+                  ✓ AUSWERTEN
+                </button>
+              )}
+            </div>
+          )}
+
+          <GroupStageView
+            questions={questions.map(q => ({
+              id: q.id, question: q.question,
+              home_team: q.home_team, away_team: q.away_team,
+              home_team_logo: q.home_team_logo, away_team_logo: q.away_team_logo,
+              home_team_short: q.home_team_short, away_team_short: q.away_team_short,
+              home_score: q.home_score, away_score: q.away_score,
+              halftime_home: q.halftime_home, halftime_away: q.halftime_away,
+              match_utc_date: q.match_utc_date, match_status: q.match_status,
+              match_minute: q.match_minute, is_live: q.is_live,
+              deadline: q.deadline, status: q.status, matchday: q.matchday,
+              competition_stage: q.competition_stage, group_label: q.group_label,
+            }))}
+            drafts={drafts}
+            myAnswers={myAnswers}
+            jokerEnabled={group.joker_enabled}
+            jokersRemaining={membership?.jokers_remaining || 0}
+            onDraftChange={(qId, patch) => updateDraft(qId, patch)}
+          />
+
+          <MatchdaySaveAll
+            onSave={async () => {
+              if (!user || !membership || saving) return
+              setSaving(true)
+              const draftEntries = Object.entries(drafts)
+              let saved = 0
+              for (const [qId, draft] of draftEntries) {
+                const q = questions.find(x => x.id === qId)
+                if (!q || q.question_type !== 'match' || deadlinePassed(q.deadline)) continue
+                const existing = myAnswers[qId]
+                const homeScore = draft.homeScore || (existing?.home_score_tip !== null ? String(existing?.home_score_tip ?? '') : '')
+                const awayScore = draft.awayScore || (existing?.away_score_tip !== null ? String(existing?.away_score_tip ?? '') : '')
+                if (homeScore === '' || awayScore === '') continue
+                const { data, error } = await supabase
+                  .from('tip_answers')
+                  .upsert({
+                    question_id: qId, user_id: user.id,
+                    home_score_tip: parseInt(homeScore),
+                    away_score_tip: parseInt(awayScore),
+                    is_joker: !!draft.joker,
+                  }, { onConflict: 'question_id,user_id' })
+                  .select().single()
+                if (!error && data) {
+                  setMyAnswers(prev => ({ ...prev, [qId]: data }))
+                  saved++
+                }
+              }
+              setDrafts({})
+              setSaving(false)
+              showToast(`${saved} ${t('tippen.tipsSaved')}`)
+            }}
+            saving={saving}
+            tippCount={Object.values(drafts).filter(d => d.homeScore && d.awayScore).length}
+          />
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════
          ÜBERSICHT TAB
          ════════════════════════════════════════════════════════════ */}
       {activeTab === 'uebersicht' && (
@@ -1023,6 +1123,11 @@ export default function TippgruppeDetailPage() {
           {isAdmin && (
             <BonusQuestionAdmin
               groupId={groupId}
+              tournamentSeed={isTournament ? {
+                competitionCode: group.competition_code,
+                contestStartsAt: group.contest_starts_at || null,
+                hasExistingBonusQuestions: bonusQuestions.length > 0,
+              } : undefined}
               onCreated={() => {
                 // Reload bonus questions
                 supabase.from('tip_bonus_questions').select('*').eq('group_id', groupId).order('sort_order')
@@ -1094,6 +1199,14 @@ export default function TippgruppeDetailPage() {
                 if (q.away_team) teams.add(q.away_team)
               })
               return [...teams].sort()
+            })()}
+            teamLogos={(() => {
+              const map: Record<string, string> = {}
+              questions.forEach(q => {
+                if (q.home_team && q.home_team_logo) map[q.home_team] = q.home_team_logo
+                if (q.away_team && q.away_team_logo) map[q.away_team] = q.away_team_logo
+              })
+              return map
             })()}
             onSave={saveBracketTip}
             locked={false}
