@@ -1189,7 +1189,7 @@ export default function TippgruppeDetailPage() {
             stages={(() => {
               // Derive stages from question data
               const stagesSet = new Set(questions.filter(q => q.competition_stage).map(q => q.competition_stage!))
-              const stageOrder = ['LAST_16', 'ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'THIRD_PLACE', 'FINAL']
+              const stageOrder = ['LAST_32', 'ROUND_OF_32', 'LAST_16', 'ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'THIRD_PLACE', 'FINAL']
               return stageOrder.filter(s => stagesSet.has(s))
             })()}
             teamOptions={(() => {

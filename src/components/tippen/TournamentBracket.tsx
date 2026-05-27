@@ -21,6 +21,8 @@ interface Props {
 }
 
 const STAGE_LABELS: Record<string, string> = {
+  'LAST_32': 'Sechzehntelfinale',
+  'ROUND_OF_32': 'Sechzehntelfinale',
   'LAST_16': 'Achtelfinale',
   'ROUND_OF_16': 'Achtelfinale',
   'QUARTER_FINALS': 'Viertelfinale',
@@ -30,6 +32,8 @@ const STAGE_LABELS: Record<string, string> = {
 }
 
 const STAGE_POSITIONS: Record<string, number> = {
+  'LAST_32': 16,
+  'ROUND_OF_32': 16,
   'LAST_16': 8,
   'ROUND_OF_16': 8,
   'QUARTER_FINALS': 4,
