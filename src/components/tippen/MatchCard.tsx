@@ -22,6 +22,26 @@ export interface MatchQuestion {
   deadline: string
   status: string
   matchday: number | null
+  competition_stage?: string | null
+  group_label?: string | null
+}
+
+function formatStage(stage: string | null | undefined, groupLabel: string | null | undefined): string {
+  if (groupLabel) {
+    const short = groupLabel.replace(/^(?:Group|Gruppe)[\s_]+/i, '').replace(/^GROUP_/, '')
+    return short.length <= 3 ? `Gruppe ${short}` : short
+  }
+  switch (stage) {
+    case 'LAST_32':
+    case 'ROUND_OF_32':       return 'Sechzehntelfinale'
+    case 'LAST_16':
+    case 'ROUND_OF_16':       return 'Achtelfinale'
+    case 'QUARTER_FINALS':    return 'Viertelfinale'
+    case 'SEMI_FINALS':       return 'Halbfinale'
+    case 'THIRD_PLACE':       return 'Spiel um Platz 3'
+    case 'FINAL':             return 'Finale'
+    default: return ''
+  }
 }
 
 export interface TipDraft {
@@ -126,11 +146,27 @@ export default function MatchCard({
       borderRadius: 14, padding: '14px 16px', marginBottom: 10,
       boxShadow: isLive ? '0 0 12px rgba(34,197,94,0.08)' : 'none',
     }}>
-      {/* Top bar: kickoff time + live/deadline */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+      {/* Top bar: kickoff time + stage badge + live/deadline */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, gap: 6 }}>
         <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-display)', letterSpacing: 0.5 }}>
           {formatKickoff(q.match_utc_date, dayNames)}
         </span>
+        {(() => {
+          const stageLabel = formatStage(q.competition_stage, q.group_label)
+          if (!stageLabel) return null
+          return (
+            <span style={{
+              fontSize: 9, padding: '3px 8px', borderRadius: 6,
+              fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: 0.8,
+              textTransform: 'uppercase', whiteSpace: 'nowrap',
+              color: 'var(--gold-primary)',
+              background: 'var(--gold-subtle)',
+              border: '1px solid var(--gold-glow)',
+            }}>
+              {stageLabel}
+            </span>
+          )
+        })()}
         {isLive ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {q.match_minute && (
