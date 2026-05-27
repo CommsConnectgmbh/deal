@@ -35,7 +35,7 @@ export default function OpponentSearch({ selected, onSelect, onSkipToOpen }: Pro
     const displayName = profile?.display_name || profile?.username || 'Jemand'
     const inviteCode = profile?.invite_code || ''
     const inviteLink = `https://app.deal-buddy.app/auth/register?ref=${inviteCode}`
-    const text = `⚔️ ${displayName} ${t('deals.whatsappInviteText')}\n${inviteLink}`
+    const text = `\u2694\uFE0F ${displayName} ${t('deals.whatsappInviteText')}\n${inviteLink}`
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
   }
 

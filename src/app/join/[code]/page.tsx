@@ -21,7 +21,7 @@ export default function JoinInvitePage() {
   return (
     <div style={{
       minHeight: '100dvh',
-      background: 'linear-gradient(180deg, #0A0A0A, #141414)',
+      background: 'var(--bg-base)',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',

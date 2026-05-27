@@ -138,8 +138,8 @@ export default function CardRevealAnimation({ card, onComplete }: CardRevealProp
       {phase !== 'anticipation' && (
         <div style={{
           position: 'absolute',
-          width: 300, height: 300, borderRadius: '50%',
-          background: `radial-gradient(circle, ${rc}44, transparent 70%)`,
+          width: 'min(90vw, 600px)', height: 'min(90vw, 600px)', borderRadius: '50%',
+          background: `radial-gradient(circle, ${rc}55, transparent 65%)`,
           animation: 'cr-glow-pulse 2s ease-in-out infinite',
           pointerEvents: 'none',
         }} />
@@ -162,62 +162,53 @@ export default function CardRevealAnimation({ card, onComplete }: CardRevealProp
         </div>
       ))}
 
-      {/* Card container */}
+      {/* Card container — hero-sized, card image carries its own frame */}
       <div style={{
-        width: 200, height: 290,
+        width: 'min(78vw, 460px)',
+        aspectRatio: '2 / 3',
         animation: phase === 'flip' || phase === 'display'
           ? 'cr-flip 0.8s cubic-bezier(0.25, 0.8, 0.25, 1) forwards'
           : 'none',
         opacity: phase === 'anticipation' ? 0.4 : 1,
         transition: 'opacity 0.3s',
+        position: 'relative',
+        filter: `drop-shadow(0 0 40px ${rc}88) drop-shadow(0 0 80px ${rc}44)`,
       }}>
-        <div style={{
-          width: '100%', height: '100%',
-          borderRadius: 14,
-          overflow: 'hidden',
-          border: `3px solid ${fc}`,
-          boxShadow: `0 0 30px ${rc}66, 0 0 60px ${rc}33`,
-          position: 'relative',
-          background: '#0a0a0a',
-        }}>
-          {/* Card image */}
-          <img
-            src={imgSrc}
-            alt="New card"
-            loading="lazy"
-            style={{
-              width: '100%', height: '100%',
-              objectFit: 'cover', display: 'block',
-            }}
-          />
+        <img
+          src={imgSrc}
+          alt="New card"
+          style={{
+            width: '100%', height: '100%',
+            objectFit: 'contain', display: 'block',
+          }}
+        />
 
-          {/* Shimmer overlay */}
-          {phase === 'display' && (
+        {/* Shimmer overlay */}
+        {phase === 'display' && (
+          <div style={{
+            position: 'absolute', inset: 0, overflow: 'hidden',
+            pointerEvents: 'none',
+          }}>
             <div style={{
-              position: 'absolute', inset: 0, overflow: 'hidden',
-              pointerEvents: 'none',
-            }}>
-              <div style={{
-                position: 'absolute', top: 0, left: '-100%',
-                width: '60%', height: '100%',
-                background: `linear-gradient(90deg, transparent, ${rc}25, transparent)`,
-                animation: 'cr-shimmer 2s ease-in-out 0.3s 1',
-              }} />
-            </div>
-          )}
+              position: 'absolute', top: 0, left: '-100%',
+              width: '60%', height: '100%',
+              background: `linear-gradient(90deg, transparent, ${rc}33, transparent)`,
+              animation: 'cr-shimmer 2s ease-in-out 0.3s 1',
+            }} />
+          </div>
+        )}
 
-          {/* Serial display */}
-          {card.serial_display && (
-            <div style={{
-              position: 'absolute', bottom: 8, right: 8,
-              fontFamily: "'JetBrains Mono',monospace",
-              fontSize: 9, color: fc, opacity: 0.8,
-              textShadow: '0 1px 3px rgba(0,0,0,0.8)',
-            }}>
-              {card.serial_display}
-            </div>
-          )}
-        </div>
+        {/* Serial display */}
+        {card.serial_display && (
+          <div style={{
+            position: 'absolute', bottom: 12, right: 14,
+            fontFamily: "'JetBrains Mono',monospace",
+            fontSize: 11, color: fc, opacity: 0.85,
+            textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+          }}>
+            {card.serial_display}
+          </div>
+        )}
       </div>
 
       {/* Info text below card */}

@@ -6,16 +6,16 @@ export default function TermsPage() {
   const router = useRouter()
 
   return (
-    <div style={{ maxWidth: 430, margin: '0 auto', minHeight: '100dvh', background: '#080808', color: '#e0e0e0', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ maxWidth: 430, margin: '0 auto', minHeight: '100dvh', background: 'var(--bg-base)', color: 'var(--text-primary)', fontFamily: 'system-ui, sans-serif' }}>
       {/* Header */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#080808', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-base)', borderBottom: '1px solid var(--border-subtle)', padding: '16px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button
           onClick={() => router.back()}
-          style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 10, width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: 18 }}
+          style={{ background: 'var(--bg-overlay)', border: 'none', borderRadius: 10, width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-primary)', fontSize: 18 }}
         >
           &#8592;
         </button>
-        <h1 style={{ fontFamily: 'Oswald, sans-serif', fontSize: 20, fontWeight: 700, color: '#FFB800', margin: 0, letterSpacing: 1 }}>
+        <h1 style={{ fontFamily: 'Oswald, sans-serif', fontSize: 20, fontWeight: 700, color: 'var(--gold-primary)', margin: 0, letterSpacing: 1 }}>
           Nutzungsbedingungen
         </h1>
       </div>
@@ -23,14 +23,14 @@ export default function TermsPage() {
       {/* Content */}
       <div style={{ padding: '24px 16px 64px', lineHeight: 1.7, fontSize: 14 }}>
 
-        <p style={{ color: '#888', marginBottom: 24 }}>Stand: 24. M&auml;rz 2026</p>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>Stand: 1. Mai 2026</p>
 
         <Section title="1. Geltungsbereich">
           <p>
             Diese Allgemeinen Gesch&auml;ftsbedingungen (AGB) gelten f&uuml;r die Nutzung der DealBuddy-App
             (nachfolgend &bdquo;App&ldquo; oder &bdquo;Plattform&ldquo;), betrieben von:
           </p>
-          <p style={{ margin: '12px 0', padding: '12px 16px', background: 'rgba(255,184,0,0.06)', borderRadius: 10, borderLeft: '3px solid #FFB800' }}>
+          <p style={{ margin: '12px 0', padding: '12px 16px', background: 'var(--gold-subtle)', borderRadius: 10, borderLeft: '3px solid var(--gold-primary)' }}>
             <strong>Rainer Roloff</strong><br />
             Comms Connect GmbH<br />
             E-Mail: info@deal-buddy.app
@@ -68,16 +68,28 @@ export default function TermsPage() {
           </p>
         </Section>
 
-        <Section title="4. Coins und virtuelle W&auml;hrung">
+        <Section title="4. Coins, Battle Cards und virtuelle Inhalte">
           <p>
-            Innerhalb der App k&ouml;nnen Nutzer &bdquo;Coins&ldquo; erwerben. Coins sind eine
-            <strong> virtuelle W&auml;hrung ohne realen Geldwert</strong>. Es besteht kein Anspruch auf
-            R&uuml;ckerstattung oder Auszahlung von Coins in Echtgeld.
+            Innerhalb der App k&ouml;nnen Nutzer &bdquo;Coins&ldquo;, &bdquo;Battle Cards&ldquo;,
+            &bdquo;Skins&ldquo; oder andere virtuelle Inhalte erwerben oder durch Aktivit&auml;t freischalten.
+            Diese sind eine <strong>rein virtuelle Repr&auml;sentation ohne realen Geldwert</strong>.
           </p>
           <p style={{ marginTop: 12 }}>
-            Coins k&ouml;nnen ausschlie&szlig;lich innerhalb der App f&uuml;r die vorgesehenen
-            Funktionen verwendet werden. Der Kauf von Coins erfolgt &uuml;ber den Zahlungsdienstleister
-            Stripe in Euro (EUR).
+            <strong>Sammelkarten und virtuelle Inhalte sind ausdr&uuml;cklich nicht &uuml;bertragbar,
+            nicht verkaufsf&auml;hig und nicht in Echtgeld oder geldwerte Leistungen einzutauschen.</strong>
+            Es besteht kein Anspruch auf R&uuml;ckerstattung, Auszahlung oder &Uuml;bertragung an Dritte.
+            Ein Sekund&auml;rmarkt &uuml;ber DealBuddy oder &uuml;ber DealBuddy-zugeh&ouml;rige Kan&auml;le
+            (Discord, App-Inhalte) ist nicht vorgesehen und nicht gestattet.
+          </p>
+          <p style={{ marginTop: 12 }}>
+            Coins und Battle Cards k&ouml;nnen ausschlie&szlig;lich innerhalb der App f&uuml;r die
+            vorgesehenen Funktionen verwendet werden. Der Kauf erfolgt &uuml;ber den Zahlungsdienstleister
+            Stripe in Euro (EUR) bzw. &uuml;ber Apple In-App-Purchase / Google Play Billing in der jeweiligen
+            Landesw&auml;hrung.
+          </p>
+          <p style={{ marginTop: 12 }}>
+            Diese Regelung ist Voraussetzung f&uuml;r die Einordnung der App au&szlig;erhalb des
+            Glücksspielbegriffs gem&auml;&szlig; § 3 Abs. 1 Glücksspielstaatsvertrag (GlüStV) 2021.
           </p>
         </Section>
 
@@ -140,6 +152,53 @@ export default function TermsPage() {
           </p>
         </Section>
 
+        <Section title="8a. Widerrufsrecht f&uuml;r Verbraucher">
+          <p>
+            Verbraucher (§ 13 BGB) haben bei kostenpflichtigen In-App-K&auml;ufen (Coins, Battle Pass,
+            Premium-Funktionen) ein gesetzliches Widerrufsrecht von <strong>14 Tagen</strong> ohne Angabe
+            von Gr&uuml;nden gem&auml;&szlig; § 312g Abs. 1 BGB.
+          </p>
+          <p style={{ marginTop: 12 }}>
+            <strong>Erl&ouml;schen des Widerrufsrechts gem&auml;&szlig; § 356 Abs. 5 BGB:</strong>
+            Bei digitalen Inhalten und Dienstleistungen erlischt das Widerrufsrecht, wenn der
+            Verbraucher (a) ausdr&uuml;cklich zugestimmt hat, dass mit der Ausf&uuml;hrung des Vertrags
+            vor Ablauf der Widerrufsfrist begonnen wird, (b) seine Kenntnis davon best&auml;tigt hat,
+            dass er durch diese Zustimmung mit Beginn der Ausf&uuml;hrung sein Widerrufsrecht verliert,
+            und (c) der Anbieter dem Verbraucher eine Best&auml;tigung gem&auml;&szlig; § 312f Abs. 3 BGB
+            zur Verf&uuml;gung gestellt hat.
+          </p>
+          <p style={{ marginTop: 12 }}>
+            Beim Kauf von Coins, Battle Cards oder Premium-Inhalten wird der Nutzer im Checkout-Prozess
+            ausdr&uuml;cklich nach diesen Zustimmungen gefragt. Werden diese erteilt, wird die Leistung
+            sofort freigeschaltet und das Widerrufsrecht erlischt mit dem Beginn der Ausf&uuml;hrung.
+          </p>
+          <p style={{ marginTop: 12 }}>
+            Zur Aus&uuml;bung eines etwaig bestehenden Widerrufsrechts wenden Sie sich an:
+            <br />
+            <strong>info@deal-buddy.app</strong>
+          </p>
+          <p style={{ marginTop: 12, padding: '12px 16px', background: 'var(--gold-subtle)', borderRadius: 10, borderLeft: '3px solid var(--gold-primary)' }}>
+            <strong>Muster-Widerrufsformular (Anlage 2 zu Art. 246a EGBGB):</strong><br />
+            An: Comms Connect GmbH, Tal 30, 80331 M&uuml;nchen, info@deal-buddy.app<br />
+            Hiermit widerrufe(n) ich/wir (*) den von mir/uns (*) abgeschlossenen Vertrag &uuml;ber den Kauf
+            der folgenden Waren (*) / die Erbringung der folgenden Dienstleistung (*).<br />
+            Bestellt am (*) / erhalten am (*): __________<br />
+            Name: __________ &middot; Anschrift: __________<br />
+            Datum: __________ &middot; Unterschrift (nur bei Mitteilung auf Papier): __________<br />
+            (*) Unzutreffendes bitte streichen.
+          </p>
+        </Section>
+
+        <Section title="8b. Mindestalter und gesetzliche Vertretung Minderj&auml;hriger">
+          <p>
+            Die Nutzung der App und insbesondere kostenpflichtiger Funktionen ist Personen ab vollendetem
+            <strong> 18. Lebensjahr</strong> vorbehalten (siehe bereits § 3). Erkl&auml;rungen und K&auml;ufe
+            durch Minderj&auml;hrige sind ohne Zustimmung der gesetzlichen Vertreter gem&auml;&szlig;
+            §§ 107 ff. BGB schwebend unwirksam. Eltern, die einen unberechtigten Kauf durch ein Kind
+            feststellen, k&ouml;nnen sich umgehend an info@deal-buddy.app wenden.
+          </p>
+        </Section>
+
         <Section title="9. &Auml;nderungen der AGB">
           <p>
             DealBuddy beh&auml;lt sich vor, diese AGB jederzeit zu &auml;ndern. &Uuml;ber wesentliche
@@ -172,10 +231,10 @@ export default function TermsPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section style={{ marginBottom: 32 }}>
-      <h2 style={{ fontFamily: 'Oswald, sans-serif', fontSize: 16, fontWeight: 600, color: '#FFB800', marginBottom: 12, letterSpacing: 0.5 }}>
+      <h2 style={{ fontFamily: 'Oswald, sans-serif', fontSize: 16, fontWeight: 600, color: 'var(--gold-primary)', marginBottom: 12, letterSpacing: 0.5 }}>
         {title}
       </h2>
-      <div style={{ color: '#ccc' }}>{children}</div>
+      <div style={{ color: 'var(--text-secondary)' }}>{children}</div>
     </section>
   )
 }

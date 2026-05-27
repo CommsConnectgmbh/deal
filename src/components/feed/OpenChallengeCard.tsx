@@ -11,13 +11,10 @@ import DealCardMenu from '@/components/DealCardMenu'
    ═══════════════════════════════════════════════════════════════ */
 export default function OpenChallengeCard({
   deal, expanded, onToggleExpand, feedEvents, feedMedia,
-  betQuotes, onCommentOpen, userId, onHide,
+  challengeQuotes, onCommentOpen, userId, onHide,
 }: DealCardProps) {
   const router = useRouter()
   const { t } = useLang()
-  const isCreator = deal.creator_id === userId
-  const sc = '#FFB800'
-  const ctaText = isCreator ? t('components.openChallengeShare') : t('components.openChallengeJoin')
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
@@ -38,70 +35,104 @@ export default function OpenChallengeCard({
   const opponentName = deal.opponent?.display_name || deal.opponent?.username || null
 
   return (
-    <div data-deal-card={deal.id} style={{ marginBottom: 28, position: 'relative', paddingTop: 10, paddingBottom: 20, borderBottom: '1px solid rgba(255,184,0,0.12)' }}>
+    <div data-deal-card={deal.id} style={{ marginBottom: 20, position: 'relative' }}>
 
       {/* ═══ 3-DOT MENU — top right ═══ */}
-      <div style={{ position: 'absolute', top: 14, right: 10, zIndex: 8 }}>
+      <div style={{ position: 'absolute', top: 6, right: 8, zIndex: 8 }}>
         <DealCardMenu dealId={deal.id} onHide={() => onHide?.(deal.id)} />
       </div>
 
-      {/* ═══ BADGE — gleicher Style wie CTA, links oben ═══ */}
       <div style={{
-        position: 'absolute', top: -4, left: 16, zIndex: 5,
-        padding: '4px 10px 5px',
-        background: 'linear-gradient(135deg, rgba(180,140,0,0.95), rgba(255,184,0,0.9))',
-        color: '#060606', fontFamily: 'var(--font-display)',
-        fontSize: 7, fontWeight: 800, letterSpacing: 1.5,
-        borderRadius: '6px 6px 0 0',
-        boxShadow: '0 -3px 10px rgba(255,184,0,0.25)',
-        lineHeight: 1,
-      }}>
-        {deal.opponent_id ? t('status.open') : t('status.opponentSearched')}
-      </div>
-
-      <div style={{
-        borderRadius: 14, overflow: 'hidden',
-        background: '#111',
+        borderRadius: 18, overflow: 'hidden',
+        background: 'var(--glass-bg)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        border: '1px solid var(--glass-border)',
+        boxShadow: 'var(--shadow-md)',
       }}>
 
-        {/* ═══ TITLE BAR — farbiger Rahmen oben, max 2 Zeilen ═══ */}
+        {/* ═══ TITLE BAR — calm, primary text ═══ */}
         <div style={{
-          width: '100%', padding: '10px 16px', textAlign: 'center',
-          background: `linear-gradient(135deg, ${sc}12, ${sc}06)`,
+          width: '100%', padding: '10px 16px 10px', textAlign: 'center',
         }}>
           <p style={{
             fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 900,
-            color: sc, letterSpacing: 1.5, textTransform: 'uppercase',
+            color: 'var(--text-primary)', letterSpacing: 1.5, textTransform: 'uppercase',
             margin: 0, lineHeight: 1.3,
             overflow: 'hidden',
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical' as never,
-            textShadow: `0 0 12px ${sc}25`,
           }}>
             {deal.title}
           </p>
         </div>
 
-        {/* ═══ MEDIA + BEGEGNUNG LESEZEICHEN ═══ */}
-        <div onClick={goToDeal} style={{ position: 'relative', cursor: 'pointer' }}>
-          {/* Lesezeichen oben links */}
+        {/* ═══ Divider after title ═══ */}
+        <div style={{ height: 1, background: 'var(--border-subtle)', width: '100%' }} />
+
+        {/* ═══ MEDIA + BEGEGNUNG LESEZEICHEN (top) + EINSATZ LESEZEICHEN (bottom) ═══ */}
+        <div onClick={goToDeal} style={{
+          position: 'relative', cursor: 'pointer',
+          minHeight: deal.media_url ? undefined : 88,
+          // No-media: subtle colored mesh so the bookmarks' liquid-glass blur is visible
+          background: deal.media_url ? undefined : `
+            radial-gradient(at 20% 30%, rgba(245,158,11,0.18) 0%, transparent 55%),
+            radial-gradient(at 80% 70%, rgba(34,197,94,0.12) 0%, transparent 55%),
+            radial-gradient(at 50% 100%, rgba(59,130,246,0.10) 0%, transparent 50%)
+          `,
+        }}>
+          {/* Lesezeichen oben links — Begegnung (Apple liquid glass) */}
           <div style={{
             position: 'absolute', top: 0, left: 12, zIndex: 2,
-            background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
-            padding: '5px 10px', borderRadius: '0 0 8px 8px',
-            fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 700, color: '#fff',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-            display: 'flex', alignItems: 'center', gap: 5,
+            background: 'rgba(255,255,255,0.55)',
+            backdropFilter: 'blur(20px) saturate(200%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(200%)',
+            border: '1px solid rgba(255,255,255,0.6)',
+            borderTop: 'none',
+            padding: '5px 10px', borderRadius: '0 0 12px 12px',
+            fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.5)',
+            display: 'flex', alignItems: 'center', gap: 6,
           }}>
             <span>{'\u2694\uFE0F'}</span>
             <span>{creatorName}</span>
-            {opponentName ? (
-              <><span style={{ color: 'rgba(255,255,255,0.5)' }}>vs</span> <span>{opponentName}</span></>
-            ) : (
-              <span style={{ color: sc }}>· {t('status.searchingOpponent')}</span>
-            )}
+            <span style={{ color: 'var(--text-muted)', fontWeight: 800, fontSize: 10, letterSpacing: 1 }}>VS</span>
+            <span style={opponentName ? undefined : { color: 'var(--text-muted)', fontWeight: 500 }}>
+              {opponentName || t('status.searchingOpponent')}
+            </span>
           </div>
+
+          {/* Lesezeichen unten links — Einsatz (mirror of top bookmark) */}
+          {(deal.stake || deal.deadline) && (
+            <div style={{
+              position: 'absolute', bottom: 0, left: 12, zIndex: 2,
+              background: 'rgba(255,255,255,0.55)',
+              backdropFilter: 'blur(20px) saturate(200%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(200%)',
+              border: '1px solid rgba(255,255,255,0.6)',
+              borderBottom: 'none',
+              padding: '5px 10px', borderRadius: '12px 12px 0 0',
+              fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)',
+              boxShadow: '0 -4px 14px rgba(0,0,0,0.08), inset 0 -1px 0 rgba(255,255,255,0.5)',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              {deal.stake && (
+                <>
+                  <span>{'\uD83C\uDFC6'}</span>
+                  <span>{deal.stake}</span>
+                </>
+              )}
+              {deal.deadline && (() => {
+                const diff = new Date(deal.deadline).getTime() - Date.now()
+                if (diff <= 0) return <span style={{ fontSize: 10, color: 'var(--status-error)', fontWeight: 600, marginLeft: deal.stake ? 6 : 0 }}>{'\u23F3'} {t('status.expired')}</span>
+                const d = Math.floor(diff / 86400000), h = Math.floor((diff % 86400000) / 3600000), m = Math.floor((diff % 3600000) / 60000)
+                const txt = d > 0 ? `${d}d` : h > 0 ? `${h}h` : `${m}min`
+                return <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', marginLeft: deal.stake ? 6 : 0 }}>{'\u23F3'} {txt}</span>
+              })()}
+            </div>
+          )}
+
           {deal.media_url ? (
             deal.media_type === 'video' ? (
               <video ref={videoRef} src={deal.media_url} muted playsInline loop preload="auto"
@@ -110,37 +141,8 @@ export default function OpenChallengeCard({
               <img src={deal.media_url} alt="" loading="lazy"
                 style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block' }} />
             )
-          ) : (
-            <div style={{ height: 28 }} />
-          )}
+          ) : null}
         </div>
-
-        {/* ═══ EINSATZ — mittig, gerahmt, gleiche Größe wie Titel ═══ */}
-        {(deal.stake || deal.deadline) && (
-          <div onClick={goToDeal} style={{
-            cursor: 'pointer', padding: '8px 12px',
-            display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
-          }}>
-            {deal.stake && (
-              <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 900,
-                color: '#ffffff', letterSpacing: 1,
-                borderRadius: 8, padding: '6px 16px',
-                background: 'rgba(255,255,255,0.06)',
-                textShadow: '0 0 12px rgba(147,197,253,0.15)',
-              }}>
-                {'\uD83C\uDFC6'} {deal.stake}
-              </span>
-            )}
-            {deal.deadline && (() => {
-              const diff = new Date(deal.deadline).getTime() - Date.now()
-              if (diff <= 0) return <span style={{ fontSize: 9, color: '#EF4444', fontWeight: 600 }}>{'\u23F3'} {t('status.expired')}</span>
-              const d = Math.floor(diff / 86400000), h = Math.floor((diff % 86400000) / 3600000), m = Math.floor((diff % 3600000) / 60000)
-              const txt = d > 0 ? `${d}d` : h > 0 ? `${h}h` : `${m}min`
-              return <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>{'\u23F3'} {txt}</span>
-            })()}
-          </div>
-        )}
 
         {/* ═══ Interaction bar mit Badge mittig ═══ */}
         <InteractionBar
@@ -151,21 +153,6 @@ export default function OpenChallengeCard({
         />
       </div>
 
-      {/* ═══ CTA BOOKMARK ═══ */}
-      <button onClick={(e) => { e.stopPropagation(); goToDeal() }}
-        style={{
-          position: 'absolute', bottom: 6, right: 16, zIndex: 5,
-          padding: '5px 10px 4px',
-          background: 'linear-gradient(135deg, rgba(180,140,0,0.95), rgba(255,184,0,0.9))',
-          color: '#060606', fontFamily: 'var(--font-display)',
-          fontSize: 7, fontWeight: 800, letterSpacing: 1.5,
-          border: 'none', cursor: 'pointer',
-          borderRadius: '0 0 6px 6px',
-          boxShadow: '0 3px 10px rgba(255,184,0,0.25)',
-          lineHeight: 1,
-        }}>
-        {ctaText}
-      </button>
     </div>
   )
 }

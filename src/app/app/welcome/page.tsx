@@ -138,7 +138,7 @@ export default function WelcomePage() {
   const skipButton = (
     <button onClick={goHome} style={{
       position: 'absolute', top: 'calc(env(safe-area-inset-top) + 16px)', right: 16,
-      background: 'none', border: '1px solid rgba(255,255,255,0.15)',
+      background: 'none', border: '1px solid var(--border-subtle)',
       borderRadius: 20, padding: '6px 16px', cursor: 'pointer', zIndex: 10,
       color: 'var(--text-secondary)', fontFamily: 'var(--font-display)',
       fontSize: 11, letterSpacing: 1,
@@ -151,7 +151,7 @@ export default function WelcomePage() {
   if (step === 0) {
     return (
       <div style={{
-        minHeight: '100dvh', background: '#060606',
+        minHeight: '100dvh', background: 'var(--bg-base)',
         display: 'flex', flexDirection: 'column',
         maxWidth: 430, margin: '0 auto', position: 'relative', overflow: 'hidden',
       }}>
@@ -160,7 +160,7 @@ export default function WelcomePage() {
         <div style={{
           position: 'absolute', top: '15%', left: '50%', transform: 'translateX(-50%)',
           width: 300, height: 300, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(255,184,0,0.08) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, var(--gold-glow) 0%, transparent 70%)',
           pointerEvents: 'none',
         }} />
 
@@ -174,17 +174,17 @@ export default function WelcomePage() {
             fontSize: 56, marginBottom: 20,
             opacity: animate ? 1 : 0,
             transform: animate ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.9)',
-            transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transition: 'all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
             {'\uD83C\uDF0D'}
           </div>
 
           <h1 style={{
             fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 900,
-            color: '#F0ECE4', lineHeight: 1.3, marginBottom: 8, letterSpacing: 2,
+            color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: 8, letterSpacing: 2,
             opacity: animate ? 1 : 0,
             transform: animate ? 'translateY(0)' : 'translateY(20px)',
-            transition: 'all 0.5s 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transition: 'all 0.5s 0.15s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
             {t('welcome.chooseLanguage')}
           </h1>
@@ -263,7 +263,7 @@ export default function WelcomePage() {
   if (step === 1) {
     return (
       <div style={{
-        minHeight: '100dvh', background: '#060606',
+        minHeight: '100dvh', background: 'var(--bg-base)',
         display: 'flex', flexDirection: 'column',
         maxWidth: 430, margin: '0 auto', position: 'relative', overflow: 'hidden',
       }}>
@@ -285,17 +285,17 @@ export default function WelcomePage() {
             marginBottom: 24,
             opacity: animate ? 1 : 0,
             transform: animate ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.9)',
-            transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transition: 'all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
             <ProfileImage size={80} avatarUrl={profile?.avatar_url} name={name} goldBorder />
           </div>
 
           <h1 style={{
             fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 900,
-            color: '#F0ECE4', lineHeight: 1.3, marginBottom: 8,
+            color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: 8,
             opacity: animate ? 1 : 0,
             transform: animate ? 'translateY(0)' : 'translateY(20px)',
-            transition: 'all 0.5s 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transition: 'all 0.5s 0.15s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
             {t('welcome.welcomeTitle')}<br/>
             <span style={{ color: 'var(--gold-primary)' }}>@{profile?.username || 'Champion'}</span>
@@ -314,7 +314,7 @@ export default function WelcomePage() {
           <div style={{
             opacity: coinsVisible ? 1 : 0,
             transform: coinsVisible ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.8)',
-            transition: 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transition: 'all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
             <div style={{
               width: 160, height: 160, borderRadius: '50%',
@@ -373,7 +373,7 @@ export default function WelcomePage() {
   if (step === 2) {
     return (
       <div style={{
-        minHeight: '100dvh', background: '#060606',
+        minHeight: '100dvh', background: 'var(--bg-base)',
         display: 'flex', flexDirection: 'column',
         maxWidth: 430, margin: '0 auto', position: 'relative', overflow: 'hidden',
       }}>
@@ -394,14 +394,14 @@ export default function WelcomePage() {
             fontSize: 56, marginBottom: 20, lineHeight: 1,
             opacity: animate ? 1 : 0,
             transform: animate ? 'translateY(0)' : 'translateY(20px)',
-            transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transition: 'all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
             {'\u2694\uFE0F'}
           </div>
 
           <h1 style={{
             fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 900,
-            color: '#F0ECE4', lineHeight: 1.3, marginBottom: 6, letterSpacing: 2,
+            color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: 6, letterSpacing: 2,
             opacity: animate ? 1 : 0,
             transform: animate ? 'translateY(0)' : 'translateY(20px)',
             transition: 'all 0.5s 0.1s',
@@ -510,7 +510,7 @@ export default function WelcomePage() {
   if (step === 3) {
     return (
       <div style={{
-        minHeight: '100dvh', background: '#060606',
+        minHeight: '100dvh', background: 'var(--bg-base)',
         display: 'flex', flexDirection: 'column',
         maxWidth: 430, margin: '0 auto', position: 'relative', overflow: 'hidden',
       }}>
@@ -531,14 +531,14 @@ export default function WelcomePage() {
             fontSize: 56, marginBottom: 20,
             opacity: animate ? 1 : 0,
             transform: animate ? 'translateY(0)' : 'translateY(20px)',
-            transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transition: 'all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
             {'\uD83D\uDC65'}
           </div>
 
           <h1 style={{
             fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 900,
-            color: '#F0ECE4', lineHeight: 1.3, marginBottom: 6, letterSpacing: 2,
+            color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: 6, letterSpacing: 2,
             opacity: animate ? 1 : 0,
             transform: animate ? 'translateY(0)' : 'translateY(20px)',
             transition: 'all 0.5s 0.1s',
@@ -673,7 +673,7 @@ export default function WelcomePage() {
 
     return (
       <div style={{
-        minHeight: '100dvh', background: '#060606',
+        minHeight: '100dvh', background: 'var(--bg-base)',
         display: 'flex', flexDirection: 'column',
         maxWidth: 430, margin: '0 auto', position: 'relative', overflow: 'hidden',
       }}>
@@ -694,14 +694,14 @@ export default function WelcomePage() {
             fontSize: 56, marginBottom: 20,
             opacity: animate ? 1 : 0,
             transform: animate ? 'translateY(0)' : 'translateY(20px)',
-            transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transition: 'all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
             {'\uD83D\uDD14'}
           </div>
 
           <h1 style={{
             fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 900,
-            color: '#F0ECE4', lineHeight: 1.3, marginBottom: 6, letterSpacing: 2,
+            color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: 6, letterSpacing: 2,
             opacity: animate ? 1 : 0,
             transform: animate ? 'translateY(0)' : 'translateY(20px)',
             transition: 'all 0.5s 0.1s',
@@ -753,7 +753,7 @@ export default function WelcomePage() {
                   background: pushStatus === 'loading'
                     ? 'rgba(59,130,246,0.3)'
                     : 'linear-gradient(135deg, #1d4ed8, #3b82f6)',
-                  color: '#fff', fontFamily: 'var(--font-display)',
+                  color: 'var(--text-inverse)', fontFamily: 'var(--font-display)',
                   fontSize: 14, fontWeight: 900, letterSpacing: 3,
                   boxShadow: '0 4px 24px rgba(59,130,246,0.3)',
                   opacity: pushStatus === 'loading' ? 0.7 : 1,

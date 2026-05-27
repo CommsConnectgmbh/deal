@@ -14,7 +14,9 @@ import CoinIcon from '@/components/CoinIcon'
 import InteractionBar from '@/components/InteractionBar'
 
 const ProofUploadSheet = dynamic(() => import('@/components/ProofUploadSheet'), { ssr: false })
-const DealBetWidget = dynamic(() => import('@/components/DealBetWidget'), { ssr: false })
+const DealChallengeWidget = dynamic(() => import('@/components/DealChallengeWidget'), { ssr: false })
+const LiveMetricTracker = dynamic(() => import('@/components/LiveMetricTracker'), { ssr: false })
+import { detectStepChallenge } from '@/components/LiveMetricTracker'
 import WinCelebrationModal from '@/components/WinCelebrationModal'
 import { trackDealAccepted, trackResultSubmitted, trackResultConfirmed, trackScreenView, trackShareClicked } from '@/lib/analytics'
 import { uploadDealMedia as uploadDealMediaUtil } from '@/lib/mediaUpload'
@@ -168,7 +170,7 @@ export default function DealDetailPage() {
   }
 
   const fetchDeal = async () => {
-    const { data } = await supabase.from('bets')
+    const { data } = await supabase.from('challenges')
       .select('*, creator:creator_id(id,username,display_name,level,streak,active_frame,is_founder,avatar_url), opponent:opponent_id(id,username,display_name,level,streak,active_frame,is_founder,avatar_url), winner:winner_id(id,username), proposed_winner:proposed_winner_id(id,username)')
       .eq('id', id).single()
     setDeal(data)
@@ -196,12 +198,12 @@ export default function DealDetailPage() {
     }
 
     // Fetch fulfillment status
-    const { data: bfData } = await supabase
-      .from('bet_fulfillment')
+    const { data: cfData } = await supabase
+      .from('challenge_fulfillment')
       .select('id, status, entitled_user_id, obligated_user_id')
-      .eq('bet_id', id)
+      .eq('challenge_id', id)
       .maybeSingle()
-    if (bfData) setFulfillment(bfData)
+    if (cfData) setFulfillment(cfData)
   }
 
   const fetchDealMedia = async () => {
@@ -254,14 +256,14 @@ export default function DealDetailPage() {
       })
       // Set as deal's main media if none exists yet (so it shows in feed cards + stories)
       if (!deal.media_url) {
-        await supabase.from('bets').update({
+        await supabase.from('challenges').update({
           media_url: result.url,
           media_type: betsMediaType,
           shared_as_story_at: new Date().toISOString(),
         }).eq('id', id)
       } else {
         // Auto-post as story
-        await supabase.from('bets').update({ shared_as_story_at: new Date().toISOString() }).eq('id', id)
+        await supabase.from('challenges').update({ shared_as_story_at: new Date().toISOString() }).eq('id', id)
       }
       setUploadProgress(100)
       fetchDealMedia()
@@ -289,7 +291,7 @@ export default function DealDetailPage() {
       if (deal.is_public !== false) {
         update.shared_as_story_at = new Date().toISOString()
       }
-      const { error } = await supabase.from('bets').update(update).eq('id', id)
+      const { error } = await supabase.from('challenges').update(update).eq('id', id)
       if (error) throw error
       // Push notification to creator
       if (deal.creator_id !== profile.id) {
@@ -338,7 +340,7 @@ export default function DealDetailPage() {
     if (!pendingWinnerId || !profile) return
     setLoading(true)
     try {
-      const { error } = await supabase.from('bets').update({
+      const { error } = await supabase.from('challenges').update({
         status: 'pending_confirmation', proposed_winner_id: pendingWinnerId,
         winner_proposed_by: profile.id,
       }).eq('id', id)
@@ -390,7 +392,7 @@ export default function DealDetailPage() {
       }
       fetchDeal()
     } catch {
-      await supabase.from('bets').update({
+      await supabase.from('challenges').update({
         status: 'completed', winner_id: deal.proposed_winner_id,
         confirmed_at: new Date().toISOString(),
       }).eq('id', id)
@@ -407,7 +409,7 @@ export default function DealDetailPage() {
   const completeDispute = async () => {
     setLoading(true)
     try {
-      const { error } = await supabase.from('bets').update({ status: 'disputed', proposed_winner_id: null, winner_proposed_by: null }).eq('id', id)
+      const { error } = await supabase.from('challenges').update({ status: 'disputed', proposed_winner_id: null, winner_proposed_by: null }).eq('id', id)
       if (error) throw error
       // Feed event: deal_disputed
       if (profile) {
@@ -436,7 +438,7 @@ export default function DealDetailPage() {
     if (!editForm.title || !editForm.stake) return
     setLoading(true)
     try {
-      const { error } = await supabase.from('bets').update({ title: editForm.title, stake: editForm.stake }).eq('id', id)
+      const { error } = await supabase.from('challenges').update({ title: editForm.title, stake: editForm.stake }).eq('id', id)
       if (error) throw error
       setEditOpen(false)
       showActionToast(t('deals.dealUpdated'))
@@ -450,7 +452,7 @@ export default function DealDetailPage() {
   const deleteDeal = async () => {
     setLoading(true)
     try {
-      const { error } = await supabase.from('bets').update({ status: 'cancelled' }).eq('id', id)
+      const { error } = await supabase.from('challenges').update({ status: 'cancelled' }).eq('id', id)
       if (error) throw error
       router.back()
     } catch (_err) {
@@ -463,9 +465,9 @@ export default function DealDetailPage() {
     await supabase.from('deal_likes').delete().eq('deal_id', id as string)
     await supabase.from('deal_reposts').delete().eq('original_deal_id', id as string)
     await supabase.from('deal_comments').delete().eq('deal_id', id as string)
-    await supabase.from('deal_side_bets').delete().eq('deal_id', id as string)
+    await supabase.from('deal_side_challenges').delete().eq('deal_id', id as string)
     await supabase.from('deal_actions').delete().eq('deal_id', id as string)
-    await supabase.from('bets').delete().eq('id', id as string)
+    await supabase.from('challenges').delete().eq('id', id as string)
     router.push('/app/deals')
   }
 
@@ -473,7 +475,7 @@ export default function DealDetailPage() {
     if (!profile) return
     setLoading(true)
     try {
-      const { error } = await supabase.from('bets').update({
+      const { error } = await supabase.from('challenges').update({
         frozen_by: profile.id, freeze_reason: 'cancel_request',
         frozen_at: new Date().toISOString(),
       }).eq('id', id)
@@ -491,7 +493,7 @@ export default function DealDetailPage() {
   const acceptCancel = async () => {
     setLoading(true)
     try {
-      const { error } = await supabase.from('bets').update({ status: 'cancelled', frozen_by: null, freeze_reason: null, frozen_at: null }).eq('id', id)
+      const { error } = await supabase.from('challenges').update({ status: 'cancelled', frozen_by: null, freeze_reason: null, frozen_at: null }).eq('id', id)
       if (error) throw error
       showActionToast(t('deals.dealCancelled'))
       fetchDeal()
@@ -503,7 +505,7 @@ export default function DealDetailPage() {
   const rejectCancel = async () => {
     setLoading(true)
     try {
-      const { error } = await supabase.from('bets').update({ frozen_by: null, freeze_reason: null, frozen_at: null }).eq('id', id)
+      const { error } = await supabase.from('challenges').update({ frozen_by: null, freeze_reason: null, frozen_at: null }).eq('id', id)
       if (error) throw error
       showActionToast(t('deals.cancelRejected'))
       fetchDeal()
@@ -524,7 +526,7 @@ export default function DealDetailPage() {
           'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ betId: deal.id, status }),
+        body: JSON.stringify({ challengeId: deal.id, status }),
       })
       if (res.ok) {
         setFulfillment(prev => prev ? { ...prev, status } : null)
@@ -584,7 +586,7 @@ export default function DealDetailPage() {
         deal_id: deal.id,
         metadata: { title: deal.title, stake: deal.stake },
       })
-      await supabase.from('bets').update({ shared_as_story_at: new Date().toISOString() }).eq('id', id)
+      await supabase.from('challenges').update({ shared_as_story_at: new Date().toISOString() }).eq('id', id)
       trackShareClicked('deal_story', 'feed')
       setStoryPosted(true)
       setDeal((prev: any) => prev ? { ...prev, shared_as_story_at: new Date().toISOString() } : prev)
@@ -650,7 +652,7 @@ export default function DealDetailPage() {
           borderRadius: 12, padding: '12px 24px', zIndex: 300, boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
           animation: 'fadeInUp 0.3s ease',
         }}>
-          <span style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: actionToastType === 'error' ? '#fff' : 'var(--text-inverse)', fontWeight: 700, letterSpacing: 1 }}>{actionToast}</span>
+          <span style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--text-inverse)', fontWeight: 700, letterSpacing: 1 }}>{actionToast}</span>
         </div>
       )}
       <style>{`@keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}`}</style>
@@ -717,7 +719,7 @@ export default function DealDetailPage() {
           {STATUS_LABELS[deal.status] || deal.status.toUpperCase()}
         </div>
 
-        <div style={{ borderRadius: 14, overflow: 'hidden', background: '#111' }}>
+        <div style={{ borderRadius: 14, overflow: 'hidden', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
 
           {/* ═══ TITLE BAR ═══ */}
           <div style={{
@@ -738,48 +740,96 @@ export default function DealDetailPage() {
             </p>
           </div>
 
-          {/* ═══ MEDIA + BEGEGNUNG LESEZEICHEN ═══ */}
-          <div style={{ position: 'relative' }}>
-            {/* Lesezeichen oben links */}
+          {/* ═══ MEDIA + BEGEGNUNG LESEZEICHEN (top) + EINSATZ LESEZEICHEN (bottom) ═══ */}
+          <div style={{
+            position: 'relative',
+            minHeight: deal.media_url ? undefined : 88,
+            background: deal.media_url ? undefined : `
+              radial-gradient(at 20% 30%, rgba(245,158,11,0.18) 0%, transparent 55%),
+              radial-gradient(at 80% 70%, rgba(34,197,94,0.12) 0%, transparent 55%),
+              radial-gradient(at 50% 100%, rgba(59,130,246,0.10) 0%, transparent 50%)
+            `,
+          }}>
+            {/* Lesezeichen oben links — Begegnung (Apple liquid glass) */}
             <div style={{
               position: 'absolute', top: 0, left: 12, zIndex: 2,
-              background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
-              padding: '3px 8px', borderRadius: '0 0 6px 6px',
-              fontFamily: 'var(--font-body)', fontSize: 10, fontWeight: 700, color: '#fff',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-              display: 'flex', alignItems: 'center', gap: 4,
+              background: 'rgba(255,255,255,0.55)',
+              backdropFilter: 'blur(20px) saturate(200%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(200%)',
+              border: '1px solid rgba(255,255,255,0.6)',
+              borderTop: 'none',
+              padding: '5px 10px', borderRadius: '0 0 12px 12px',
+              fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.5)',
+              display: 'flex', alignItems: 'center', gap: 6,
             }}>
               <span>{'\u2694\uFE0F'}</span>
               <span
                 onClick={() => deal.creator?.username && router.push(`/app/profile/${deal.creator.username}`)}
-                style={{ cursor: 'pointer', color: creatorWon ? '#4ade80' : '#fff' }}
+                style={{ cursor: 'pointer', color: creatorWon ? 'var(--status-active)' : 'var(--text-primary)' }}
               >
                 {creatorWon && '\u{1F451} '}{deal.creator?.display_name || deal.creator?.username || '?'}
               </span>
               {deal.creator_side && (
                 <span style={{
-                  fontSize: 8, fontWeight: 800, fontFamily: 'var(--font-display)',
+                  fontSize: 9, fontWeight: 800, fontFamily: 'var(--font-display)',
                   letterSpacing: 0.5, padding: '1px 5px', borderRadius: 4,
                   background: deal.creator_side === 'yes' ? 'rgba(74,222,128,0.2)' : 'rgba(239,68,68,0.2)',
-                  color: deal.creator_side === 'yes' ? '#4ade80' : '#ef4444',
+                  color: deal.creator_side === 'yes' ? 'var(--status-active)' : 'var(--status-error)',
                 }}>
                   {deal.creator_side === 'yes' ? t('deals.sideYes') : t('deals.sideNo')}
                 </span>
               )}
               {deal.opponent ? (
                 <>
-                  <span style={{ color: 'rgba(255,255,255,0.5)' }}>vs</span>
+                  <span style={{ color: 'var(--text-muted)', fontWeight: 800, fontSize: 10, letterSpacing: 1 }}>VS</span>
                   <span
                     onClick={() => deal.opponent?.username && router.push(`/app/profile/${deal.opponent.username}`)}
-                    style={{ cursor: 'pointer', color: opponentWon ? '#4ade80' : '#fff' }}
+                    style={{ cursor: 'pointer', color: opponentWon ? 'var(--status-active)' : 'var(--text-primary)' }}
                   >
                     {opponentWon && '\u{1F451} '}{deal.opponent?.display_name || deal.opponent?.username}
                   </span>
                 </>
               ) : (
-                <span style={{ color: sc }}>{'\u00B7'} {t('deals.searchingOpponent')}</span>
+                <>
+                  <span style={{ color: 'var(--text-muted)', fontWeight: 800, fontSize: 10, letterSpacing: 1 }}>VS</span>
+                  <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>{t('deals.searchingOpponent')}</span>
+                </>
               )}
             </div>
+
+            {/* Lesezeichen unten links — Einsatz (mirror of top bookmark) */}
+            {(deal.stake || (deal.deadline && !countdownExpired && ['active', 'pending', 'open', 'pending_confirmation'].includes(deal.status))) && (
+              <div style={{
+                position: 'absolute', bottom: 0, left: 12, zIndex: 2,
+                background: 'rgba(255,255,255,0.55)',
+                backdropFilter: 'blur(20px) saturate(200%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(200%)',
+                border: '1px solid rgba(255,255,255,0.6)',
+                borderBottom: 'none',
+                padding: '5px 10px', borderRadius: '12px 12px 0 0',
+                fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)',
+                boxShadow: '0 -4px 14px rgba(0,0,0,0.08), inset 0 -1px 0 rgba(255,255,255,0.5)',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                {deal.stake && (
+                  <>
+                    <span>{'\uD83C\uDFC6'}</span>
+                    <span>{deal.stake}</span>
+                  </>
+                )}
+                {deal.deadline && !countdownExpired && ['active', 'pending', 'open', 'pending_confirmation'].includes(deal.status) && (
+                  <span style={{
+                    fontSize: 10, fontWeight: 600,
+                    color: countdownUrgent ? 'var(--status-error)' : 'var(--text-muted)',
+                    marginLeft: deal.stake ? 6 : 0,
+                    animation: countdownUrgent ? 'pulse-timer 1.5s ease-in-out infinite' : 'none',
+                  }}>
+                    {'\u23F3'} {countdownRemaining}
+                  </span>
+                )}
+              </div>
+            )}
 
             {deal.media_url ? (
               deal.media_type === 'video' ? (
@@ -794,38 +844,8 @@ export default function DealDetailPage() {
                   style={{ width: '100%', maxHeight: '45vh', objectFit: 'cover', display: 'block', cursor: 'pointer' }}
                 />
               )
-            ) : (
-              <div style={{ height: 28 }} />
-            )}
+            ) : null}
           </div>
-
-          {/* ═══ EINSATZ — mittig, gerahmt ═══ */}
-          {(deal.stake || deal.deadline) && (
-            <div style={{
-              padding: '8px 12px',
-              display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
-            }}>
-              {deal.stake && (
-                <span style={{
-                  fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 900,
-                  color: '#ffffff', letterSpacing: 1,
-                  borderRadius: 8, padding: '6px 16px',
-                  background: 'rgba(255,255,255,0.06)',
-                  textShadow: 'none',
-                }}>
-                  {'\uD83C\uDFC6'} {deal.stake}
-                </span>
-              )}
-              {deal.deadline && !countdownExpired && ['active', 'pending', 'open', 'pending_confirmation'].includes(deal.status) && (
-                <span style={{
-                  fontSize: 9, fontWeight: 600, color: countdownUrgent ? '#EF4444' : 'rgba(255,255,255,0.4)',
-                  animation: countdownUrgent ? 'pulse-timer 1.5s ease-in-out infinite' : 'none',
-                }}>
-                  {'\u23F3'} {countdownRemaining}
-                </span>
-              )}
-            </div>
-          )}
 
         </div>
       </div>
@@ -853,7 +873,7 @@ export default function DealDetailPage() {
               <>
                 <video src={m.url} autoPlay muted loop playsInline preload="auto" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.25)' }}>
-                  <span style={{ fontSize: 12, color: '#fff' }}>{'\u25B6'}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-inverse)' }}>{'\u25B6'}</span>
                 </div>
               </>
             ) : (
@@ -967,6 +987,24 @@ export default function DealDetailPage() {
         )}
         <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{timeAgo(deal.created_at)}</span>
       </div>
+
+      {/* ═══ LIVE METRIC TRACKER (visible from the moment both sides exist) ═══ */}
+      {['pending', 'active', 'pending_confirmation'].includes(deal.status) && deal.creator && deal.opponent && (() => {
+        const isStepChallenge = detectStepChallenge(deal.title)
+        const metric = isStepChallenge ? 'steps' : 'progress'
+        const metricLabel = isStepChallenge ? t('liveTracker.stepsLabel') : t('liveTracker.progressLabel')
+        return (
+          <LiveMetricTracker
+            dealId={deal.id}
+            metric={metric}
+            metricLabel={metricLabel}
+            creator={deal.creator}
+            opponent={deal.opponent}
+            currentUserId={profile?.id || null}
+            isParticipant={isParticipant}
+          />
+        )
+      })()}
 
       {/* ═══ ACTIONS ═══ */}
       <div style={{ margin: '8px 16px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1107,7 +1145,7 @@ export default function DealDetailPage() {
             </button>
             {isWinner && (
               <button onClick={() => setShowShareCard(true)}
-                style={{ width: '100%', padding: 16, borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #166534, #22c55e)', color: '#fff', fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700, letterSpacing: 2, boxShadow: '0 4px 20px rgba(34,197,94,0.3)' }}>
+                style={{ width: '100%', padding: 16, borderRadius: 12, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #166534, #22c55e)', color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700, letterSpacing: 2, boxShadow: '0 4px 20px rgba(34,197,94,0.3)' }}>
                 {t('deals.shareVictory')} {'\uD83C\uDFC6'}
               </button>
             )}
@@ -1141,7 +1179,7 @@ export default function DealDetailPage() {
                 style={{
                   flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
                   background: 'linear-gradient(135deg, #22C55E, #16A34A)',
-                  color: '#fff', fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 700, letterSpacing: 1,
+                  color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 700, letterSpacing: 1,
                 }}
               >
                 {'\u2705'} {t('deals.fulfillmentYes')}
@@ -1152,7 +1190,7 @@ export default function DealDetailPage() {
                 style={{
                   flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
                   background: 'linear-gradient(135deg, #EF4444, #DC2626)',
-                  color: '#fff', fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 700, letterSpacing: 1,
+                  color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 700, letterSpacing: 1,
                 }}
               >
                 {'\u274C'} {t('deals.fulfillmentNo')}
@@ -1185,7 +1223,7 @@ export default function DealDetailPage() {
 
       {/* ═══ COMMUNITY TIPPS + InteractionBar — wie Home Feed, ein Container ═══ */}
       <div style={{ margin: '12px 16px 16px', borderRadius: 14, overflow: 'visible', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
-        <DealBetWidget
+        <DealChallengeWidget
           dealId={deal.id}
           creatorId={deal.creator_id}
           opponentId={deal.opponent_id}

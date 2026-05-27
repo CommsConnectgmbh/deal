@@ -66,12 +66,16 @@ function RegisterForm() {
   const [emailErr, setEmailErr] = useState('')
   const [pwErr, setPwErr] = useState('')
   const [unErr, setUnErr] = useState('')
+  const [ageAccepted, setAgeAccepted] = useState(false)
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [consentErr, setConsentErr] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { signUp } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const referralCode = useRef<string | null>(null)
+  const pendingAcceptDealId = useRef<string | null>(null)
   const { t } = useLang()
 
   // Track page view + capture referral code on mount
@@ -82,6 +86,11 @@ function RegisterForm() {
     const urlRef = searchParams.get('ref') || searchParams.get('code')
     const storedRef = typeof window !== 'undefined' ? localStorage.getItem('dealbuddy_referral') : null
     referralCode.current = urlRef || storedRef || null
+
+    // Pending deal accept: ?accept=<dealId> OR localStorage (set by public /deal/[id] page)
+    const urlAccept = searchParams.get('accept')
+    const storedAccept = typeof window !== 'undefined' ? localStorage.getItem('dealbuddy_pending_accept') : null
+    pendingAcceptDealId.current = urlAccept || storedAccept || null
   }, [searchParams])
 
   const mapError = (msg: string): string => {
@@ -119,6 +128,18 @@ function RegisterForm() {
     setEmailErr(eErr)
     setPwErr(pErr)
     if (uErr || eErr || pErr) return
+
+    if (!ageAccepted || !termsAccepted) {
+      setConsentErr(
+        !ageAccepted && !termsAccepted
+          ? 'Bitte bestätige dein Alter und akzeptiere AGB & Datenschutz.'
+          : !ageAccepted
+            ? 'Du musst mindestens 18 Jahre alt sein.'
+            : 'Bitte akzeptiere AGB & Datenschutz.'
+      )
+      return
+    }
+    setConsentErr('')
 
     setError('')
     setLoading(true)
@@ -174,6 +195,50 @@ function RegisterForm() {
             // Non-fatal
           }
         }
+
+        // Pending deal accept: if user came via a public /deal/[id] invite, auto-accept now
+        if (pendingAcceptDealId.current) {
+          try {
+            const dealId = pendingAcceptDealId.current
+            // Only accept if deal is still open and has no opponent yet (race-condition safe)
+            const { data: deal } = await supabase
+              .from('challenges')
+              .select('id, status, opponent_id, creator_id, is_public, title')
+              .eq('id', dealId)
+              .single()
+
+            if (deal && deal.status === 'open' && !deal.opponent_id && deal.creator_id !== user.id) {
+              const update: Record<string, unknown> = {
+                status: 'active',
+                opponent_id: user.id,
+              }
+              if (deal.is_public !== false) {
+                update.shared_as_story_at = new Date().toISOString()
+              }
+              const { error: acceptErr } = await supabase
+                .from('challenges')
+                .update(update)
+                .eq('id', dealId)
+                .eq('status', 'open')
+                .is('opponent_id', null)
+
+              if (!acceptErr && deal.is_public) {
+                try {
+                  await supabase.from('feed_events').insert([
+                    { event_type: 'deal_accepted', user_id: user.id, deal_id: dealId, metadata: { title: deal.title } },
+                    { event_type: 'challenge_joined', user_id: user.id, deal_id: dealId, metadata: { title: deal.title } },
+                  ])
+                } catch { /* non-fatal */ }
+              }
+            }
+            localStorage.removeItem('dealbuddy_pending_accept')
+            localStorage.setItem('dealbuddy_skip_avatar_setup', '1')
+            router.replace(`/app/deals/${dealId}`)
+            return
+          } catch {
+            // Fall through to default redirect on error
+          }
+        }
       }
 
       // Redirect to avatar card creation for new users
@@ -221,6 +286,8 @@ function RegisterForm() {
             placeholder={t('auth.usernamePlaceholder')}
             style={inputStyle(!!unErr)}
             autoCapitalize="none"
+            autoComplete="username"
+            spellCheck={false}
           />
           {unErr
             ? <p style={{ color: 'var(--status-error)', fontSize: 12, marginTop: 6 }}>{unErr}</p>
@@ -238,6 +305,10 @@ function RegisterForm() {
             onKeyDown={e => e.key === 'Enter' && handle()}
             placeholder={t('auth.emailPlaceholder')}
             style={inputStyle(!!emailErr)}
+            autoComplete="email"
+            inputMode="email"
+            autoCapitalize="none"
+            spellCheck={false}
           />
           {emailErr && <p style={{ color: 'var(--status-error)', fontSize: 12, marginTop: 6 }}>{emailErr}</p>}
         </div>
@@ -252,11 +323,42 @@ function RegisterForm() {
             onKeyDown={e => e.key === 'Enter' && handle()}
             placeholder={t('auth.errorMinChars')}
             style={inputStyle(!!pwErr)}
+            autoComplete="new-password"
           />
           {pwErr
             ? <p style={{ color: 'var(--status-error)', fontSize: 12, marginTop: 6 }}>{pwErr}</p>
             : <PasswordStrengthInner password={password} />
           }
+        </div>
+
+        {/* AGE + TERMS GATE (§ 14 JuSchG + DSGVO Art. 7) */}
+        <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, lineHeight: 1.45, color: 'var(--text-secondary)' }}>
+            <input
+              type="checkbox"
+              checked={ageAccepted}
+              onChange={e => { setAgeAccepted(e.target.checked); if (consentErr) setConsentErr('') }}
+              style={{ width: 18, height: 18, marginTop: 1, accentColor: 'var(--gold-primary)', cursor: 'pointer', flexShrink: 0 }}
+            />
+            <span>Ich bin mindestens <strong style={{ color: 'var(--text-primary)' }}>18 Jahre</strong> alt.</span>
+          </label>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, lineHeight: 1.45, color: 'var(--text-secondary)' }}>
+            <input
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={e => { setTermsAccepted(e.target.checked); if (consentErr) setConsentErr('') }}
+              style={{ width: 18, height: 18, marginTop: 1, accentColor: 'var(--gold-primary)', cursor: 'pointer', flexShrink: 0 }}
+            />
+            <span>
+              Ich akzeptiere die{' '}
+              <Link href="/legal/terms" target="_blank" style={{ color: 'var(--gold-primary)', textDecoration: 'underline' }}>AGB</Link>
+              {' '}und die{' '}
+              <Link href="/legal/privacy" target="_blank" style={{ color: 'var(--gold-primary)', textDecoration: 'underline' }}>Datenschutzerklärung</Link>.
+            </span>
+          </label>
+          {consentErr && (
+            <p style={{ color: 'var(--status-error)', fontSize: 12, margin: 0 }}>{consentErr}</p>
+          )}
         </div>
 
         <button

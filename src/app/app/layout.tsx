@@ -8,6 +8,8 @@ import { usePresence } from '@/hooks/usePresence'
 import { CelebrationProvider } from '@/contexts/CelebrationContext'
 import StreakLoginHandler from '@/components/StreakLoginHandler'
 import { useLang } from '@/contexts/LanguageContext'
+import BottomNav, { type BottomNavTab } from '@/components/layout/BottomNav'
+import DesktopSidebar from '@/components/layout/DesktopSidebar'
 
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -16,13 +18,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { t } = useLang()
 
-  // Bottom nav tabs
-  const TABS = [
-    { href: '/app/home',    icon: '\u{1F3E0}', label: t('nav.home')    },
-    { href: '/app/blitz',   icon: '\u26A1',    label: t('nav.blitz')   },
-    { href: null,           icon: '',           label: ''               },
-    { href: '/app/tippen',  icon: '\u{1F3C6}', label: t('nav.tippen')  },
-    { href: '/app/profile', icon: '\u{1F464}', label: t('nav.profile') },
+  const TABS: BottomNavTab[] = [
+    { key: 'home',    href: '/app/home',    label: t('nav.home')    },
+    { key: 'blitz',   href: '/app/blitz',   label: t('nav.blitz')   },
+    { key: 'tippen',  href: '/app/tippen',  label: t('nav.tippen')  },
+    { key: 'profile', href: '/app/profile', label: t('nav.profile') },
   ]
 
   // Online presence tracking
@@ -86,7 +86,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [user, loading, profile, pathname, router])
 
   if (loading || !user) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', background: 'var(--bg-base)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh' }}>
       <div style={{ width: 40, height: 40, border: '2px solid transparent', borderTopColor: 'var(--gold-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}/>
     </div>
   )
@@ -99,28 +99,40 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const reliabilityScore = (profile as any)?.reliability_score
   const reliabilityColor = (profile as any)?.reliability_color
   const scoreDisplay = reliabilityScore != null ? `${Math.round(reliabilityScore * 100)}%` : '—'
-  const scoreColorVal = reliabilityColor === 'green' ? '#22C55E' : reliabilityColor === 'yellow' ? '#EAB308' : reliabilityColor === 'red' ? '#EF4444' : 'var(--text-muted)'
 
   return (
-    <div style={{ maxWidth: 430, margin: '0 auto', minHeight: '100dvh', background: 'var(--bg-base)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div className="app-shell">
 
-      {/* Top Bar — KD/Rank instead of DealBuddy text */}
-      <div style={{
+      {/* Desktop sidebar (>=1024px) */}
+      <DesktopSidebar
+        tabs={TABS}
+        createHref="/app/deals/create"
+        unreadMsgs={unreadMsgs}
+        unreadNotifs={unreadNotifs}
+        wins={wins}
+        losses={losses}
+        level={level}
+        globalRank={globalRank}
+        scoreDisplay={scoreDisplay}
+      />
+
+      {/* Top Bar — mobile only */}
+      <div className="mb-only" style={{
         position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)',
         width: '100%', maxWidth: 430, zIndex: 100,
-        background: 'var(--bg-deepest)', backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid var(--border-subtle)',
+        background: 'var(--bg-surface)',
+        borderBottom: '1px solid rgba(0,0,0,0.05)',
         padding: 'env(safe-area-inset-top) 0 0',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
 
           {/* Left: Notification bell */}
           <Link href="/app/notifications" style={{ textDecoration: 'none', position: 'relative', display: 'inline-flex' }}>
-            <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'var(--bg-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: 18 }}>{'\u{1F514}'}</span>
             </div>
             {unreadNotifs > 0 && (
-              <div style={{ position: 'absolute', top: -2, right: -2, minWidth: 16, height: 16, borderRadius: 8, background: 'var(--gold-primary)', border: '2px solid var(--bg-deepest)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
+              <div style={{ position: 'absolute', top: -2, right: -2, minWidth: 16, height: 16, borderRadius: 8, background: 'var(--gold-primary)', border: '2px solid var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
                 <span className="font-display" style={{ fontSize: 8, fontWeight: 700, color: 'var(--text-inverse)' }}>{unreadNotifs > 9 ? '9+' : unreadNotifs}</span>
               </div>
             )}
@@ -128,16 +140,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
           {/* Center: W/L · Level · #Rank → links to leaderboard */}
           <Link href="/app/leaderboard" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            {/* W/L */}
+            {/* W/L – secondary */}
             <div style={{ textAlign: 'center' }}>
               <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700,
-                color: 'var(--gold-primary)', letterSpacing: 1,
+                fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700,
+                color: 'var(--text-primary)', letterSpacing: 0.8,
               }}>
-                {wins}<span style={{ color: 'var(--text-muted)', fontSize: 12 }}>/</span>{losses}
+                {wins}<span style={{ color: 'var(--text-muted)', fontSize: 11 }}>/</span>{losses}
               </span>
               <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 7, letterSpacing: 2,
+                fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 1.2,
                 color: 'var(--text-muted)', display: 'block', marginTop: -2,
               }}>
                 W/L
@@ -147,16 +159,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {/* Divider */}
             <div style={{ width: 1, height: 22, background: 'var(--border-subtle)' }} />
 
-            {/* Level */}
+            {/* Level – secondary */}
             <div style={{ textAlign: 'center' }}>
               <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700,
-                color: 'var(--gold-primary)', letterSpacing: 0.5,
+                fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700,
+                color: 'var(--text-primary)', letterSpacing: 0.5,
               }}>
                 {level}
               </span>
               <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 7, letterSpacing: 2,
+                fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 1.2,
                 color: 'var(--text-muted)', display: 'block', marginTop: -2,
               }}>
                 {t('nav.level')}
@@ -166,16 +178,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {/* Divider */}
             <div style={{ width: 1, height: 22, background: 'var(--border-subtle)' }} />
 
-            {/* Global rank position */}
+            {/* Global rank position \u2013 secondary */}
             <div style={{ textAlign: 'center' }}>
               <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700,
+                fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700,
                 color: 'var(--text-primary)', letterSpacing: 0.5,
               }}>
                 #{globalRank || '\u2013'}
               </span>
               <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 7, letterSpacing: 2,
+                fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 1.2,
                 color: 'var(--text-muted)', display: 'block', marginTop: -2,
               }}>
                 {t('nav.rank')}
@@ -185,17 +197,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {/* Divider */}
             <div style={{ width: 1, height: 22, background: 'var(--border-subtle)' }} />
 
-            {/* Reliability Score */}
+            {/* Reliability Score – PRIMARY (single distinctive value) */}
             <div style={{ textAlign: 'center' }}>
               <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700,
-                color: scoreColorVal, letterSpacing: 0.5,
+                fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800,
+                color: 'var(--gold-primary)', letterSpacing: 0.5,
               }}>
                 {scoreDisplay}
               </span>
               <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 7, letterSpacing: 2,
-                color: 'var(--text-muted)', display: 'block', marginTop: -2,
+                fontFamily: 'var(--font-display)', fontSize: 10, letterSpacing: 1.2,
+                color: 'var(--text-secondary)', display: 'block', marginTop: -2,
+                fontWeight: 600,
               }}>
                 {t('nav.score')}
               </span>
@@ -204,11 +217,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
           {/* Right: Chat/Messages */}
           <Link href="/app/chat" style={{ textDecoration: 'none', display: 'inline-flex', position: 'relative' }}>
-            <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'var(--bg-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: 18 }}>{'\u{1F4AC}'}</span>
             </div>
             {unreadMsgs > 0 && (
-              <div style={{ position: 'absolute', top: -2, right: -2, minWidth: 16, height: 16, borderRadius: 8, background: 'var(--gold-primary)', border: '2px solid var(--bg-deepest)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
+              <div style={{ position: 'absolute', top: -2, right: -2, minWidth: 16, height: 16, borderRadius: 8, background: 'var(--gold-primary)', border: '2px solid var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
                 <span className="font-display" style={{ fontSize: 8, fontWeight: 700, color: 'var(--text-inverse)' }}>{unreadMsgs > 9 ? '9+' : unreadMsgs}</span>
               </div>
             )}
@@ -220,7 +233,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {profile && <StreakLoginHandler userId={profile.id} />}
 
       {/* Page Content */}
-      <div style={{ flex: 1, paddingTop: 68, paddingBottom: 84 }}>
+      <div className="app-content">
         <CelebrationProvider>
           <div key={pathname} className="page-enter">
             {children}
@@ -228,68 +241,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </CelebrationProvider>
       </div>
 
-      {/* Bottom Tab Bar — Logo in center */}
-      <nav style={{
-        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-        width: '100%', maxWidth: 430,
-        background: 'var(--bg-deepest)', backdropFilter: 'blur(20px)',
-        borderTop: '1px solid var(--border-subtle)',
-        display: 'flex', alignItems: 'flex-end',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-        zIndex: 100, overflow: 'visible',
-      }}>
-        {TABS.map((tab, idx) => {
-          // Center: DealBuddy Logo FAB
-          if (tab.href === null) {
-            return (
-              <div key="fab" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                <button
-                  onClick={() => router.push('/app/deals/create')}
-                  style={{
-                    width: 60, height: 60, borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #1a1a1a, #2a2a2a, #1a1a1a)',
-                    border: '2px solid rgba(255,184,0,0.25)', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.6), 0 0 12px rgba(255,184,0,0.15)',
-                    padding: 0,
-                    marginTop: -20, marginBottom: 4,
-                    transition: 'transform 0.15s',
-                    flexShrink: 0,
-                  }}
-                >
-                  <img
-                    src="/logo.png"
-                    alt="DealBuddy"
-                    style={{
-                      width: 54, height: 54, objectFit: 'contain',
-                      borderRadius: '50%',
-                    }}
-                  />
-                </button>
-              </div>
-            )
-          }
-
-          // Profile tab: only highlight on own profile pages, not /app/profile/[username]
-          const active = tab.href === '/app/profile'
-            ? pathname === '/app/profile' || pathname === '/app/profile/followers' || pathname === '/app/profile/following'
-            : pathname === tab.href || pathname.startsWith(tab.href + '/')
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px 0', textDecoration: 'none', gap: 3, position: 'relative' }}
-            >
-              <div style={{ position: 'relative', display: 'inline-flex' }}>
-                <span style={{ fontSize: 20, opacity: active ? 1 : 0.35, transition: 'opacity 0.2s' }}>{tab.icon}</span>
-              </div>
-              <span className="font-display" style={{ fontSize: 9, letterSpacing: 1, color: active ? 'var(--gold-primary)' : 'var(--text-muted)', transition: 'color 0.2s' }}>
-                {tab.label}
-              </span>
-            </Link>
-          )
-        })}
-      </nav>
+      <div className="mb-only">
+        <BottomNav tabs={TABS} createHref="/app/deals/create" />
+      </div>
     </div>
   )
 }

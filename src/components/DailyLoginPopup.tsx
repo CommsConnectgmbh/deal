@@ -99,7 +99,7 @@ export default function DailyLoginPopup({ onClose }: { onClose: () => void }) {
 
         {/* Drag handle */}
         <div style={{ display:'flex', justifyContent:'center', marginBottom:20 }}>
-          <div style={{ width:36, height:4, borderRadius:2, background:'#333' }} />
+          <div style={{ width:36, height:4, borderRadius:2, background:'var(--border-subtle)' }} />
         </div>
 
         {/* Title */}
@@ -130,9 +130,9 @@ export default function DailyLoginPopup({ onClose }: { onClose: () => void }) {
                 boxShadow: isCurrent ? `0 0 12px ${rc}33` : 'none',
                 animation: isCurrent && !claimed && !alreadyClaimed ? 'pulse 1.5s ease-in-out infinite' : 'none',
               }}>
-                <p style={{ fontSize:8, fontFamily:'var(--font-display)', color: isCurrent ? rc : isPast ? '#4ade80' : '#444', marginBottom:4 }}>T{r.day_number}</p>
+                <p style={{ fontSize:8, fontFamily:'var(--font-display)', color: isCurrent ? rc : isPast ? '#4ade80' : 'var(--text-muted)', marginBottom:4 }}>T{r.day_number}</p>
                 <p style={{ fontSize:14 }}>{isPast ? '✅' : isCurrent ? (r.reward_type === 'coins' ? '🪙' : '🎁') : '🔒'}</p>
-                <p style={{ fontSize:8, color: isCurrent ? rc : '#444', marginTop:4 }}>
+                <p style={{ fontSize:8, color: isCurrent ? rc : 'var(--text-muted)', marginTop:4 }}>
                   {r.reward_type === 'coins' ? `${r.reward_amount}` : '🎁'}
                 </p>
               </div>

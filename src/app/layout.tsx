@@ -5,6 +5,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ThemeScript } from '@/hooks/useTheme'
 import PostHogProvider from '@/components/PostHogProvider'
 import ServiceWorkerUpdater from '@/components/ServiceWorkerUpdater'
+import CookieConsent from '@/components/CookieConsent'
 
 export const metadata: Metadata = {
   title: { default: 'DealBuddy – Compete. Win. Reign.', template: '%s | DealBuddy' },
@@ -12,7 +13,6 @@ export const metadata: Metadata = {
   keywords: ['DealBuddy', 'Challenge App', 'Duelle', 'Deals', 'Battle Cards', 'Freunde herausfordern', 'Social Competition', 'Tipping', 'Sporttipps'],
   manifest: '/manifest.json',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'DealBuddy' },
-  icons: { apple: '/icon-512.png', icon: '/icon-512.png' },
   metadataBase: new URL('https://app.deal-buddy.app'),
   alternates: { canonical: 'https://app.deal-buddy.app' },
   robots: { index: true, follow: true },
@@ -34,11 +34,9 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#080808',
+  themeColor: '#FBFBFD',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -49,7 +47,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700;800&subset=latin&display=swap" rel="stylesheet" />
         <link rel="preload" href="/battle_card.webp" as="image" type="image/webp" />
-        <link rel="apple-touch-icon" href="/icon-512.png" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -75,6 +72,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <PostHogProvider>
               <ServiceWorkerUpdater />
               {children}
+              <CookieConsent />
             </PostHogProvider>
           </AuthProvider>
         </LanguageProvider>

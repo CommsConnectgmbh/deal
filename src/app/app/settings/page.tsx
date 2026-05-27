@@ -8,6 +8,7 @@ import ProfileImage from '@/components/ProfileImage'
 import PhotoUploadSheet from '@/components/PhotoUploadSheet'
 import { isPushSupported, subscribeToPush, unsubscribeFromPush } from '@/lib/pushNotifications'
 import { useTheme } from '@/hooks/useTheme'
+import { getAnalyticsConsent, setAnalyticsConsent } from '@/lib/analytics'
 
 const inputStyle: React.CSSProperties = {
   width:'100%', padding:'12px 16px', background:'var(--bg-elevated)', border:'1px solid var(--gold-glow)', borderRadius:10, color:'var(--text-primary)', fontSize:15, fontFamily:'var(--font-body)', outline:'none'
@@ -39,6 +40,11 @@ export default function SettingsPage() {
   const [pushLoading, setPushLoading]   = useState(false)
   const [photoSheetOpen, setPhotoSheetOpen] = useState(false)
   const [allowStoryDm, setAllowStoryDm] = useState(true)
+  const [billingLoading, setBillingLoading] = useState(false)
+  const [billingError, setBillingError] = useState('')
+  const [analyticsConsent, setAnalyticsConsentState] = useState<'granted' | 'denied' | null>(null)
+  const [exportLoading, setExportLoading] = useState(false)
+  const [exportError, setExportError] = useState('')
   const [displayNameError, setDisplayNameError] = useState('')
   const [usernameInput, setUsernameInput] = useState(profile?.username || '')
   const [usernameError, setUsernameError] = useState('')
@@ -72,6 +78,52 @@ export default function SettingsPage() {
         .then(({ data }: any) => setPushEnabled(!!(data && data.length > 0)))
     }
   }, [profile?.id])
+
+  useEffect(() => {
+    setAnalyticsConsentState(getAnalyticsConsent())
+  }, [])
+
+  const toggleAnalyticsConsent = (enabled: boolean) => {
+    const next: 'granted' | 'denied' = enabled ? 'granted' : 'denied'
+    setAnalyticsConsent(next)
+    setAnalyticsConsentState(next)
+  }
+
+  const exportMyData = async () => {
+    if (exportLoading) return
+    setExportError('')
+    setExportLoading(true)
+    try {
+      const { data: { session: authSession } } = await supabase.auth.getSession()
+      const res = await fetch('/api/account/export', {
+        method: 'GET',
+        headers: {
+          ...(authSession?.access_token
+            ? { Authorization: `Bearer ${authSession.access_token}` }
+            : {}),
+        },
+      })
+      if (!res.ok) {
+        setExportError(t('settings.exportError'))
+        setExportLoading(false)
+        return
+      }
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const date = new Date().toISOString().slice(0, 10)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `dealbuddy-export-${date}.json`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch {
+      setExportError(t('settings.exportError'))
+    } finally {
+      setExportLoading(false)
+    }
+  }
 
   const saveProfile = async () => {
     if (!displayName.trim()) return
@@ -182,18 +234,57 @@ export default function SettingsPage() {
     if (deleteInput !== t('settings.deleteConfirmWord')) return
     setDeletingAccount(true)
     try {
-      // Soft delete: anonymize profile
-      await supabase.from('profiles').update({
-        display_name: 'Gelöschter Nutzer',
-        username: `deleted_${profile!.id.slice(0,8)}`,
-        bio: null,
-        avatar_url: null,
-        deleted_at: new Date().toISOString()
-      }).eq('id', profile!.id)
+      // Server-side soft delete (anonymizes profile + revokes refresh tokens)
+      const { data: { session: authSession } } = await supabase.auth.getSession()
+      const res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authSession?.access_token
+            ? { Authorization: `Bearer ${authSession.access_token}` }
+            : {}),
+        },
+      })
+      if (!res.ok) {
+        setDeletingAccount(false)
+        return
+      }
       await signOut()
       router.replace('/auth/login')
     } catch {
       setDeletingAccount(false)
+    }
+  }
+
+  const openBillingPortal = async () => {
+    if (billingLoading) return
+    setBillingError('')
+    setBillingLoading(true)
+    try {
+      const { data: { session: authSession } } = await supabase.auth.getSession()
+      const res = await fetch('/api/billing/portal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authSession?.access_token
+            ? { Authorization: `Bearer ${authSession.access_token}` }
+            : {}),
+        },
+      })
+      const data: { url?: string; error?: string; code?: string } = await res.json()
+      if (!res.ok || !data.url) {
+        if (data.code === 'NO_PURCHASES') {
+          setBillingError(t('settings.billingNoPurchases'))
+        } else {
+          setBillingError(t('settings.billingError'))
+        }
+        setBillingLoading(false)
+        return
+      }
+      window.location.href = data.url
+    } catch {
+      setBillingError(t('settings.billingError'))
+      setBillingLoading(false)
     }
   }
 
@@ -207,14 +298,16 @@ export default function SettingsPage() {
         onClick={() => onChange(!checked)}
         style={{
           width:48, height:26, borderRadius:13, border:'none', cursor:'pointer',
-          background: checked ? 'var(--gold-primary)' : 'var(--bg-overlay)',
-          position:'relative', transition:'background 0.2s', flexShrink:0
+          background: checked ? 'var(--gold-primary)' : 'var(--border-default)',
+          position:'relative', transition:'background 0.2s', flexShrink:0,
+          boxShadow: 'inset 0 0 0 1px var(--border-subtle)'
         }}
       >
         <span style={{
           position:'absolute', top:3, left: checked ? 25 : 3,
-          width:20, height:20, borderRadius:'50%', background:'#fff',
-          transition:'left 0.2s', display:'block'
+          width:20, height:20, borderRadius:'50%', background:'var(--text-inverse)',
+          transition:'left 0.2s', display:'block',
+          boxShadow:'0 1px 3px rgba(0,0,0,0.15)'
         }}/>
       </button>
     </div>
@@ -524,6 +617,87 @@ export default function SettingsPage() {
           )}
         </div>
 
+        {/* Community */}
+        <p style={sectionTitle}>COMMUNITY</p>
+        <a
+          href="https://discord.gg/gJkzFzZdS2"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            ...card,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            textDecoration: 'none',
+            color: 'inherit',
+            border: '1px solid #5865F2',
+            background: 'linear-gradient(135deg, rgba(88,101,242,0.18), rgba(88,101,242,0.04))',
+          }}
+        >
+          <div style={{ fontSize: 28, lineHeight: 1 }}>💬</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>
+              Deal Buddy Discord
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              Community, Support, Beta & Insider-Drops
+            </div>
+          </div>
+          <div style={{ fontSize: 20, color: '#5865F2' }}>→</div>
+        </a>
+
+        {/* Billing */}
+        <p style={sectionTitle}>{t('settings.billing').toUpperCase()}</p>
+        <div style={card}>
+          <p style={{ fontSize:15, color:'var(--text-primary)', marginBottom:4 }}>{t('settings.managePayments')}</p>
+          <p style={{ fontSize:12, color:'var(--text-secondary)', marginBottom:14 }}>{t('settings.managePaymentsText')}</p>
+          {billingError && (
+            <p style={{ fontSize: 12, color: 'var(--status-error)', marginBottom: 10 }}>{billingError}</p>
+          )}
+          <button
+            onClick={openBillingPortal}
+            disabled={billingLoading}
+            style={{ width:'100%', padding:12, borderRadius:10, border:'1px solid var(--gold-glow)', background:'transparent', color:'var(--text-primary)', fontFamily:'var(--font-display)', fontSize:10, letterSpacing:1, cursor: billingLoading ? 'default' : 'pointer' }}
+          >
+            {billingLoading ? t('settings.billingLoading') : t('settings.openBillingPortal').toUpperCase()}
+          </button>
+        </div>
+
+        {/* Analytics / Privacy Consent */}
+        <p style={sectionTitle}>{t('settings.analyticsTitle').toUpperCase()}</p>
+        <div style={card}>
+          <ToggleRow
+            label={t('settings.analyticsLabel')}
+            sub={t('settings.analyticsSub')}
+            checked={analyticsConsent === 'granted'}
+            onChange={toggleAnalyticsConsent}
+          />
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.4 }}>
+            {analyticsConsent === null
+              ? t('settings.analyticsUndecided')
+              : analyticsConsent === 'granted'
+                ? t('settings.analyticsGranted')
+                : t('settings.analyticsDenied')}
+          </p>
+        </div>
+
+        {/* My Data — DSGVO Art. 20 export */}
+        <p style={sectionTitle}>{t('settings.myDataTitle').toUpperCase()}</p>
+        <div style={card}>
+          <p style={{ fontSize:15, color:'var(--text-primary)', marginBottom:4 }}>{t('settings.exportData')}</p>
+          <p style={{ fontSize:12, color:'var(--text-secondary)', marginBottom:14 }}>{t('settings.exportDataText')}</p>
+          {exportError && (
+            <p style={{ fontSize: 12, color: 'var(--status-error)', marginBottom: 10 }}>{exportError}</p>
+          )}
+          <button
+            onClick={exportMyData}
+            disabled={exportLoading}
+            style={{ width:'100%', padding:12, borderRadius:10, border:'1px solid var(--gold-glow)', background:'transparent', color:'var(--text-primary)', fontFamily:'var(--font-display)', fontSize:10, letterSpacing:1, cursor: exportLoading ? 'default' : 'pointer' }}
+          >
+            {exportLoading ? t('settings.exportLoading') : t('settings.exportButton').toUpperCase()}
+          </button>
+        </div>
+
         {/* Danger Zone */}
         <p style={sectionTitle}>{t('settings.dangerZone').toUpperCase()}</p>
         <div style={{ ...card, border:'1px solid color-mix(in srgb, var(--status-error) 15%, transparent)' }}>
@@ -566,7 +740,7 @@ export default function SettingsPage() {
               style={{
                 width:'100%', padding:16, borderRadius:12, border:'none', cursor: deleteInput === t('settings.deleteConfirmWord') ? 'pointer' : 'default',
                 background: deleteInput === t('settings.deleteConfirmWord') ? '#dc2626' : 'color-mix(in srgb, var(--status-error) 10%, transparent)',
-                color: deleteInput === t('settings.deleteConfirmWord') ? '#fff' : 'color-mix(in srgb, var(--status-error) 40%, transparent)',
+                color: deleteInput === t('settings.deleteConfirmWord') ? 'var(--text-inverse)' : 'color-mix(in srgb, var(--status-error) 40%, transparent)',
                 fontFamily:'var(--font-display)', fontSize:12, letterSpacing:2, marginBottom:10
               }}
             >

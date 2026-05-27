@@ -138,7 +138,7 @@ export default function FeedVSCard({ deal, tipCount = 0, commentCount = 0 }: Pro
 
   return (
     <Link href={`/app/deals/${deal.id}`} style={{ textDecoration: 'none', display: 'block' }}>
-      <div style={{ background: '#111', overflow: 'hidden', cursor: 'pointer' }}>
+      <div style={{ background: 'var(--bg-surface)', overflow: 'hidden', cursor: 'pointer' }}>
 
         {/* ═══════════════════════════════════════════
             ARENA — deal.jpg background + overlay
@@ -199,7 +199,7 @@ export default function FeedVSCard({ deal, tipCount = 0, commentCount = 0 }: Pro
               {/* Fighter Name — ABOVE card */}
               <span style={{
                 marginBottom: 4, fontFamily: 'Cinzel,serif', fontSize: 11, fontWeight: 900,
-                color: opponentWon ? 'rgba(255,255,255,0.3)' : '#FFB800',
+                color: opponentWon ? 'rgba(255,255,255,0.3)' : 'var(--gold-primary)',
                 letterSpacing: 1.5, textTransform: 'uppercase',
                 textShadow: opponentWon ? 'none' : '0 0 12px rgba(255,184,0,0.3)',
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',

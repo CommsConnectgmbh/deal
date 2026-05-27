@@ -64,9 +64,16 @@ const EVENT_CONFIG: Record<string, { icon: string; text: (m: Record<string, any>
     color: '#EF4444',
     accentBg: 'rgba(239,68,68,0.08)',
   },
+  // Legacy event_type kept so historical feed_events rows still render.
   side_bet_placed: {
     icon: '\uD83C\uDFAF',
-    text: (_m, t) => t('components.feedSideBetPlaced'),
+    text: (_m, t) => t('components.feedSideChallengePlaced'),
+    color: '#FFB800',
+    accentBg: 'rgba(255,184,0,0.06)',
+  },
+  side_challenge_placed: {
+    icon: '\uD83C\uDFAF',
+    text: (_m, t) => t('components.feedSideChallengePlaced'),
     color: '#FFB800',
     accentBg: 'rgba(255,184,0,0.06)',
   },
@@ -250,7 +257,7 @@ export default function MiniEventCard({ event }: { event: FeedEventItem }) {
                 fontFamily: 'var(--font-display)', fontWeight: 700,
                 color: config.color, fontSize: 12,
               }}>
-                {agg.count} {event.event_type === 'side_bet_placed' ? t('components.newTips') : t('components.events')}
+                {agg.count} {(event.event_type === 'side_bet_placed' || event.event_type === 'side_challenge_placed') ? t('components.newTips') : t('components.events')}
               </span>
               {dealTitle && (
                 <span style={{ color: 'rgba(240,236,228,0.6)' }}>

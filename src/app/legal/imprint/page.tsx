@@ -6,16 +6,16 @@ export default function ImprintPage() {
   const router = useRouter()
 
   return (
-    <div style={{ maxWidth: 430, margin: '0 auto', minHeight: '100dvh', background: '#080808', color: '#e0e0e0', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ maxWidth: 430, margin: '0 auto', minHeight: '100dvh', background: 'var(--bg-base)', color: 'var(--text-primary)', fontFamily: 'system-ui, sans-serif' }}>
       {/* Header */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#080808', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-base)', borderBottom: '1px solid var(--border-subtle)', padding: '16px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button
           onClick={() => router.back()}
-          style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 10, width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: 18 }}
+          style={{ background: 'var(--bg-overlay)', border: 'none', borderRadius: 10, width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-primary)', fontSize: 18 }}
         >
           &#8592;
         </button>
-        <h1 style={{ fontFamily: 'Oswald, sans-serif', fontSize: 20, fontWeight: 700, color: '#FFB800', margin: 0, letterSpacing: 1 }}>
+        <h1 style={{ fontFamily: 'Oswald, sans-serif', fontSize: 20, fontWeight: 700, color: 'var(--gold-primary)', margin: 0, letterSpacing: 1 }}>
           Impressum
         </h1>
       </div>
@@ -24,7 +24,7 @@ export default function ImprintPage() {
       <div style={{ padding: '24px 16px 64px', lineHeight: 1.7, fontSize: 14 }}>
 
         <Section title="Angaben gem&auml;&szlig; &sect; 5 TMG">
-          <p style={{ margin: '12px 0', padding: '16px', background: 'rgba(255,184,0,0.06)', borderRadius: 10, borderLeft: '3px solid #FFB800' }}>
+          <p style={{ margin: '12px 0', padding: '16px', background: 'var(--gold-subtle)', borderRadius: 10, borderLeft: '3px solid var(--gold-primary)' }}>
             <strong style={{ fontSize: 16 }}>Comms Connect GmbH</strong><br /><br />
             Vertreten durch: Rainer Roloff<br /><br />
             Tal 30<br />
@@ -36,9 +36,9 @@ export default function ImprintPage() {
         <Section title="Kontakt">
           <table style={{ borderCollapse: 'collapse', width: '100%' }}>
             <tbody>
-              <Row label="E-Mail" value={<a href="mailto:info@deal-buddy.app" style={{ color: '#FFB800' }}>info@deal-buddy.app</a>} />
+              <Row label="E-Mail" value={<a href="mailto:info@deal-buddy.app" style={{ color: 'var(--gold-primary)' }}>info@deal-buddy.app</a>} />
               <Row label="Telefon" value="+49 89 4522 1556" />
-              <Row label="Website" value={<a href="https://deal-buddy.app" target="_blank" rel="noopener noreferrer" style={{ color: '#FFB800' }}>deal-buddy.app</a>} />
+              <Row label="Website" value={<a href="https://deal-buddy.app" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold-primary)' }}>deal-buddy.app</a>} />
             </tbody>
           </table>
         </Section>
@@ -47,13 +47,13 @@ export default function ImprintPage() {
           <p>
             Umsatzsteuer-Identifikationsnummer gem&auml;&szlig; &sect; 27 a Umsatzsteuergesetz:
           </p>
-          <p style={{ marginTop: 8, fontWeight: 600, color: '#fff' }}>
+          <p style={{ marginTop: 8, fontWeight: 600, color: 'var(--text-primary)' }}>
             DE451966748
           </p>
         </Section>
 
         <Section title="Verantwortlich f&uuml;r den Inhalt gem&auml;&szlig; &sect; 18 Abs. 2 MStV">
-          <p style={{ margin: '12px 0', padding: '16px', background: 'rgba(255,184,0,0.06)', borderRadius: 10, borderLeft: '3px solid #FFB800' }}>
+          <p style={{ margin: '12px 0', padding: '16px', background: 'var(--gold-subtle)', borderRadius: 10, borderLeft: '3px solid var(--gold-primary)' }}>
             <strong>Rainer Roloff</strong><br />
             Comms Connect GmbH<br />
             Tal 30, 80331 M&uuml;nchen
@@ -69,7 +69,7 @@ export default function ImprintPage() {
         <Section title="EU-Streitschlichtung">
           <p>
             Die Europ&auml;ische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:{' '}
-            <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener noreferrer" style={{ color: '#FFB800' }}>
+            <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold-primary)' }}>
               ec.europa.eu/consumers/odr
             </a>
           </p>
@@ -119,10 +119,10 @@ export default function ImprintPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section style={{ marginBottom: 32 }}>
-      <h2 style={{ fontFamily: 'Oswald, sans-serif', fontSize: 16, fontWeight: 600, color: '#FFB800', marginBottom: 12, letterSpacing: 0.5 }}>
+      <h2 style={{ fontFamily: 'Oswald, sans-serif', fontSize: 16, fontWeight: 600, color: 'var(--gold-primary)', marginBottom: 12, letterSpacing: 0.5 }}>
         {title}
       </h2>
-      <div style={{ color: '#ccc' }}>{children}</div>
+      <div style={{ color: 'var(--text-secondary)' }}>{children}</div>
     </section>
   )
 }
@@ -130,8 +130,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <tr>
-      <td style={{ padding: '8px 16px 8px 0', color: '#888', whiteSpace: 'nowrap', verticalAlign: 'top' }}>{label}</td>
-      <td style={{ padding: '8px 0', color: '#fff' }}>{value}</td>
+      <td style={{ padding: '8px 16px 8px 0', color: 'var(--text-secondary)', whiteSpace: 'nowrap', verticalAlign: 'top' }}>{label}</td>
+      <td style={{ padding: '8px 0', color: 'var(--text-primary)' }}>{value}</td>
     </tr>
   )
 }

@@ -69,7 +69,7 @@ export default function PublicProfilePage() {
       supabase.from('blocked_users').select('blocker_id').eq('blocker_id', me.id).eq('blocked_id', u.id).maybeSingle(),
       supabase.from('deal_actions').select('action, created_at, deal:deal_id(title, winner_id)').eq('user_id', u.id).order('created_at', { ascending: false }).limit(8),
       // Fetch ALL deals (not just public completed)
-      supabase.from('bets')
+      supabase.from('challenges')
         .select('id, title, stake, status, created_at, winner_id, creator_id, opponent_id, creator:creator_id(id,username,display_name,avatar_url), opponent:opponent_id(id,username,display_name,avatar_url)')
         .or(`creator_id.eq.${u.id},opponent_id.eq.${u.id}`)
         .order('created_at', { ascending: false })

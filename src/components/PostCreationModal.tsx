@@ -42,7 +42,7 @@ export default function PostCreationModal({ open, onClose, onPostCreated }: Prop
   const loadDeals = async () => {
     if (dealsLoaded || !profile) return
     const { data } = await supabase
-      .from('bets')
+      .from('challenges')
       .select('id, title, stake, status, created_at')
       .or(`creator_id.eq.${profile.id},opponent_id.eq.${profile.id}`)
       .order('created_at', { ascending: false })
@@ -170,7 +170,7 @@ export default function PostCreationModal({ open, onClose, onPostCreated }: Prop
                   )}
                   <button onClick={() => { setFile(null); setFilePreview(null) }} style={{
                     position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: 14,
-                    background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 14,
+                    background: 'rgba(0,0,0,0.6)', border: 'none', color: 'var(--text-inverse)', cursor: 'pointer', fontSize: 14,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>{'\u2715'}</button>
                   <button onClick={() => setShowEditor(true)} style={{

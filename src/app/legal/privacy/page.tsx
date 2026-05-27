@@ -6,16 +6,16 @@ export default function PrivacyPage() {
   const router = useRouter()
 
   return (
-    <div style={{ maxWidth: 430, margin: '0 auto', minHeight: '100dvh', background: '#080808', color: '#e0e0e0', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ maxWidth: 430, margin: '0 auto', minHeight: '100dvh', background: 'var(--bg-base)', color: 'var(--text-primary)', fontFamily: 'system-ui, sans-serif' }}>
       {/* Header */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#080808', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-base)', borderBottom: '1px solid var(--border-subtle)', padding: '16px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button
           onClick={() => router.back()}
-          style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 10, width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: 18 }}
+          style={{ background: 'var(--bg-overlay)', border: 'none', borderRadius: 10, width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-primary)', fontSize: 18 }}
         >
           &#8592;
         </button>
-        <h1 style={{ fontFamily: 'Oswald, sans-serif', fontSize: 20, fontWeight: 700, color: '#FFB800', margin: 0, letterSpacing: 1 }}>
+        <h1 style={{ fontFamily: 'Oswald, sans-serif', fontSize: 20, fontWeight: 700, color: 'var(--gold-primary)', margin: 0, letterSpacing: 1 }}>
           Datenschutzerkl&auml;rung
         </h1>
       </div>
@@ -23,13 +23,13 @@ export default function PrivacyPage() {
       {/* Content */}
       <div style={{ padding: '24px 16px 64px', lineHeight: 1.7, fontSize: 14 }}>
 
-        <p style={{ color: '#888', marginBottom: 24 }}>Stand: 24. M&auml;rz 2026</p>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>Stand: 1. Mai 2026</p>
 
         <Section title="1. Verantwortlicher">
           <p>
             Verantwortlicher im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:
           </p>
-          <p style={{ margin: '12px 0', padding: '12px 16px', background: 'rgba(255,184,0,0.06)', borderRadius: 10, borderLeft: '3px solid #FFB800' }}>
+          <p style={{ margin: '12px 0', padding: '12px 16px', background: 'var(--gold-subtle)', borderRadius: 10, borderLeft: '3px solid var(--gold-primary)' }}>
             <strong>Rainer Roloff</strong><br />
             Comms Connect GmbH<br />
             E-Mail: info@deal-buddy.app
@@ -108,7 +108,7 @@ export default function PrivacyPage() {
           <p style={{ marginTop: 12 }}>
             Stripe ist PCI DSS Level 1 zertifiziert. Weitere Informationen finden Sie in der
             Datenschutzerkl&auml;rung von Stripe:{' '}
-            <a href="https://stripe.com/de/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#FFB800' }}>
+            <a href="https://stripe.com/de/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold-primary)' }}>
               stripe.com/de/privacy
             </a>
           </p>
@@ -136,8 +136,14 @@ export default function PrivacyPage() {
             erfasst anonymisierte Nutzungsdaten wie Seitenaufrufe, Klickverhalten und Feature-Nutzung.
           </p>
           <p style={{ marginTop: 12 }}>
-            Die Verarbeitung erfolgt auf Grundlage unseres berechtigten Interesses (Art. 6 Abs. 1 lit. f DSGVO)
-            an der Verbesserung unseres Angebots.
+            Die Verarbeitung erfolgt auf Grundlage Ihrer Einwilligung (Art. 6 Abs. 1 lit. a DSGVO),
+            die Sie beim ersten App-Start &uuml;ber das Cookie-Consent-Banner erteilen.
+          </p>
+          <p style={{ marginTop: 12, padding: '12px 16px', background: 'rgba(96,165,250,0.08)', borderRadius: 10, borderLeft: '3px solid #60A5FA' }}>
+            <strong>Einwilligung widerrufen:</strong> Sie k&ouml;nnen Ihre Einwilligung in die
+            Analyse-Verarbeitung jederzeit mit Wirkung f&uuml;r die Zukunft widerrufen unter{' '}
+            <strong>Einstellungen &rarr; Datenschutz &rarr; Analyse</strong>. Bei Deaktivierung
+            werden keine weiteren Analyse-Daten erfasst.
           </p>
         </Section>
 
@@ -171,7 +177,14 @@ export default function PrivacyPage() {
             <li><strong>Recht auf Berichtigung</strong> (Art. 16 DSGVO) &ndash; Sie k&ouml;nnen unrichtige Daten korrigieren lassen.</li>
             <li><strong>Recht auf L&ouml;schung</strong> (Art. 17 DSGVO) &ndash; Sie k&ouml;nnen die L&ouml;schung Ihrer Daten verlangen.</li>
             <li><strong>Recht auf Einschr&auml;nkung</strong> (Art. 18 DSGVO) &ndash; Sie k&ouml;nnen die Einschr&auml;nkung der Verarbeitung verlangen.</li>
-            <li><strong>Recht auf Daten&uuml;bertragbarkeit</strong> (Art. 20 DSGVO) &ndash; Sie k&ouml;nnen Ihre Daten in einem g&auml;ngigen Format erhalten.</li>
+            <li>
+              <strong>Recht auf Daten&uuml;bertragbarkeit</strong> (Art. 20 DSGVO) &ndash; Sie
+              k&ouml;nnen Ihre Daten in einem g&auml;ngigen Format erhalten. F&uuml;r den Selbst-Export
+              steht Ihnen unter{' '}
+              <strong>Einstellungen &rarr; Meine Daten &rarr; Daten exportieren</strong>{' '}
+              ein Download-Button zur Verf&uuml;gung, der eine vollst&auml;ndige JSON-Datei mit allen
+              zu Ihrer Person gespeicherten Daten erzeugt.
+            </li>
             <li><strong>Widerspruchsrecht</strong> (Art. 21 DSGVO) &ndash; Sie k&ouml;nnen der Verarbeitung widersprechen.</li>
             <li><strong>Recht auf Widerruf</strong> &ndash; Erteilte Einwilligungen k&ouml;nnen jederzeit mit Wirkung f&uuml;r die Zukunft widerrufen werden.</li>
           </ul>
@@ -190,7 +203,7 @@ export default function PrivacyPage() {
           </p>
           <p style={{ marginTop: 8 }}>
             <strong>E-Mail:</strong>{' '}
-            <a href="mailto:info@deal-buddy.app" style={{ color: '#FFB800' }}>info@deal-buddy.app</a>
+            <a href="mailto:info@deal-buddy.app" style={{ color: 'var(--gold-primary)' }}>info@deal-buddy.app</a>
           </p>
         </Section>
 
@@ -202,10 +215,10 @@ export default function PrivacyPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section style={{ marginBottom: 32 }}>
-      <h2 style={{ fontFamily: 'Oswald, sans-serif', fontSize: 16, fontWeight: 600, color: '#FFB800', marginBottom: 12, letterSpacing: 0.5 }}>
+      <h2 style={{ fontFamily: 'Oswald, sans-serif', fontSize: 16, fontWeight: 600, color: 'var(--gold-primary)', marginBottom: 12, letterSpacing: 0.5 }}>
         {title}
       </h2>
-      <div style={{ color: '#ccc' }}>{children}</div>
+      <div style={{ color: 'var(--text-secondary)' }}>{children}</div>
     </section>
   )
 }

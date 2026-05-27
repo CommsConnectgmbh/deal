@@ -14,13 +14,13 @@ function getSupabaseAdmin() {
 /* ─── Fetch challenge data ─── */
 async function getChallenge(id: string) {
   const { data } = await getSupabaseAdmin()
-    .from('bets')
+    .from('challenges')
     .select(`
-      id, title, description, stake, status, bet_deadline, expires_at, created_at,
+      id, title, description, stake, status, deadline, expires_at, created_at,
       is_public, creator_amount, opponent_amount,
       creator_id, opponent_id,
-      creator:profiles!bets_creator_id_fkey(username, display_name, avatar_url, reliability_score),
-      opponent:profiles!bets_opponent_id_fkey(username, display_name, avatar_url, reliability_score)
+      creator:profiles!challenges_creator_id_fkey(username, display_name, avatar_url, reliability_score),
+      opponent:profiles!challenges_opponent_id_fkey(username, display_name, avatar_url, reliability_score)
     `)
     .eq('id', id)
     .single()
@@ -76,7 +76,7 @@ export default async function ChallengeLinkPage({ params }: { params: Promise<{ 
 
   const creator = challenge.creator as any
   const opponent = challenge.opponent as any
-  const deadline = challenge.expires_at || challenge.bet_deadline
+  const deadline = challenge.expires_at || challenge.deadline
   const amount = challenge.creator_amount
     ? `${(challenge.creator_amount / 100).toFixed(0)}€`
     : challenge.stake || 'Ehre'

@@ -162,7 +162,7 @@ export default function BattlePassPage() {
         {/* Tier number */}
         <div style={{
           fontSize: isMile ? 11 : 9, fontFamily:'var(--font-display)', fontWeight:700,
-          color: isMile ? 'var(--gold-primary)' : isPast ? 'var(--status-active)' : isCurr ? 'var(--gold-primary)' : '#444',
+          color: isMile ? 'var(--gold-primary)' : isPast ? 'var(--status-active)' : isCurr ? 'var(--gold-primary)' : 'var(--text-muted)',
           letterSpacing:1,
         }}>
           {isMile ? `✦ TIER ${tier}` : `T${tier}`}
@@ -189,7 +189,7 @@ export default function BattlePassPage() {
     const earned   = isEarned(reward)
     const claimed  = isClaimed(reward)
     const key      = rewardKey(reward)
-    const rColor   = REWARD_COLORS[reward.reward_type] || '#888'
+    const rColor   = REWARD_COLORS[reward.reward_type] || 'var(--text-secondary)'
     const isAnimating = claimAnim === key
 
     return (
@@ -202,12 +202,12 @@ export default function BattlePassPage() {
           border: isCurr && !isPremium ? `2px solid var(--gold-primary)` :
                   claimed             ? `1.5px solid #4ade8055` :
                   earned              ? `1.5px solid ${rColor}55` :
-                  isPremium && !userBP?.premium_unlocked ? `1px dashed #33333380` :
-                                        `1px solid var(--bg-elevated)`,
+                  isPremium && !userBP?.premium_unlocked ? `1px dashed var(--border-default)` :
+                                        `1px solid var(--border-subtle)`,
           background: isMile && earned && !claimed ? `${rColor}12` :
                       claimed          ? `rgba(74,222,128,0.06)` :
                       earned           ? `${rColor}08` :
-                                         `#0D0D0D`,
+                                         `var(--bg-overlay)`,
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', gap: 6, cursor: earned && !claimed ? 'pointer' : 'default',
           position: 'relative', overflow: 'hidden',
@@ -251,7 +251,7 @@ export default function BattlePassPage() {
         {/* Label */}
         <span style={{
           fontSize: 8, textAlign:'center', lineHeight:1.2, padding:'0 4px',
-          color: claimed ? 'var(--status-active)' : earned ? rColor : '#444',
+          color: claimed ? 'var(--status-active)' : earned ? rColor : 'var(--text-muted)',
           fontFamily: 'var(--font-display)',
         }}>
           {reward.reward_type === 'coins'
@@ -323,7 +323,7 @@ export default function BattlePassPage() {
         <div style={{ height:6, background:'var(--bg-elevated)', borderRadius:3, overflow:'hidden' }}>
           <div style={{ height:'100%', width:`${xpProgress}%`, background:'linear-gradient(90deg,var(--gold-dim),var(--gold-primary))', borderRadius:3, transition:'width 0.6s ease' }} />
         </div>
-        <p style={{ fontSize:11, color:'#444', marginTop:6 }}>
+        <p style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>
           {t('battlepass.totalSeasonXp')}: <span style={{ color:'rgba(255,184,0,0.53)' }}>{userBP?.season_xp || 0}</span>
         </p>
       </div>
@@ -351,7 +351,7 @@ export default function BattlePassPage() {
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <div style={{ width:8, height:8, borderRadius:'50%', background:'var(--gold-primary)' }} />
-          <span style={{ fontFamily:'var(--font-display)', fontSize:9, color: userBP?.premium_unlocked ? 'var(--gold-primary)' : '#444', letterSpacing:1 }}>⭐ PREMIUM TRACK</span>
+          <span style={{ fontFamily:'var(--font-display)', fontSize:9, color: userBP?.premium_unlocked ? 'var(--gold-primary)' : 'var(--text-muted)', letterSpacing:1 }}>⭐ PREMIUM TRACK</span>
         </div>
       </div>
 
@@ -371,7 +371,7 @@ export default function BattlePassPage() {
 
       {/* Legend */}
       <div style={{ margin:'0 16px', display:'flex', gap:12, flexWrap:'wrap' }}>
-        {[['✦ ' + t('battlepass.milestone'), 'var(--gold-primary)'], ['✅ ' + t('battlepass.legendClaimed'), 'var(--status-active)'], ['🔒 ' + t('battlepass.legendLocked'), '#444']].map(([label, color]) => (
+        {[['✦ ' + t('battlepass.milestone'), 'var(--gold-primary)'], ['✅ ' + t('battlepass.legendClaimed'), 'var(--status-active)'], ['🔒 ' + t('battlepass.legendLocked'), 'var(--text-muted)']].map(([label, color]) => (
           <div key={label} style={{ display:'flex', alignItems:'center', gap:4 }}>
             <span style={{ fontSize:10 }}>{(label as string).split(' ')[0]}</span>
             <span style={{ fontFamily:'var(--font-display)', fontSize:9, color: color as string }}>{(label as string).split(' ').slice(1).join(' ')}</span>
@@ -389,7 +389,7 @@ export default function BattlePassPage() {
               "{t(MILESTONE_LORE_KEYS[milestoneModal])}"
             </p>
             <button onClick={() => setMilestoneModal(null)}
-              style={{ padding:'10px 24px', borderRadius:10, border:'1px solid #333', background:'transparent', color:'var(--text-muted)', fontFamily:'var(--font-display)', fontSize:11, cursor:'pointer' }}>
+              style={{ padding:'10px 24px', borderRadius:10, border:'1px solid var(--border-subtle)', background:'transparent', color:'var(--text-muted)', fontFamily:'var(--font-display)', fontSize:11, cursor:'pointer' }}>
               {t('battlepass.close')}
             </button>
           </div>

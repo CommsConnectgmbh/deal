@@ -41,7 +41,7 @@ export default function DealPreviewClient({ deal }: { deal: DealPreview }) {
   if (checking) {
     return (
       <div style={{
-        minHeight: '100vh', background: '#080808',
+        minHeight: '100vh', background: 'var(--bg-base)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <div style={{
@@ -63,7 +63,7 @@ export default function DealPreviewClient({ deal }: { deal: DealPreview }) {
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#080808',
+      minHeight: '100vh', background: 'var(--bg-base)',
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       justifyContent: 'center', padding: '24px 16px',
     }}>
@@ -78,7 +78,7 @@ export default function DealPreviewClient({ deal }: { deal: DealPreview }) {
           DEALBUDDY
         </h1>
         <p style={{
-          fontSize: 10, letterSpacing: 2, color: '#6B6E76',
+          fontSize: 10, letterSpacing: 2, color: 'var(--text-muted)',
           fontFamily: 'Oswald, sans-serif', marginTop: 2,
         }}>
           COMPETE · WIN · REIGN
@@ -89,7 +89,7 @@ export default function DealPreviewClient({ deal }: { deal: DealPreview }) {
       <div style={{
         width: '100%', maxWidth: 400, borderRadius: 16,
         overflow: 'hidden', border: `1px solid ${sc}30`,
-        background: '#16171B',
+        background: 'var(--bg-elevated)',
         boxShadow: `0 8px 32px ${sc}15`,
       }}>
         {/* Status Bar */}
@@ -110,7 +110,7 @@ export default function DealPreviewClient({ deal }: { deal: DealPreview }) {
         <div style={{ padding: '20px 20px 12px', textAlign: 'center' }}>
           <h2 style={{
             fontFamily: 'Oswald, sans-serif', fontSize: 20, fontWeight: 800,
-            color: '#F2F3F5', letterSpacing: 1.5,
+            color: 'var(--text-primary)', letterSpacing: 1.5,
             textTransform: 'uppercase', lineHeight: 1.3,
           }}>
             {deal.title}
@@ -139,7 +139,7 @@ export default function DealPreviewClient({ deal }: { deal: DealPreview }) {
               </div>
               <span style={{
                 fontFamily: 'Oswald, sans-serif', fontSize: 13, fontWeight: 600,
-                color: '#F2F3F5', letterSpacing: 0.5,
+                color: 'var(--text-primary)', letterSpacing: 0.5,
               }}>
                 @{deal.creator?.username || '???'}
               </span>
@@ -149,14 +149,14 @@ export default function DealPreviewClient({ deal }: { deal: DealPreview }) {
               <>
                 <span style={{
                   fontFamily: 'Oswald, sans-serif', fontSize: 10,
-                  color: '#6B6E76', letterSpacing: 2,
+                  color: 'var(--text-muted)', letterSpacing: 2,
                 }}>VS</span>
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                 }}>
                   <span style={{
                     fontFamily: 'Oswald, sans-serif', fontSize: 13, fontWeight: 600,
-                    color: '#F2F3F5', letterSpacing: 0.5,
+                    color: 'var(--text-primary)', letterSpacing: 0.5,
                   }}>
                     @{deal.opponent?.username || '???'}
                   </span>
@@ -205,12 +205,12 @@ export default function DealPreviewClient({ deal }: { deal: DealPreview }) {
           {deadlineText && (
             <div style={{
               padding: '6px 12px', borderRadius: 20,
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--bg-overlay)',
+              border: '1px solid var(--border-subtle)',
             }}>
               <span style={{
                 fontFamily: 'Oswald, sans-serif', fontSize: 11,
-                color: '#A1A3A9', letterSpacing: 0.5,
+                color: 'var(--text-secondary)', letterSpacing: 0.5,
               }}>
                 ⏰ {deadlineText}
               </span>
@@ -237,22 +237,58 @@ export default function DealPreviewClient({ deal }: { deal: DealPreview }) {
         )}
 
         {/* CTA */}
-        <div style={{ padding: '0 20px 20px' }}>
-          <button
-            onClick={() => router.push('/auth/login?redirect=/app/deals/' + deal.id)}
-            style={{
-              width: '100%', padding: 16, borderRadius: 12,
-              border: 'none', cursor: 'pointer',
-              background: 'linear-gradient(135deg, #B45309, #F59E0B)',
-              color: '#0F0F11',
-              fontFamily: 'Oswald, sans-serif', fontSize: 13,
-              fontWeight: 700, letterSpacing: 2,
-              boxShadow: '0 4px 20px rgba(245,158,11,0.25)',
-              transition: 'transform 0.15s, box-shadow 0.15s',
-            }}
-          >
-            AUF DEALBUDDY ÖFFNEN
-          </button>
+        <div style={{ padding: '0 20px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {deal.status === 'open' && !deal.opponent ? (
+            <>
+              <button
+                onClick={() => {
+                  try {
+                    localStorage.setItem('dealbuddy_pending_accept', deal.id)
+                  } catch { /* ignore private mode */ }
+                  router.push(`/auth/register?accept=${deal.id}`)
+                }}
+                style={{
+                  width: '100%', padding: 18, borderRadius: 12,
+                  border: 'none', cursor: 'pointer',
+                  background: 'linear-gradient(135deg, #B45309, #F59E0B)',
+                  color: 'var(--text-inverse)',
+                  fontFamily: 'Oswald, sans-serif', fontSize: 14,
+                  fontWeight: 800, letterSpacing: 2,
+                  boxShadow: '0 4px 20px rgba(245,158,11,0.35)',
+                }}
+              >
+                ⚔️ CHALLENGE ANNEHMEN
+              </button>
+              <button
+                onClick={() => router.push(`/auth/login?redirect=/app/deals/${deal.id}`)}
+                style={{
+                  width: '100%', padding: 12, borderRadius: 12,
+                  border: '1px solid rgba(245,158,11,0.25)',
+                  background: 'transparent', cursor: 'pointer',
+                  color: 'rgba(245,158,11,0.8)',
+                  fontFamily: 'Oswald, sans-serif', fontSize: 11,
+                  fontWeight: 600, letterSpacing: 1.5,
+                }}
+              >
+                Schon Mitglied? Einloggen
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => router.push('/auth/login?redirect=/app/deals/' + deal.id)}
+              style={{
+                width: '100%', padding: 16, borderRadius: 12,
+                border: 'none', cursor: 'pointer',
+                background: 'linear-gradient(135deg, #B45309, #F59E0B)',
+                color: 'var(--text-inverse)',
+                fontFamily: 'Oswald, sans-serif', fontSize: 13,
+                fontWeight: 700, letterSpacing: 2,
+                boxShadow: '0 4px 20px rgba(245,158,11,0.25)',
+              }}
+            >
+              AUF DEALBUDDY ÖFFNEN
+            </button>
+          )}
         </div>
       </div>
 
@@ -265,7 +301,7 @@ export default function DealPreviewClient({ deal }: { deal: DealPreview }) {
             const timeout = setTimeout(() => {
               window.location.href = /android/i.test(navigator.userAgent)
                 ? 'https://play.google.com/store/apps/details?id=de.dealbuddy.app'
-                : 'https://apps.apple.com/app/dealbuddy/id0000000000'
+                : 'https://apps.apple.com/de/app/dealbuddy/id6763754507'
             }, 1500)
             window.addEventListener('blur', () => clearTimeout(timeout), { once: true })
             window.location.href = deepLink
@@ -283,7 +319,7 @@ export default function DealPreviewClient({ deal }: { deal: DealPreview }) {
           IN DER APP ÖFFNEN
         </button>
         <p style={{
-          fontSize: 11, color: '#6B6E76',
+          fontSize: 11, color: 'var(--text-muted)',
           letterSpacing: 1, fontFamily: 'Oswald, sans-serif',
         }}>
           Jetzt kostenlos registrieren und mitmachen!

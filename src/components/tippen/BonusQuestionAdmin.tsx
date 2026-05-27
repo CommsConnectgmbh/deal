@@ -1,17 +1,24 @@
 'use client'
 import { useState } from 'react'
 import { useLang } from '@/contexts/LanguageContext'
+import { seedTournamentSpecials, defaultSpecialsDeadline, getSpecialsForCompetition } from './wmSpecialsSeed'
 
 interface Props {
   groupId: string
   onCreated: () => void
   onResolve: (questionId: string, correctAnswer: string) => Promise<void>
+  /** Falls gesetzt, blendet den 1-Klick-Seeder für Standard-Turnier-Specials ein. */
+  tournamentSeed?: {
+    competitionCode: string | null
+    contestStartsAt: string | null
+    hasExistingBonusQuestions: boolean
+  }
 }
 
 /**
  * Admin: create new bonus question + resolve existing ones.
  */
-export default function BonusQuestionAdmin({ groupId, onCreated, onResolve }: Props) {
+export default function BonusQuestionAdmin({ groupId, onCreated, onResolve, tournamentSeed }: Props) {
   const { t } = useLang()
   const [open, setOpen] = useState(false)
   const [question, setQuestion] = useState('')
@@ -20,6 +27,27 @@ export default function BonusQuestionAdmin({ groupId, onCreated, onResolve }: Pr
   const [points, setPoints] = useState('5')
   const [deadline, setDeadline] = useState('')
   const [creating, setCreating] = useState(false)
+  const [seeding, setSeeding] = useState(false)
+  const [seedError, setSeedError] = useState('')
+
+  const handleSeedTournament = async () => {
+    if (!tournamentSeed || seeding) return
+    setSeeding(true)
+    setSeedError('')
+    try {
+      const iso = defaultSpecialsDeadline(tournamentSeed.contestStartsAt)
+      const n = await seedTournamentSpecials(groupId, tournamentSeed.competitionCode, iso)
+      if (n === 0) {
+        setSeedError('Es gibt bereits Specials in dieser Gruppe.')
+      } else {
+        onCreated()
+      }
+    } catch (e: any) {
+      setSeedError(e?.message || 'Fehler beim Anlegen')
+    } finally {
+      setSeeding(false)
+    }
+  }
 
   const handleCreate = async () => {
     if (!question.trim() || !deadline || creating) return
@@ -50,16 +78,58 @@ export default function BonusQuestionAdmin({ groupId, onCreated, onResolve }: Pr
   }
 
   if (!open) {
+    const showSeed = tournamentSeed && !tournamentSeed.hasExistingBonusQuestions
+    const specials = tournamentSeed ? getSpecialsForCompetition(tournamentSeed.competitionCode) : []
     return (
-      <button onClick={() => setOpen(true)} style={{
-        width: '100%', padding: '12px', marginBottom: 16,
-        background: 'var(--bg-elevated)', border: '1px dashed var(--gold-primary)',
-        borderRadius: 14, color: 'var(--gold-primary)', fontSize: 13,
-        fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: 1,
-        cursor: 'pointer', textTransform: 'uppercase',
-      }}>
-        {t('tippen.addBonusQuestion')}
-      </button>
+      <div style={{ marginBottom: 16 }}>
+        {showSeed && (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(255,184,0,0.10), rgba(255,184,0,0.03))',
+            border: '1px solid var(--gold-glow)', borderRadius: 14,
+            padding: '14px 14px 12px', marginBottom: 10,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span style={{ fontSize: 16 }}>🏆</span>
+              <span style={{
+                fontFamily: 'var(--font-display)', fontSize: 12,
+                color: 'var(--gold-primary)', letterSpacing: 1.2, fontWeight: 800,
+                textTransform: 'uppercase',
+              }}>
+                Standard-Turnier-Wetten
+              </span>
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 10px', lineHeight: 1.45 }}>
+              {specials.length} Spezial-Wetten mit einem Klick anlegen: Weltmeister, Torschützenkönig, Tore im Finale &amp; mehr. Deadline = Turnier-Start.
+            </p>
+            <button
+              onClick={handleSeedTournament}
+              disabled={seeding}
+              style={{
+                width: '100%', padding: '11px 14px',
+                background: 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))',
+                color: 'var(--text-inverse)', border: 'none', borderRadius: 10,
+                fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 800,
+                letterSpacing: 1.2, textTransform: 'uppercase',
+                cursor: seeding ? 'not-allowed' : 'pointer', opacity: seeding ? 0.6 : 1,
+              }}
+            >
+              {seeding ? 'Wird angelegt...' : `${specials.length} Standard-Wetten anlegen`}
+            </button>
+            {seedError && (
+              <p style={{ fontSize: 11, color: 'var(--status-error)', margin: '8px 0 0' }}>{seedError}</p>
+            )}
+          </div>
+        )}
+        <button onClick={() => setOpen(true)} style={{
+          width: '100%', padding: '12px',
+          background: 'var(--bg-elevated)', border: '1px dashed var(--gold-primary)',
+          borderRadius: 14, color: 'var(--gold-primary)', fontSize: 13,
+          fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: 1,
+          cursor: 'pointer', textTransform: 'uppercase',
+        }}>
+          {t('tippen.addBonusQuestion')}
+        </button>
+      </div>
     )
   }
 

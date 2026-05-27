@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import ProfileImage from '@/components/ProfileImage'
 import TipGroupInteractionBar from '@/components/tippen/TipGroupInteractionBar'
-import TipGroupBetWidget from '@/components/TipGroupBetWidget'
+import TipGroupChallengeWidget from '@/components/TipGroupChallengeWidget'
 import MiniEventCard, { aggregateFeedEvents } from '@/components/MiniEventCard'
 import type { FeedEvent, FeedEventItem } from '@/components/MiniEventCard'
 import FeedDealCard from '@/components/feed/FeedDealCard'
@@ -95,7 +95,7 @@ export default function HomePage() {
 
   // Fight Night collapsible cards + community quotes
   const [expandedDeals, setExpandedDeals] = useState<Set<string>>(new Set())
-  const [betQuotes, setBetQuotes] = useState<Record<string, { a: number; b: number }>>({})
+  const [challengeQuotes, setChallengeQuotes] = useState<Record<string, { a: number; b: number }>>({})
   const toggleDealExpand = (id: string) => {
     setExpandedDeals(prev => {
       const next = new Set(prev)
@@ -142,7 +142,7 @@ export default function HomePage() {
 
   // Single filter bar: DEALS | CHALLENGES | TIPPRUNDEN | AKTIVITAT
   const [feedTab, setFeedTab] = useState<'alle' | 'herausforderungen' | 'tipprunden' | 'live_tipp'>('alle')
-  const [myBets, setMyBets] = useState<any[]>([])
+  const [myChallenges, setMyChallenges] = useState<any[]>([])
   const [interactionDealIds, setInteractionDealIds] = useState<Set<string>>(new Set())
   // Legacy compat — DEALS/CHALLENGES/INTERAKTIONEN = only deals, TIPPRUNDEN = only tip groups
   const contentTab = feedTab === 'tipprunden' ? 'tipprunden' : 'deals'
@@ -211,15 +211,15 @@ export default function HomePage() {
 
       const batch1: any[] = [
         /* 0 */ supabase.from('deal_media').select('deal_id').eq('user_id', profile.id).gte('created_at', since24h),
-        /* 1 */ supabase.from('bets').select(storySelect).not('shared_as_story_at', 'is', null).gte('shared_as_story_at', since24h).or(`creator_id.eq.${profile.id},opponent_id.eq.${profile.id}`).order('shared_as_story_at', { ascending: false }).limit(20),
+        /* 1 */ supabase.from('challenges').select(storySelect).not('shared_as_story_at', 'is', null).gte('shared_as_story_at', since24h).or(`creator_id.eq.${profile.id},opponent_id.eq.${profile.id}`).order('shared_as_story_at', { ascending: false }).limit(20),
         /* 2 */ supabase.from('story_views').select('deal_id').eq('user_id', profile.id).gte('viewed_at', since24h),
         /* 3 */ supabase.from('feed_events').select('*, user:user_id(id, username, display_name, avatar_url)').eq('event_type', 'tip_group_story').gte('created_at', since24h).order('created_at', { ascending: false }).limit(20),
       ]
       // Only add followed-user queries if we have follows
       if (fIds.length > 0) {
         batch1.push(
-          /* 4 */ supabase.from('bets').select(storySelect).gte('created_at', since24h).in('status', ['open', 'pending', 'active', 'pending_confirmation', 'completed']).or(userFilter).order('created_at', { ascending: false }).limit(50),
-          /* 5 */ supabase.from('bets').select(storySelect).gte('shared_as_story_at', since24h).eq('status', 'completed').or(userFilter).order('shared_as_story_at', { ascending: false }).limit(50),
+          /* 4 */ supabase.from('challenges').select(storySelect).gte('created_at', since24h).in('status', ['open', 'pending', 'active', 'pending_confirmation', 'completed']).or(userFilter).order('created_at', { ascending: false }).limit(50),
+          /* 5 */ supabase.from('challenges').select(storySelect).gte('shared_as_story_at', since24h).eq('status', 'completed').or(userFilter).order('shared_as_story_at', { ascending: false }).limit(50),
           /* 6 */ supabase.from('feed_events').select('deal_id').eq('event_type', 'deal_media_added').gte('created_at', since24h).in('user_id', fIds),
         )
       }
@@ -245,11 +245,11 @@ export default function HomePage() {
       const batch2Keys: string[] = []
 
       if (myMediaDealIds.length > 0) {
-        batch2.push(supabase.from('bets').select(storySelect).in('id', myMediaDealIds))
+        batch2.push(supabase.from('challenges').select(storySelect).in('id', myMediaDealIds))
         batch2Keys.push('myMediaDeals')
       }
       if (mediaDealIds.length > 0) {
-        batch2.push(supabase.from('bets').select(storySelect).in('id', mediaDealIds))
+        batch2.push(supabase.from('challenges').select(storySelect).in('id', mediaDealIds))
         batch2Keys.push('mediaDeals')
       }
       if (tipGroupIds.length > 0) {
@@ -460,7 +460,7 @@ export default function HomePage() {
 
     try {
       let query = supabase
-        .from('bets')
+        .from('challenges')
         .select(DEAL_SELECT)
         .in('status', ['open', 'pending', 'active', 'pending_confirmation', 'completed'])
         .order('created_at', { ascending: false })
@@ -478,7 +478,7 @@ export default function HomePage() {
       // Fallback: if 0 results, get ALL deals regardless
       if (initial && newDeals.length === 0) {
         const { data: fallback } = await supabase
-          .from('bets')
+          .from('challenges')
           .select(DEAL_SELECT)
           .order('created_at', { ascending: false })
           .limit(20)
@@ -545,19 +545,19 @@ export default function HomePage() {
         }
       }
 
-      // Batch-fetch community bet quotes for all deals
+      // Batch-fetch community challenge quotes for all deals
       if (dealIds.length > 0) {
-        const { data: betData } = await supabase
-          .from('deal_side_bets')
+        const { data: challengeData } = await supabase
+          .from('deal_side_challenges')
           .select('deal_id, side')
           .in('deal_id', dealIds)
-        if (betData && betData.length > 0) {
+        if (challengeData && challengeData.length > 0) {
           const quotes: Record<string, { a: number; b: number }> = {}
-          for (const b of betData) {
+          for (const b of challengeData) {
             if (!quotes[b.deal_id]) quotes[b.deal_id] = { a: 0, b: 0 }
             quotes[b.deal_id][b.side as 'a' | 'b']++
           }
-          setBetQuotes(prev => ({ ...prev, ...quotes }))
+          setChallengeQuotes(prev => ({ ...prev, ...quotes }))
         }
       }
     } catch (_e) {
@@ -579,7 +579,7 @@ export default function HomePage() {
 
     const { data: spotData } = await supabase
       .from('weekly_spotlight')
-      .select('*, bets!weekly_spotlight_deal_id_fkey(id, title, creator:creator_id(username))')
+      .select('*, challenges!weekly_spotlight_deal_id_fkey(id, title, creator:creator_id(username))')
       .eq('is_active', true)
       .gte('expires_at', new Date().toISOString())
       .order('featured_at', { ascending: false })
@@ -642,7 +642,7 @@ export default function HomePage() {
     if (!profile) return
     const ids = new Set<string>()
     // 1. Own deals (creator or opponent)
-    const { data: ownDeals } = await supabase.from('bets')
+    const { data: ownDeals } = await supabase.from('challenges')
       .select('id')
       .or(`creator_id.eq.${profile.id},opponent_id.eq.${profile.id}`)
     if (ownDeals) ownDeals.forEach((d: any) => ids.add(d.id))
@@ -661,22 +661,22 @@ export default function HomePage() {
       .select('original_deal_id')
       .eq('user_id', profile.id)
     if (reposted) reposted.forEach((d: any) => ids.add(d.original_deal_id))
-    // 5. Side-betted deals
-    const { data: sideBets } = await supabase.from('deal_side_bets')
+    // 5. Side-tipped deals
+    const { data: sideChallenges } = await supabase.from('deal_side_challenges')
       .select('deal_id, side, status, coins_awarded, created_at')
       .eq('user_id', profile.id)
       .order('created_at', { ascending: false })
-    if (sideBets) {
-      sideBets.forEach((d: any) => ids.add(d.deal_id))
+    if (sideChallenges) {
+      sideChallenges.forEach((d: any) => ids.add(d.deal_id))
       // Merge with deal info for Live Tipp tab
-      const betDealIds = sideBets.map((b: any) => b.deal_id)
-      if (betDealIds.length > 0) {
-        const { data: betDeals } = await supabase.from('bets')
+      const challengeDealIds = sideChallenges.map((b: any) => b.deal_id)
+      if (challengeDealIds.length > 0) {
+        const { data: challengeDeals } = await supabase.from('challenges')
           .select('id, title, status, stake, creator_id, opponent_id, confirmed_winner_id, winner_id, creator:creator_id(username, display_name, avatar_url), opponent:opponent_id(username, display_name, avatar_url)')
-          .in('id', betDealIds)
+          .in('id', challengeDealIds)
         const dealMap: Record<string, any> = {}
-        if (betDeals) betDeals.forEach((d: any) => { dealMap[d.id] = d })
-        setMyBets(sideBets.map((b: any) => ({ ...b, deal: dealMap[b.deal_id] || null })).filter((b: any) => b.deal))
+        if (challengeDeals) challengeDeals.forEach((d: any) => { dealMap[d.id] = d })
+        setMyChallenges(sideChallenges.map((b: any) => ({ ...b, deal: dealMap[b.deal_id] || null })).filter((b: any) => b.deal))
       }
     }
     setInteractionDealIds(ids)
@@ -794,7 +794,7 @@ export default function HomePage() {
                   <div style={{
                     width: hasMyStory ? 60 : 64, height: hasMyStory ? 60 : 64,
                     borderRadius: '50%',
-                    border: hasMyStory ? '2px solid var(--bg-deepest)' : '2px solid rgba(255,255,255,0.15)',
+                    border: hasMyStory ? '2px solid var(--bg-deepest)' : '2px solid var(--border-default)',
                     overflow: 'hidden',
                   }}>
                     <ProfileImage
@@ -848,18 +848,15 @@ export default function HomePage() {
                 <div style={{ position: 'relative' }}>
                   <div style={{
                     width: 68, height: 68, borderRadius: '50%',
-                    background: hasUnviewed
-                      ? 'linear-gradient(135deg, #FFB800, #FF6B00, #FFB800)'
-                      : 'transparent',
+                    background: hasUnviewed ? 'var(--gold-primary)' : 'transparent',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    padding: hasUnviewed ? 3 : 0,
-                    boxShadow: hasUnviewed ? '0 0 12px rgba(255,184,0,0.4)' : 'none',
+                    padding: hasUnviewed ? 2 : 0,
                   }}>
                     <div style={{
                       width: hasUnviewed ? 62 : 64,
                       height: hasUnviewed ? 62 : 64,
                       borderRadius: '50%',
-                      border: hasUnviewed ? '2px solid var(--bg-deepest)' : '2px solid rgba(255,255,255,0.15)',
+                      border: hasUnviewed ? '2px solid var(--bg-deepest)' : '2px solid var(--border-default)',
                       overflow: 'hidden',
                     }}>
                       <ProfileImage
@@ -885,116 +882,22 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* ═══ UNIFIED DASHBOARD CARD — Actions + Streak in one compact zone ═══ */}
-      {profile && !loading && (() => {
-        const streak = profile.streak || 0
-        const actionItems: { id: string; title: string; sub: string; label: string; color: string; href: string; prio: number }[] = []
-
-        deals.forEach((d: any) => {
-          if ((d.status === 'active' || d.status === 'pending_confirmation') && (d.creator_id === profile.id || d.opponent_id === profile.id)) {
-            const vsUser = d.creator_id === profile.id ? d.opponent?.username : d.creator?.username
-            actionItems.push({ id: d.id, title: t('home.resultFor').replace('{title}', d.title), sub: `vs @${vsUser || '?'}`, label: d.status === 'pending_confirmation' ? t('home.confirm') : t('home.report'), color: '#4ade80', href: `/app/deals/${d.id}`, prio: 100 })
-          }
-        })
-        pendingInvites.forEach((inv: any) => {
-          actionItems.push({ id: inv.id, title: t('home.acceptChallenge').replace('{username}', inv.creator?.username || '?'), sub: `\u201E${inv.title}\u201C`, label: t('home.acceptLabel'), color: '#f97316', href: `/app/deals/${inv.id}`, prio: 95 })
-        })
-        deals.forEach((d: any) => {
-          if (d.status === 'open' && d.creator_id === profile.id && !d.opponent_id) {
-            actionItems.push({ id: d.id, title: t('home.findOpponent').replace('{title}', d.title), sub: t('home.noOpponentYet'), label: t('home.shareLabel'), color: '#FFB800', href: `/app/deals/${d.id}`, prio: 80 })
-          }
-        })
-        actionItems.sort((a, b) => b.prio - a.prio)
-        const topAction = actionItems[0] || null
-
-        // Nothing to show
-        if (!topAction && streak < 1 && deals.length === 0) return null
-
-        return (
-          <div style={{ padding: '6px 16px 4px' }}>
-            <div style={{
-              background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
-              borderRadius: 14, padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8,
-            }}>
-              {/* Row: Streak (left) + Top Action (right) */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                {/* Streak badge */}
-                {streak > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                    <span style={{ fontSize: 18 }}>{'\uD83D\uDD25'}</span>
-                    <div>
-                      <span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 900, color: streak >= 3 ? '#EF4444' : 'var(--gold-primary)', lineHeight: 1 }}>{streak}</span>
-                      <p style={{ fontFamily: 'var(--font-display)', fontSize: 6, letterSpacing: 2, color: 'var(--text-muted)', margin: 0 }}>STREAK</p>
-                    </div>
-                    <div style={{ width: 1, height: 28, background: 'var(--border-subtle)', marginLeft: 4 }} />
-                  </div>
-                )}
-
-                {/* Top action or fallback */}
-                {topAction ? (
-                  <button onClick={() => router.push(topAction.href)} style={{
-                    flex: 1, display: 'flex', alignItems: 'center', gap: 8,
-                    background: `${topAction.color}08`, border: `1px solid ${topAction.color}25`,
-                    borderRadius: 10, padding: '8px 10px', cursor: 'pointer', textAlign: 'left',
-                  }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: topAction.color, boxShadow: `0 0 5px ${topAction.color}80` }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: 0.5, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'uppercase' as const }}>{topAction.title}</p>
-                      <p style={{ fontSize: 8, color: topAction.color, margin: '1px 0 0' }}>{topAction.sub}</p>
-                    </div>
-                    <span style={{ fontSize: 7, padding: '3px 7px', borderRadius: 6, flexShrink: 0, fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: 1, background: `${topAction.color}20`, color: topAction.color }}>{topAction.label}</span>
-                  </button>
-                ) : (
-                  <button onClick={() => router.push('/app/deals/create')} style={{
-                    flex: 1, display: 'flex', alignItems: 'center', gap: 8,
-                    background: 'rgba(255,184,0,0.06)', border: '1px solid rgba(255,184,0,0.15)',
-                    borderRadius: 10, padding: '8px 10px', cursor: 'pointer', textAlign: 'left',
-                  }}>
-                    <span style={{ fontSize: 14, flexShrink: 0 }}>{'\uD83E\uDD4A'}</span>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 800, color: 'var(--gold-primary)', letterSpacing: 0.5, margin: 0, textTransform: 'uppercase' as const }}>{t('home.newChallenge')}</p>
-                      <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.4)', margin: '1px 0 0' }}>{t('home.challengeSomeone')}</p>
-                    </div>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--gold-primary)" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  </button>
-                )}
-              </div>
-
-              {/* Extra actions (max 2 more, compact) */}
-              {actionItems.length > 1 && (
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {actionItems.slice(1, 3).map(item => (
-                    <button key={`sub-${item.id}`} onClick={() => router.push(item.href)} style={{
-                      flex: 1, display: 'flex', alignItems: 'center', gap: 6,
-                      background: `${item.color}06`, border: `1px solid ${item.color}18`,
-                      borderRadius: 8, padding: '5px 8px', cursor: 'pointer', textAlign: 'left',
-                    }}>
-                      <span style={{ width: 4, height: 4, borderRadius: '50%', flexShrink: 0, background: item.color }} />
-                      <p style={{ fontFamily: 'var(--font-display)', fontSize: 8, fontWeight: 700, color: 'var(--text-muted)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>{item.title}</p>
-                      <span style={{ fontSize: 6, padding: '2px 5px', borderRadius: 4, flexShrink: 0, fontFamily: 'var(--font-display)', fontWeight: 700, background: `${item.color}15`, color: item.color }}>{item.label}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )
-      })()}
-
-      {/* ═══ SINGLE FILTER BAR — viral-style scrollable chips ═══ */}
+      {/* ═══ SINGLE FILTER BAR — same chip style as /tippen ═══ */}
       <div style={{
-        display: 'flex', gap: 6, padding: '10px 16px',
-        background: 'var(--bg-deepest)',
-        position: 'sticky', top: 68, zIndex: 30,
-        borderBottom: '1px solid var(--border-subtle)',
+        display: 'flex', gap: 8, padding: '10px 16px',
+        background: 'var(--glass-bg)',
+        backdropFilter: 'blur(24px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+        position: 'sticky', top: 'calc(68px + env(safe-area-inset-top))', zIndex: 30,
+        borderBottom: '1px solid var(--glass-border)',
         overflowX: 'auto', scrollbarWidth: 'none',
         WebkitOverflowScrolling: 'touch',
       }}>
         {([
-          { key: 'alle', label: t('home.filters.alle'), color: 'var(--gold-primary)' },
-          { key: 'herausforderungen', label: t('home.filters.herausforderungen'), color: '#f97316' },
-          { key: 'tipprunden', label: t('home.filters.tipprunden'), color: '#a78bfa' },
-          { key: 'live_tipp', label: t('home.filters.live_tipp'), color: '#4ade80' },
+          { key: 'alle', label: t('home.filters.alle') },
+          { key: 'herausforderungen', label: t('home.filters.herausforderungen') },
+          { key: 'tipprunden', label: t('home.filters.tipprunden') },
+          { key: 'live_tipp', label: t('home.filters.live_tipp') },
         ] as const).map(tab => {
           const isActive = feedTab === tab.key
           return (
@@ -1002,12 +905,12 @@ export default function HomePage() {
               key={tab.key}
               onClick={() => setFeedTab(tab.key)}
               style={{
-                padding: '6px 14px', borderRadius: 20, cursor: 'pointer',
-                background: isActive ? `${tab.color}18` : 'transparent',
-                border: isActive ? `1.5px solid ${tab.color}55` : '1px solid var(--border-subtle)',
-                color: isActive ? tab.color : 'var(--text-muted)',
-                fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 700,
-                letterSpacing: 1.2, transition: 'all .2s',
+                fontSize: 10, fontFamily: 'var(--font-display)', letterSpacing: 1.5,
+                padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                background: isActive ? 'var(--gold-primary)' : 'var(--bg-overlay)',
+                color: isActive ? 'var(--text-inverse)' : 'var(--text-muted)',
+                fontWeight: isActive ? 800 : 600,
+                transition: 'all 0.2s ease',
                 whiteSpace: 'nowrap', flexShrink: 0,
               }}
             >
@@ -1060,10 +963,10 @@ export default function HomePage() {
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
               {[
-                { icon: '\uD83C\uDFC3', title: t('home.fitnessChallenge'), sub: t('home.fitnessSub'), color: '#22C55E' },
-                { icon: '\uD83C\uDFAF', title: t('home.prediction'), sub: t('home.predictionSub'), color: '#3B82F6' },
-                { icon: '\uD83D\uDCDA', title: t('home.learnChallenge'), sub: t('home.learnSub'), color: '#A855F7' },
-                { icon: '\u26A1', title: t('home.speedChallenge'), sub: t('home.speedSub'), color: '#F59E0B' },
+                { icon: '\uD83C\uDFC3', title: t('home.fitnessChallenge'), sub: t('home.fitnessSub') },
+                { icon: '\uD83C\uDFAF', title: t('home.prediction'), sub: t('home.predictionSub') },
+                { icon: '\uD83D\uDCDA', title: t('home.learnChallenge'), sub: t('home.learnSub') },
+                { icon: '\u26A1', title: t('home.speedChallenge'), sub: t('home.speedSub') },
               ].map((cat, i) => (
                 <button
                   key={i}
@@ -1077,7 +980,7 @@ export default function HomePage() {
                 >
                   <div style={{
                     width: 44, height: 44, borderRadius: 12,
-                    background: `${cat.color}12`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'var(--bg-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 22, flexShrink: 0,
                   }}>
                     {cat.icon}
@@ -1086,7 +989,7 @@ export default function HomePage() {
                     <p style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: 0.5 }}>{cat.title}</p>
                     <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{cat.sub}</p>
                   </div>
-                  <span style={{ fontSize: 14, color: cat.color, flexShrink: 0 }}>›</span>
+                  <span style={{ fontSize: 14, color: 'var(--text-muted)', flexShrink: 0 }}>›</span>
                 </button>
               ))}
             </div>
@@ -1119,6 +1022,54 @@ export default function HomePage() {
           </div>
         ) : (
           <div>
+            {/* ── Pending Challenge Invites (prominent at top) ── */}
+            {pendingInvites.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                {pendingInvites.map((inv: any) => (
+                  <Link
+                    key={`pending-${inv.id}`}
+                    href={`/app/deals/${inv.id}`}
+                    style={{ textDecoration: 'none', display: 'block', marginBottom: 8 }}
+                  >
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '14px 14px',
+                      borderRadius: 14,
+                      background: 'linear-gradient(135deg, rgba(212,175,55,0.18), rgba(212,175,55,0.06))',
+                      border: '1px solid var(--gold-primary)',
+                      boxShadow: '0 0 0 1px rgba(212,175,55,0.2) inset',
+                    }}>
+                      <div style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>{'⚔️'}</div>
+                      <ProfileImage
+                        size={40}
+                        avatarUrl={inv.creator?.avatar_url}
+                        name={inv.creator?.display_name || inv.creator?.username}
+                        goldBorder
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p className="font-display" style={{
+                          fontSize: 9, letterSpacing: 2, color: 'var(--gold-primary)', marginBottom: 2,
+                        }}>
+                          {t('deals.newChallengeNotifTitle')}
+                        </p>
+                        <p style={{
+                          fontSize: 13, color: 'var(--text-primary)', fontWeight: 600,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                          @{inv.creator?.username} {t('feed.challengesYou')}: {inv.title}
+                        </p>
+                      </div>
+                      <span className="font-display" style={{
+                        fontSize: 9, letterSpacing: 1.5, color: 'var(--gold-primary)', flexShrink: 0,
+                      }}>
+                        {t('feed.accept')} ›
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+
             {/* ── Public Tip Group Feed Cards (on ALLE or TIPPRUNDEN tab) ── */}
             {/* Empty state for TIPPRUNDEN tab */}
             {contentTab === 'tipprunden' && publicTipGroups.filter(tg => !hiddenFeedIds.has(`tg-${tg.id}`)).length === 0 && (
@@ -1151,7 +1102,10 @@ export default function HomePage() {
               <div key={`ptg-${tg.id}`} data-deal-card={`tg-${tg.id}`} style={{ marginBottom: 6 }}>
                 <div style={{
                   borderRadius: 12, overflow: 'hidden',
-                  border: '1px solid rgba(255,255,255,0.04)', background: 'rgba(17,17,17,0.85)',
+                  border: '1px solid var(--border-subtle)',
+                  background: 'var(--glass-bg)',
+                  backdropFilter: 'blur(24px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(24px) saturate(180%)',
                 }}>
 
                   {/* ═══ COLLAPSED HEADER — Community-Style (compact) ═══ */}
@@ -1160,7 +1114,7 @@ export default function HomePage() {
                     style={{
                       display: 'flex', alignItems: 'center', gap: 8,
                       padding: '8px 10px', cursor: 'pointer',
-                      borderBottom: isTgExpanded ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                      borderBottom: isTgExpanded ? '1px solid var(--border-subtle)' : 'none',
                     }}
                   >
                     {/* Status dot — smaller */}
@@ -1175,7 +1129,7 @@ export default function HomePage() {
                       {/* Row 1: Title */}
                       <p style={{
                         fontFamily: 'var(--font-display)', fontSize: 11, fontWeight: 800,
-                        color: '#F0ECE4', letterSpacing: 0.6, lineHeight: 1.25,
+                        color: 'var(--text-primary)', letterSpacing: 0.6, lineHeight: 1.25,
                         margin: 0,
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
@@ -1211,7 +1165,7 @@ export default function HomePage() {
                       }}>
                         {tg.stake && (
                           <span style={{
-                            fontSize: 8, color: 'rgba(255,255,255,0.6)', fontWeight: 600,
+                            fontSize: 8, color: 'var(--text-secondary)', fontWeight: 600,
                             fontFamily: 'var(--font-body)', whiteSpace: 'nowrap',
                             padding: '1px 7px', borderRadius: 5,
                             background: 'rgba(255,184,0,0.06)',
@@ -1260,7 +1214,7 @@ export default function HomePage() {
                   }}>
                     <div style={{ overflow: 'hidden' }}>
                       {/* Creator info mini header */}
-                      <div style={{ display: 'flex', alignItems: 'center', padding: '8px 14px', gap: 8, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', padding: '8px 14px', gap: 8, borderBottom: '1px solid var(--border-subtle)' }}>
                         <div onClick={(e) => { e.stopPropagation(); if (tg.creator?.username) router.push(`/app/profile/${tg.creator.username}`) }} style={{ cursor: 'pointer' }}>
                           <ProfileImage size={24} avatarUrl={tg.creator?.avatar_url} name={tg.creator?.display_name || tg.creator?.username} goldBorder />
                         </div>
@@ -1276,7 +1230,7 @@ export default function HomePage() {
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
                           </button>
                           {menuOpenId === `tg-${tg.id}` && (
-                            <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: 50, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '4px 0', minWidth: 160, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+                            <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: 50, background: 'var(--glass-bg)', backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', border: '1px solid var(--glass-border)', borderRadius: 12, padding: '4px 0', minWidth: 160, boxShadow: 'var(--shadow-lg)' }}>
                               <button onClick={(e) => { e.stopPropagation(); setHiddenFeedIds(prev => new Set(prev).add(`tg-${tg.id}`)); setMenuOpenId(null) }}
                                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                                 Ausblenden
@@ -1295,7 +1249,7 @@ export default function HomePage() {
                       }}>
                         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
                           {tg.league && (
-                            <p style={{ fontSize: 13, color: '#FFB800', marginBottom: 4, textShadow: '0 1px 6px rgba(0,0,0,0.9)', fontFamily: 'var(--font-display)', letterSpacing: 1 }}>{tg.league}</p>
+                            <p style={{ fontSize: 13, color: 'var(--gold-primary)', marginBottom: 4, textShadow: '0 1px 6px rgba(0,0,0,0.9)', fontFamily: 'var(--font-display)', letterSpacing: 1 }}>{tg.league}</p>
                           )}
                           <p style={{ fontSize: 12, color: '#ccc', marginBottom: 0, textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
                             {tg.member_count} {t('home.members')}
@@ -1303,7 +1257,7 @@ export default function HomePage() {
                         </div>
                         <div style={{
                           position: 'absolute', bottom: 0, left: 0, right: 0, height: '25%',
-                          background: 'linear-gradient(to bottom, transparent 0%, #111 100%)',
+                          background: 'linear-gradient(to bottom, transparent 0%, var(--bg-surface) 100%)',
                           pointerEvents: 'none',
                         }} />
                       </div>
@@ -1321,7 +1275,7 @@ export default function HomePage() {
                     }}>
                     {t('home.join')}
                   </button>
-                  <TipGroupBetWidget groupId={tg.id} />
+                  <TipGroupChallengeWidget groupId={tg.id} />
                   <TipGroupInteractionBar groupId={tg.id} inviteCode={tg.invite_code} groupName={tg.name} />
 
                 </div>
@@ -1330,10 +1284,10 @@ export default function HomePage() {
             })}
             {/* ── DEALS + EVENTS UNIFIED TIMELINE (hide on TIPPRUNDEN tab) ── */}
             {feedTab !== 'tipprunden' && (() => {
-              // ═══ LIVE TIPP TAB → show user's placed side bets ═══
+              // ═══ LIVE TIPP TAB → show user's placed side challenges ═══
               if (feedTab === 'live_tipp') {
-                if (myBets.length === 0) return [(
-                  <div key="empty-bets" style={{ textAlign: 'center', padding: '32px 24px' }}>
+                if (myChallenges.length === 0) return [(
+                  <div key="empty-tips" style={{ textAlign: 'center', padding: '32px 24px' }}>
                     <p style={{ fontSize: 32, marginBottom: 8, opacity: 0.4 }}>{'\uD83C\uDFB2'}</p>
                     <p style={{ fontFamily: 'var(--font-display)', fontSize: 11, color: 'var(--text-muted)', letterSpacing: 1 }}>
                       {t('home.noLiveTips')}
@@ -1343,22 +1297,22 @@ export default function HomePage() {
                     </p>
                   </div>
                 )]
-                return myBets.map((bet: any) => {
-                  const d = bet.deal
+                return myChallenges.map((sc: any) => {
+                  const d = sc.deal
                   const creatorName = d.creator?.display_name || d.creator?.username || '?'
                   const opponentName = d.opponent?.display_name || d.opponent?.username || '?'
-                  const tippedName = bet.side === 'a' ? creatorName : opponentName
+                  const tippedName = sc.side === 'a' ? creatorName : opponentName
                   const winnerId = d.confirmed_winner_id || d.winner_id
-                  const isWinner = winnerId && ((bet.side === 'a' && winnerId === d.creator_id) || (bet.side === 'b' && winnerId === d.opponent_id))
+                  const isWinner = winnerId && ((sc.side === 'a' && winnerId === d.creator_id) || (sc.side === 'b' && winnerId === d.opponent_id))
                   const isLoser = winnerId && !isWinner
-                  const statusColor = bet.status === 'won' || isWinner ? '#4ade80' : bet.status === 'lost' || isLoser ? '#ef4444' : '#FFB800'
-                  const statusLabel = bet.status === 'won' || isWinner ? t('home.statusWon') : bet.status === 'lost' || isLoser ? t('home.statusLost') : t('home.statusOpen')
+                  const statusColor = sc.status === 'won' || isWinner ? '#4ade80' : sc.status === 'lost' || isLoser ? '#ef4444' : '#FFB800'
+                  const statusLabel = sc.status === 'won' || isWinner ? t('home.statusWon') : sc.status === 'lost' || isLoser ? t('home.statusLost') : t('home.statusOpen')
                   return (
-                    <div key={bet.deal_id}
+                    <div key={sc.deal_id}
                       onClick={() => router.push(`/app/deals/${d.id}`)}
                       style={{
                         marginBottom: 12, borderRadius: 12, overflow: 'hidden',
-                        border: `1px solid ${statusColor}25`, background: '#111',
+                        border: `1px solid ${statusColor}25`, background: 'var(--bg-surface)',
                         cursor: 'pointer',
                       }}>
                       {/* Titel */}
@@ -1379,8 +1333,8 @@ export default function HomePage() {
                       {/* Begegnung */}
                       <div style={{ padding: '4px 14px', display: 'flex', alignItems: 'center', gap: 4 }}>
                         <span style={{ fontSize: 10 }}>{'\u2694\uFE0F'}</span>
-                        <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
-                          {creatorName} <span style={{ color: 'rgba(255,255,255,0.4)' }}>vs</span> {opponentName}
+                        <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                          {creatorName} <span style={{ color: 'var(--text-muted)' }}>vs</span> {opponentName}
                         </span>
                       </div>
                       {/* Tipp + Status */}
@@ -1484,7 +1438,7 @@ export default function HomePage() {
                     onToggleExpand={() => toggleDealExpand(deal.id)}
                     feedEvents={feedEvents}
                     feedMedia={feedMedia}
-                    betQuotes={betQuotes}
+                    challengeQuotes={challengeQuotes}
                     onCommentOpen={(id: string) => { setCommentDealId(id); setCommentSheetOpen(true) }}
                     userId={profile?.id || ''}
                     onHide={(id: string) => setHiddenFeedIds(prev => new Set(prev).add(id))}

@@ -165,7 +165,7 @@ export default function ProofUploadSheet({ dealId, proofType, open, onClose, onC
                 style={{
                   position: 'absolute', top: 8, right: 8,
                   width: 28, height: 28, borderRadius: '50%',
-                  background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff',
+                  background: 'rgba(0,0,0,0.6)', border: 'none', color: 'var(--text-inverse)',
                   fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
               >✕</button>

@@ -12,11 +12,10 @@ import DealCardMenu from '@/components/DealCardMenu'
    ═══════════════════════════════════════════════════════════════ */
 export default function InvitedChallengeCard({
   deal, expanded, onToggleExpand, feedEvents, feedMedia,
-  betQuotes, onCommentOpen, userId, onHide,
+  challengeQuotes, onCommentOpen, userId, onHide,
 }: DealCardProps) {
   const router = useRouter()
   const { t } = useLang()
-  const sc = '#f97316'
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
@@ -36,49 +35,34 @@ export default function InvitedChallengeCard({
   const creatorName = deal.creator?.display_name || deal.creator?.username || '?'
 
   return (
-    <div data-deal-card={deal.id} style={{ marginBottom: 28, position: 'relative', paddingTop: 10, paddingBottom: 20, borderBottom: '1px solid rgba(255,184,0,0.12)' }}>
+    <div data-deal-card={deal.id} style={{ marginBottom: 20, position: 'relative' }}>
 
       {/* ═══ 3-DOT MENU — top right ═══ */}
       <div style={{ position: 'absolute', top: 14, right: 10, zIndex: 8 }}>
         <DealCardMenu dealId={deal.id} onHide={() => onHide?.(deal.id)} />
       </div>
 
-      {/* ═══ BADGE — gleicher Style wie CTA, links oben ═══ */}
       <div style={{
-        position: 'absolute', top: -4, left: 16, zIndex: 5,
-        padding: '4px 10px 5px',
-        background: `linear-gradient(135deg, ${sc}E8, ${sc}D0)`,
-        color: '#060606', fontFamily: 'var(--font-display)',
-        fontSize: 7, fontWeight: 800, letterSpacing: 1.5,
-        borderRadius: '6px 6px 0 0',
-        boxShadow: `0 -3px 10px ${sc}40`,
-        lineHeight: 1,
-      }}>
-        {t('status.invited')}
-      </div>
-
-      <div style={{
-        borderRadius: 14, overflow: 'hidden',
-        background: '#111',
+        borderRadius: 18, overflow: 'hidden',
+        background: 'var(--glass-bg)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        border: '1px solid var(--glass-border)',
+        boxShadow: 'var(--shadow-md)',
       }}>
 
-        {/* ═══ ORANGE ACCENT BAR ═══ */}
-        <div style={{ height: 3, background: `linear-gradient(90deg, ${sc}, ${sc}60, ${sc})` }} />
-
-        {/* ═══ TITLE BAR — farbiger Rahmen oben, max 2 Zeilen ═══ */}
+        {/* ═══ TITLE BAR — calm, primary text ═══ */}
         <div style={{
           width: '100%', padding: '10px 16px', textAlign: 'center',
-          background: `linear-gradient(135deg, ${sc}15, ${sc}06)`,
         }}>
           <p style={{
             fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 900,
-            color: sc, letterSpacing: 1.5, textTransform: 'uppercase',
+            color: 'var(--text-primary)', letterSpacing: 1.5, textTransform: 'uppercase',
             margin: 0, lineHeight: 1.3,
             overflow: 'hidden',
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical' as never,
-            textShadow: `0 0 12px ${sc}25`,
           }}>
             {deal.title}
           </p>
@@ -89,15 +73,19 @@ export default function InvitedChallengeCard({
           {/* Lesezeichen oben links */}
           <div style={{
             position: 'absolute', top: 0, left: 12, zIndex: 2,
-            background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
+            background: 'var(--glass-bg)',
+            backdropFilter: 'blur(12px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+            border: '1px solid var(--glass-border)',
+            borderTop: 'none',
             padding: '5px 10px', borderRadius: '0 0 8px 8px',
-            fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 700, color: '#fff',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+            fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)',
+            boxShadow: 'var(--shadow-sm)',
             display: 'flex', alignItems: 'center', gap: 5,
           }}>
             <span>{'\u2694\uFE0F'}</span>
-            <span style={{ color: sc }}>{creatorName}</span>
-            <span style={{ color: 'rgba(255,255,255,0.5)' }}>{t('feed.challengesYou')}</span>
+            <span>{creatorName}</span>
+            <span style={{ color: 'var(--text-muted)' }}>{t('feed.challengesYou')}</span>
           </div>
           {deal.media_url ? (
             deal.media_type === 'video' ? (
@@ -121,20 +109,20 @@ export default function InvitedChallengeCard({
             {deal.stake && (
               <span style={{
                 fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 900,
-                color: '#ffffff', letterSpacing: 1,
+                color: 'var(--text-primary)', letterSpacing: 1,
                 borderRadius: 8, padding: '6px 16px',
-                background: 'rgba(255,255,255,0.06)',
-                textShadow: '0 0 12px rgba(147,197,253,0.15)',
+                background: 'var(--bg-overlay)',
+                border: '1px solid var(--border-subtle)',
               }}>
                 {'\uD83C\uDFC6'} {deal.stake}
               </span>
             )}
             {deal.deadline && (() => {
               const diff = new Date(deal.deadline).getTime() - Date.now()
-              if (diff <= 0) return <span style={{ fontSize: 9, color: '#EF4444', fontWeight: 600 }}>{'\u23F3'} {t('status.expired')}</span>
+              if (diff <= 0) return <span style={{ fontSize: 9, color: 'var(--status-error)', fontWeight: 600 }}>{'\u23F3'} {t('status.expired')}</span>
               const d = Math.floor(diff / 86400000), h = Math.floor((diff % 86400000) / 3600000), m = Math.floor((diff % 3600000) / 60000)
               const txt = d > 0 ? `${d}d` : h > 0 ? `${h}h` : `${m}min`
-              return <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>{'\u23F3'} {txt}</span>
+              return <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-muted)' }}>{'\u23F3'} {txt}</span>
             })()}
           </div>
         )}
@@ -148,20 +136,6 @@ export default function InvitedChallengeCard({
         />
       </div>
 
-      {/* ═══ CTA ═══ */}
-      <button onClick={(e) => { e.stopPropagation(); goToDeal() }}
-        style={{
-          position: 'absolute', bottom: 6, right: 16, zIndex: 5,
-          padding: '5px 10px 4px',
-          background: `linear-gradient(135deg, ${sc}E8, ${sc}D0)`,
-          color: '#060606', fontFamily: 'var(--font-display)',
-          fontSize: 7, fontWeight: 800, letterSpacing: 1.5,
-          border: 'none', cursor: 'pointer',
-          borderRadius: '0 0 6px 6px',
-          boxShadow: `0 3px 10px ${sc}40`, lineHeight: 1,
-        }}>
-        {t('feed.accept')}
-      </button>
     </div>
   )
 }

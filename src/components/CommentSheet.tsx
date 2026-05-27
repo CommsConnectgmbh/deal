@@ -235,7 +235,7 @@ export default function CommentSheet({ dealId, open, onClose, onCountChange }: P
               onClick={sendComment}
               disabled={(!text.trim() && !mediaFile) || sending}
               style={{
-                background: (text.trim() || mediaFile) ? 'var(--gold-primary)' : '#333',
+                background: (text.trim() || mediaFile) ? 'var(--gold-primary)' : 'var(--border-subtle)',
                 border: 'none', borderRadius: '50%',
                 width: 34, height: 34, cursor: (text.trim() || mediaFile) ? 'pointer' : 'default',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',

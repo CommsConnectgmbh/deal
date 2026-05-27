@@ -23,7 +23,7 @@ serve(async (req) => {
 
     // Find all expired pending fulfillments
     const { data: expired, error } = await supabase
-      .from('bet_fulfillment')
+      .from('challenge_fulfillment')
       .select('id')
       .eq('status', 'pending_fulfillment')
       .lt('expires_at', now)
@@ -39,7 +39,7 @@ serve(async (req) => {
       // Update to 'expired' — this does NOT trigger recalc_reliability
       // because the trigger only fires for 'fulfilled' or 'unfulfilled'
       const { error: updateErr } = await supabase
-        .from('bet_fulfillment')
+        .from('challenge_fulfillment')
         .update({ status: 'expired' })
         .eq('status', 'pending_fulfillment')
         .lt('expires_at', now)

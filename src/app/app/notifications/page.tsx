@@ -36,6 +36,9 @@ const TYPE_ICON: Record<string, string> = {
   referral_completed:  '👥',
   frame_unlocked:      '✨',
   archetype_unlocked:  '🧬',
+  side_challenge_won:  '💰',
+  side_challenge_lost: '📉',
+  // Legacy notification types — kept so historical rows still render.
   side_bet_won:        '💰',
   side_bet_lost:       '📉',
   fulfillment_check:   '📋',
@@ -61,6 +64,9 @@ const TYPE_COLOR: Record<string, string> = {
   referral_completed:  '#22C55E',
   frame_unlocked:      '#A855F7',
   archetype_unlocked:  '#EC4899',
+  side_challenge_won:  '#22C55E',
+  side_challenge_lost: '#EF4444',
+  // Legacy notification types — kept so historical rows still render.
   side_bet_won:        '#22C55E',
   side_bet_lost:       '#EF4444',
   fulfillment_check:   '#FFB800',
@@ -138,11 +144,11 @@ export default function NotificationsPage() {
     if (n.type === 'new_message' && n.reference_id) router.push(`/app/chat/${n.reference_id}`)
     else if (n.type === 'follow_request') router.push('/app/profile')
     else if (n.type === 'follow_accepted' && n.reference_id) router.push(`/app/profile/${n.reference_id}`)
-    else if (['deal_request', 'deal_update', 'deal_completed', 'deal_won', 'deal_lost'].includes(n.type) && n.reference_id) router.push(`/app/deals/${n.reference_id}`)
+    else if (['deal_request', 'deal_update', 'deal_completed', 'deal_won', 'deal_lost', 'challenge_received'].includes(n.type) && n.reference_id) router.push(`/app/deals/${n.reference_id}`)
     else if (['battlepass_tier', 'battlepass_reward'].includes(n.type)) router.push('/app/battlepass')
     else if (['challenge_reminder', 'challenge_completed'].includes(n.type)) router.push('/app/challenges')
     else if (n.type === 'streak_milestone') router.push('/app/rewards')
-    else if (['coins_received', 'side_bet_won', 'side_bet_lost'].includes(n.type) && n.reference_id) router.push(`/app/deals/${n.reference_id}`)
+    else if (['coins_received', 'side_challenge_won', 'side_challenge_lost', 'side_bet_won', 'side_bet_lost'].includes(n.type) && n.reference_id) router.push(`/app/deals/${n.reference_id}`)
     else if (n.type === 'referral_completed') router.push('/app/invite')
     else if (n.type === 'fulfillment_check' && n.reference_id) router.push(`/app/deals/${n.reference_id}`)
     else if (['frame_unlocked', 'archetype_unlocked'].includes(n.type)) router.push('/app/shop')
@@ -187,7 +193,7 @@ export default function NotificationsPage() {
           <button key={tab} onClick={() => setActiveTab(tab)} style={{
             flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
             background: activeTab === tab ? 'rgba(255,184,0,0.12)' : 'var(--bg-surface)',
-            color: activeTab === tab ? '#FFB800' : 'var(--text-muted)',
+            color: activeTab === tab ? 'var(--gold-primary)' : 'var(--text-muted)',
             fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
             transition: 'all 0.2s',
           }}>
