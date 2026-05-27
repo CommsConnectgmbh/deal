@@ -99,7 +99,20 @@ export default function GroupStageView({
     return groupedByLabel[0]?.[0] ?? null
   }, [groupedByLabel])
 
-  const [openGroup, setOpenGroup] = useState<string | null>(initialOpenGroup ?? firstWithOpenMatch)
+  // Mehrere Gruppen können gleichzeitig offen sein. Default: nur die erste mit offenen Spielen.
+  const [openSet, setOpenSet] = useState<Set<string>>(() => {
+    const initial = initialOpenGroup ?? firstWithOpenMatch
+    return new Set(initial ? [initial] : [])
+  })
+  const toggle = (label: string) => {
+    setOpenSet(prev => {
+      const next = new Set(prev)
+      if (next.has(label)) next.delete(label); else next.add(label)
+      return next
+    })
+  }
+  const openAll = () => setOpenSet(new Set(groupedByLabel.map(([l]) => l)))
+  const collapseAll = () => setOpenSet(new Set())
 
   if (groupedByLabel.length === 0) {
     return (
@@ -114,54 +127,102 @@ export default function GroupStageView({
 
   return (
     <div style={{ padding: '8px 12px 16px' }}>
-      {/* Group quick-nav chips */}
+      {/* Header bar: total + expand/collapse all */}
       <div style={{
-        display: 'flex', gap: 6, overflowX: 'auto', padding: '8px 4px 12px',
-        scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch',
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '4px 4px 12px',
       }}>
-        {groupedByLabel.map(([label]) => {
-          const isOpen = label === openGroup
-          const shortLabel = label.replace(/^(?:Group|Gruppe)[\s_]+/i, '').replace(/^GROUP_/, '')
-          return (
-            <button
-              key={label}
-              onClick={() => setOpenGroup(label)}
-              style={{
-                flexShrink: 0,
-                padding: '7px 14px', borderRadius: 999,
-                fontSize: 11, fontFamily: 'var(--font-display)', fontWeight: 800,
-                letterSpacing: 1.2, textTransform: 'uppercase', cursor: 'pointer',
-                background: isOpen
-                  ? 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))'
-                  : 'var(--bg-elevated)',
-                color: isOpen ? 'var(--text-inverse)' : 'var(--text-secondary)',
-                border: isOpen ? 'none' : '1px solid var(--border-subtle)',
-                transition: 'background .2s',
-              }}
-            >
-              {shortLabel.length <= 3 ? `Gruppe ${shortLabel}` : shortLabel}
-            </button>
-          )
-        })}
+        <span style={{
+          fontSize: 11, fontFamily: 'var(--font-display)', fontWeight: 700,
+          color: 'var(--text-muted)', letterSpacing: 1.5, textTransform: 'uppercase',
+        }}>
+          {groupedByLabel.length} Gruppen · {groupQuestions.length} Spiele
+        </span>
+        <span style={{ flex: 1 }} />
+        <button onClick={openSet.size === groupedByLabel.length ? collapseAll : openAll} style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          color: 'var(--gold-primary)', fontSize: 11,
+          fontFamily: 'var(--font-display)', fontWeight: 700,
+          letterSpacing: 1, textTransform: 'uppercase', padding: '4px 8px',
+        }}>
+          {openSet.size === groupedByLabel.length ? 'Alle zu' : 'Alle auf'}
+        </button>
       </div>
 
       {groupedByLabel.map(([label, matches]) => {
-        if (label !== openGroup) return null
+        const isOpen = openSet.has(label)
+        const shortLabel = label.replace(/^(?:Group|Gruppe)[\s_]+/i, '').replace(/^GROUP_/, '')
+        const displayLabel = shortLabel.length <= 3 ? `Gruppe ${shortLabel}` : shortLabel
         const standings = computeStandings(matches)
         const sortedMatches = [...matches].sort((a, b) => {
           const ta = a.match_utc_date ? new Date(a.match_utc_date).getTime() : 0
           const tb = b.match_utc_date ? new Date(b.match_utc_date).getTime() : 0
           return ta - tb
         })
+        const openMatchCount = matches.filter(m => m.status !== 'resolved' && !deadlinePassed(m.deadline)).length
+        const tippedCount = matches.filter(m => {
+          const a = myAnswers[m.id]
+          return a && a.home_score_tip !== null && a.away_score_tip !== null
+        }).length
 
         return (
-          <div key={label}>
+          <div key={label} style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 14, marginBottom: 10, overflow: 'hidden',
+          }}>
+            {/* Group accordion header — always visible */}
+            <button
+              onClick={() => toggle(label)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                padding: '12px 14px', background: 'none', border: 'none',
+                cursor: 'pointer', textAlign: 'left',
+              }}
+            >
+              <span style={{
+                width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: isOpen
+                  ? 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))'
+                  : 'var(--bg-elevated)',
+                color: isOpen ? 'var(--text-inverse)' : 'var(--gold-primary)',
+                fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 800,
+                letterSpacing: 0.5,
+              }}>
+                {shortLabel}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{
+                  margin: 0, fontSize: 13, fontWeight: 700,
+                  color: 'var(--text-primary)', fontFamily: 'var(--font-display)',
+                  letterSpacing: 0.5,
+                }}>
+                  {displayLabel}
+                </p>
+                <p style={{
+                  margin: '2px 0 0', fontSize: 10, color: 'var(--text-muted)',
+                  letterSpacing: 0.3,
+                }}>
+                  {standings.length} Teams · {tippedCount}/{matches.length} getippt
+                  {openMatchCount > 0 ? ` · ${openMatchCount} offen` : ''}
+                </p>
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)"
+                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                style={{ flexShrink: 0, transition: 'transform 0.25s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+
+            {!isOpen ? null : (
+            <div style={{ padding: '0 12px 12px' }}>
             {/* Mini standings table */}
             <div style={{
-              background: 'var(--bg-surface)',
+              background: 'var(--bg-elevated)',
               border: '1px solid var(--border-subtle)',
-              borderRadius: 14, padding: '14px 12px 10px',
-              marginBottom: 14,
+              borderRadius: 12, padding: '12px 10px 8px',
+              marginBottom: 12,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, padding: '0 4px' }}>
                 <span style={{
@@ -252,7 +313,7 @@ export default function GroupStageView({
             </div>
 
             {/* Matches in this group */}
-            <div style={{ marginBottom: 12 }}>
+            <div>
               {sortedMatches.map(q => {
                 const draft = drafts[q.id] || { homeScore: '', awayScore: '', joker: false }
                 return (
@@ -271,6 +332,8 @@ export default function GroupStageView({
                 )
               })}
             </div>
+            </div>
+            )}
           </div>
         )
       })}
