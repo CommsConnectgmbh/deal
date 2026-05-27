@@ -121,7 +121,7 @@ export default function GroupStageView({
       }}>
         {groupedByLabel.map(([label]) => {
           const isOpen = label === openGroup
-          const shortLabel = label.replace(/^Group\s+/i, '').replace(/^Gruppe\s+/i, '')
+          const shortLabel = label.replace(/^(?:Group|Gruppe)[\s_]+/i, '').replace(/^GROUP_/, '')
           return (
             <button
               key={label}
@@ -168,7 +168,7 @@ export default function GroupStageView({
                   fontSize: 11, fontFamily: 'var(--font-display)', fontWeight: 800,
                   color: 'var(--gold-primary)', letterSpacing: 1.5, textTransform: 'uppercase',
                 }}>
-                  Tabelle {label.replace(/^Group\s+/i, '').replace(/^Gruppe\s+/i, '')}
+                  Tabelle {label.replace(/^(?:Group|Gruppe)[\s_]+/i, '').replace(/^GROUP_/, '')}
                 </span>
                 <span style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
                 <span style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: 0.5 }}>
