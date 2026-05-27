@@ -1,5 +1,5 @@
 // DealBuddy Service Worker — v2 (auto-update)
-const SW_VERSION = 'v20-2026-05-27-wm-mode-on-master'
+const SW_VERSION = 'v21-2026-05-27-joker-out'
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

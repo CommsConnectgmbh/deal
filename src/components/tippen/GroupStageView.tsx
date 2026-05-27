@@ -11,8 +11,6 @@ interface Props {
   questions: GroupQuestion[]
   drafts: Record<string, TipDraft>
   myAnswers: Record<string, { home_score_tip: number | null; away_score_tip: number | null; is_joker: boolean; points_earned: number | null } | undefined>
-  jokerEnabled: boolean
-  jokersRemaining: number
   onDraftChange: (qId: string, patch: Partial<TipDraft>) => void
   initialOpenGroup?: string | null
 }
@@ -74,8 +72,7 @@ function computeStandings(matches: GroupQuestion[]): StandingRow[] {
 function deadlinePassed(iso: string) { return new Date(iso).getTime() < Date.now() }
 
 export default function GroupStageView({
-  questions, drafts, myAnswers,
-  jokerEnabled, jokersRemaining, onDraftChange, initialOpenGroup,
+  questions, drafts, myAnswers, onDraftChange, initialOpenGroup,
 }: Props) {
   const groupQuestions = useMemo(
     () => questions.filter(q => STAGE_GROUP(q.competition_stage) && q.group_label),
@@ -315,7 +312,7 @@ export default function GroupStageView({
             {/* Matches in this group */}
             <div>
               {sortedMatches.map(q => {
-                const draft = drafts[q.id] || { homeScore: '', awayScore: '', joker: false }
+                const draft = drafts[q.id] || { homeScore: '', awayScore: '' }
                 return (
                   <MatchCard
                     key={q.id}
@@ -324,9 +321,6 @@ export default function GroupStageView({
                     existingTip={myAnswers[q.id] || null}
                     locked={deadlinePassed(q.deadline)}
                     resolved={q.status === 'resolved'}
-                    jokerEnabled={jokerEnabled}
-                    jokersRemaining={jokersRemaining}
-                    jokerUsedThisMatchday={false}
                     onDraftChange={patch => onDraftChange(q.id, patch)}
                   />
                 )

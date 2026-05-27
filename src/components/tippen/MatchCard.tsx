@@ -47,7 +47,7 @@ function formatStage(stage: string | null | undefined, groupLabel: string | null
 export interface TipDraft {
   homeScore: string
   awayScore: string
-  joker: boolean
+  joker?: boolean
 }
 
 interface MatchCardProps {
@@ -56,9 +56,6 @@ interface MatchCardProps {
   existingTip?: { home_score_tip: number | null; away_score_tip: number | null; is_joker: boolean; points_earned: number | null } | null
   locked: boolean
   resolved: boolean
-  jokerEnabled: boolean
-  jokersRemaining: number
-  jokerUsedThisMatchday: boolean
   onDraftChange: (patch: Partial<TipDraft>) => void
 }
 
@@ -131,8 +128,7 @@ function getPointsLabel(pts: number | null | undefined): { text: string; color: 
 }
 
 export default function MatchCard({
-  q, draft, existingTip, locked, resolved,
-  jokerEnabled, jokersRemaining, jokerUsedThisMatchday, onDraftChange,
+  q, draft, existingTip, locked, resolved, onDraftChange,
 }: MatchCardProps) {
   const { t } = useLang()
   const dayNames = [t('tippen.dayShortSun'), t('tippen.dayShortMon'), t('tippen.dayShortTue'), t('tippen.dayShortWed'), t('tippen.dayShortThu'), t('tippen.dayShortFri'), t('tippen.dayShortSat')]
@@ -301,7 +297,7 @@ export default function MatchCard({
         </div>
       </div>
 
-      {/* Bottom: Joker toggle (if open) or points (if resolved) */}
+      {/* Bottom: points (if resolved) or saved confirmation */}
       {resolved && hasTipped && (
         <div style={{ marginTop: 8, textAlign: 'center' }}>
           <span style={{
@@ -310,32 +306,15 @@ export default function MatchCard({
             letterSpacing: 0.5,
           }}>
             {t('tippen.tipLabel').replace('{home}', String(existingTip!.home_score_tip)).replace('{away}', String(existingTip!.away_score_tip))}
-            {existingTip!.is_joker ? ' 🃏' : ''}
             {' → '}{getPointsLabel(existingTip!.points_earned).text}
           </span>
         </div>
-      )}
-
-      {!locked && !resolved && jokerEnabled && jokersRemaining > 0 && !jokerUsedThisMatchday && (
-        <label style={{
-          display: 'flex', alignItems: 'center', gap: 6, marginTop: 8,
-          cursor: 'pointer', fontSize: 11, color: draft.joker ? 'var(--gold-primary)' : 'var(--text-muted)',
-          fontFamily: 'var(--font-display)', letterSpacing: 0.5,
-        }}>
-          <input
-            type="checkbox" checked={draft.joker}
-            onChange={e => onDraftChange({ joker: e.target.checked })}
-            style={{ accentColor: 'var(--gold-primary)', width: 16, height: 16 }}
-          />
-          {t('tippen.jokerRemaining').replace('{count}', String(jokersRemaining))}
-        </label>
       )}
 
       {hasTipped && !locked && !resolved && (
         <div style={{ marginTop: 6, textAlign: 'center' }}>
           <span style={{ fontSize: 11, color: 'var(--status-active)', fontFamily: 'var(--font-display)' }}>
             {t('tippen.tipSaved').replace('{home}', String(existingTip!.home_score_tip)).replace('{away}', String(existingTip!.away_score_tip))}
-            {existingTip!.is_joker ? ' 🃏' : ''}
           </span>
         </div>
       )}

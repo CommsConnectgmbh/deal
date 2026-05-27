@@ -57,9 +57,6 @@ export default function GroupSettingsPanel({ group, members, currentUserId, onSy
   const [pointsExact, setPointsExact] = useState(group.points_exact)
   const [pointsDiff, setPointsDiff] = useState(group.points_diff)
   const [pointsTendency, setPointsTendency] = useState(group.points_tendency)
-  const [jokerEnabled, setJokerEnabled] = useState(group.joker_enabled)
-  const [jokerMultiplier, setJokerMultiplier] = useState(group.joker_multiplier)
-  const [jokerPerMatchday, setJokerPerMatchday] = useState(group.joker_per_matchday)
   const [competitionCode, setCompetitionCode] = useState(group.competition_code || '')
   const [seasonYear, setSeasonYear] = useState(group.season_year || '2025')
   const [saving, setSaving] = useState(false)
@@ -79,9 +76,9 @@ export default function GroupSettingsPanel({ group, members, currentUserId, onSy
       points_exact: pointsExact,
       points_diff: pointsDiff,
       points_tendency: pointsTendency,
-      joker_enabled: jokerEnabled,
-      joker_multiplier: jokerMultiplier,
-      joker_per_matchday: jokerPerMatchday,
+      joker_enabled: false,
+      joker_multiplier: 1,
+      joker_per_matchday: 0,
       competition_code: competitionCode || null,
       season_year: seasonYear || null,
     }).eq('id', group.id)
@@ -183,34 +180,6 @@ export default function GroupSettingsPanel({ group, members, currentUserId, onSy
             <input type="number" value={pointsTendency} onChange={e => setPointsTendency(+e.target.value)} min={0} max={20} style={inputStyle} />
           </div>
         </div>
-      </div>
-
-      {/* Joker */}
-      <div style={sectionStyle}>
-        <h3 style={{ fontSize: 13, fontFamily: 'var(--font-display)', color: 'var(--gold-primary)', margin: '0 0 12px', letterSpacing: 1 }}>
-          {t('tippen.jokerLabel')}
-        </h3>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{t('tippen.jokerEnabled')}</span>
-          <button onClick={() => setJokerEnabled(!jokerEnabled)} style={{
-            width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
-            background: jokerEnabled ? 'var(--gold-primary)' : 'var(--bg-elevated)', position: 'relative',
-          }}>
-            <div style={{ width: 18, height: 18, borderRadius: 9, background: '#fff', position: 'absolute', top: 3, left: jokerEnabled ? 23 : 3, transition: 'left .2s' }} />
-          </button>
-        </div>
-        {jokerEnabled && (
-          <div style={{ display: 'flex', gap: 8 }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>{t('tippen.multiplierLabel')}</label>
-              <input type="number" value={jokerMultiplier} onChange={e => setJokerMultiplier(+e.target.value)} min={1} max={5} style={inputStyle} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>{t('tippen.perMatchdayLabel')}</label>
-              <input type="number" value={jokerPerMatchday} onChange={e => setJokerPerMatchday(+e.target.value)} min={0} max={5} style={inputStyle} />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Liga-Sync */}

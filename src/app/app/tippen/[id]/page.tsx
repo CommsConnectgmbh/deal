@@ -452,14 +452,12 @@ export default function TippgruppeDetailPage() {
 
       if (homeScore === '' || awayScore === '') continue
 
-      const isJoker = draft?.joker || false
-
       const payload = {
         question_id: q.id,
         user_id: user.id,
         home_score_tip: parseInt(homeScore),
         away_score_tip: parseInt(awayScore),
-        is_joker: isJoker,
+        is_joker: false,
       }
 
       const { data, error } = await supabase
@@ -622,7 +620,7 @@ export default function TippgruppeDetailPage() {
   }
 
   /* ── Draft helpers ── */
-  const getDraft = (qId: string): TipDraft => drafts[qId] || { homeScore: '', awayScore: '', joker: false }
+  const getDraft = (qId: string): TipDraft => drafts[qId] || { homeScore: '', awayScore: '' }
   const updateDraft = (qId: string, patch: Partial<TipDraft>) => {
     setDrafts(prev => ({ ...prev, [qId]: { ...getDraft(qId), ...patch } }))
   }
@@ -636,10 +634,6 @@ export default function TippgruppeDetailPage() {
     const a = d?.awayScore || (ex?.away_score_tip !== null ? String(ex?.away_score_tip) : '')
     return h !== '' && a !== ''
   }).length
-
-  // Check if joker already used in this matchday
-  const jokerUsedMatchdays = (membership?.jokers_used_matchdays || []) as number[]
-  const jokerUsedThisMd = jokerUsedMatchdays.includes(activeMatchday)
 
   /* ── Share invite ── */
   const shareInvite = () => {
@@ -851,9 +845,6 @@ export default function TippgruppeDetailPage() {
                       existingTip={myAnswers[q.id] || null}
                       locked={deadlinePassed(q.deadline)}
                       resolved={q.status === 'resolved'}
-                      jokerEnabled={group.joker_enabled}
-                      jokersRemaining={membership?.jokers_remaining || 0}
-                      jokerUsedThisMatchday={jokerUsedThisMd}
                       onDraftChange={patch => updateDraft(q.id, patch)}
                     />
                   ))
@@ -913,8 +904,6 @@ export default function TippgruppeDetailPage() {
             }))}
             drafts={drafts}
             myAnswers={myAnswers}
-            jokerEnabled={group.joker_enabled}
-            jokersRemaining={membership?.jokers_remaining || 0}
             onDraftChange={(qId, patch) => updateDraft(qId, patch)}
           />
 
@@ -937,7 +926,7 @@ export default function TippgruppeDetailPage() {
                     question_id: qId, user_id: user.id,
                     home_score_tip: parseInt(homeScore),
                     away_score_tip: parseInt(awayScore),
-                    is_joker: !!draft.joker,
+                    is_joker: false,
                   }, { onConflict: 'question_id,user_id' })
                   .select().single()
                 if (!error && data) {
