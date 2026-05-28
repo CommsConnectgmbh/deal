@@ -230,18 +230,21 @@ html, body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  min-height: 100dvh;
-  -webkit-overflow-scrolling: touch;
+  -webkit-text-size-adjust: 100%;
 }
-/* overflow-x ONLY on html — if set on both html+body,
-   body becomes its own scroll-container and mobile Safari
-   can't scroll the page (body.clientHeight == scrollHeight) */
-html {
-  overflow-x: hidden;
-  overscroll-behavior-x: none;
+/* App-like shell: body is the viewport, .app-content scrolls internally.
+   This stops iOS WebView from rubber-banding the whole page and dragging
+   the fixed header/bottom-nav off-screen. */
+html, body {
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 body {
-  overscroll-behavior: none;
+  position: fixed;
+  inset: 0;
+  width: 100%;
 }
 
 [data-theme="dark"] body, [data-theme="dark"] html {
@@ -285,19 +288,24 @@ body {
 .dt-only { display: none !important; }
 .mb-only { display: block; }
 
-/* Mobile (default): single 430-wide centered column with fixed top + bottom bars */
+/* Mobile (default): single 430-wide centered column.
+   Shell fills the viewport; .app-content owns the scroll. */
 .app-shell {
   max-width: 430px;
   margin: 0 auto;
-  min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   position: relative;
 }
 .app-content {
   flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding-top: calc(68px + env(safe-area-inset-top));
-  padding-bottom: 84px;
+  padding-bottom: calc(84px + env(safe-area-inset-bottom));
 }
 
 /* Desktop: 245px left sidebar + centered content column */
@@ -305,9 +313,16 @@ body {
   .mb-only { display: none !important; }
   .dt-only { display: block !important; }
   .dt-only.dt-flex { display: flex !important; }
+  html, body {
+    position: static;
+    height: auto;
+    overflow: auto;
+  }
   .app-shell {
     max-width: none;
     padding-left: 245px;
+    height: auto;
+    min-height: 100dvh;
   }
   .app-content {
     width: 100%;
@@ -315,6 +330,7 @@ body {
     margin: 0 auto;
     padding-top: 28px;
     padding-bottom: 28px;
+    overflow: visible;
   }
 }
 
