@@ -51,7 +51,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ paid: false, status: session.payment_status })
     }
 
-    // BEZAHLT aber noch pending → Webhook kam nie an → Coins JETZT gutschreiben
+    // Atomarer Claim: der Status-Übergang ist die Gutschrift-Sperre. Nur der
+    // Aufruf, der die Zeile von !=completed auf completed dreht, schreibt gut.
+    // Schützt gegen Doppel-Gutschrift, falls der Stripe-Webhook parallel
+    // dieselbe Session fulfilled (add_coins ist NICHT idempotent).
+    const { data: claimed, error: claimErr } = await supabase
+      .from('stripe_transactions')
+      .update({ status: 'completed', completed_at: new Date().toISOString() })
+      .eq('id', tx.id)
+      .neq('status', 'completed')
+      .select('id')
+    if (claimErr) return NextResponse.json({ error: 'Verification failed' }, { status: 500 })
+    if (!claimed || claimed.length === 0) {
+      // Anderer Pfad (Webhook) war schneller → idempotent zurück, NICHT erneut buchen.
+      return NextResponse.json({ paid: true, fulfilled: true, coins: tx.coins_awarded })
+    }
+
+    // BEZAHLT, Claim gewonnen → Coins JETZT gutschreiben
     console.log(`[Fulfillment Fallback] Session ${session_id} paid but pending. Fulfilling now.`)
 
     const product_type = tx.product_type
@@ -81,12 +97,7 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Transaction als completed markieren
-    await supabase.from('stripe_transactions').update({
-      status: 'completed',
-      completed_at: new Date().toISOString(),
-    }).eq('id', tx.id)
-
+    // Status wurde bereits oben atomar auf 'completed' geclaimt.
     return NextResponse.json({ paid: true, fulfilled: true, coins })
   } catch (err: any) {
     console.error('Verify/fulfill error:', err.message)

@@ -30,25 +30,28 @@ serve(async (req) => {
       return new Response('Missing metadata', { status: 400 })
     }
 
-    // IDEMPOTENCY: Check if this session was already processed
-    const { data: existingTx } = await supabase
+    // IDEMPOTENCY (atomar): Status-Übergang ist der Claim. Nur der Aufruf,
+    // der die Zeile tatsächlich von !=completed auf completed dreht, fulfilled.
+    // Verhindert Doppel-Gutschrift, wenn Webhook und verify-stripe-session-
+    // Fallback gleichzeitig laufen (add_coins ist NICHT idempotent, und die
+    // beiden Pfade nutzen verschiedene ledger-reasons → Unique-Index greift nicht).
+    const { data: claimed, error: claimErr } = await supabase
       .from('stripe_transactions')
-      .select('status')
+      .update({ status: 'completed', completed_at: new Date().toISOString() })
       .eq('session_id', session.id)
-      .single()
+      .neq('status', 'completed')
+      .select('id')
 
-    if (existingTx?.status === 'completed') {
+    if (claimErr) {
+      console.error('Claim failed:', claimErr.message)
+      return new Response('claim error', { status: 500 })
+    }
+    if (!claimed || claimed.length === 0) {
       console.log('Session already processed, skipping:', session.id)
       return new Response(JSON.stringify({ received: true, skipped: true }), {
         headers: { 'Content-Type': 'application/json' }
       })
     }
-
-    // Update transaction status
-    await supabase.from('stripe_transactions').update({
-      status: 'completed',
-      completed_at: new Date().toISOString()
-    }).eq('session_id', session.id)
 
     if (product_type === 'premium_pass') {
       // Unlock premium battle pass
