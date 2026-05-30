@@ -167,7 +167,9 @@ export default function HomePage() {
       ])
     }
     init()
-  }, [profile])
+    // Only re-run on identity change, not on every profile-object reference
+    // churn (updateProfile / hourly token refresh) which caused full feed reloads.
+  }, [profile?.id])
 
   // Skeleton timeout: show empty state after 3s of loading (was 5s – too slow)
   useEffect(() => {

@@ -62,14 +62,14 @@ export default function DailyLoginPopup({ onClose }: { onClose: () => void }) {
       const nextDay = isConsecutive ? Math.min(7, (userLogin?.current_day || 1) + 1) : 1
       const reward = rewards.find(r => r.day_number === currentDay)
 
-      // Grant reward
+      // Grant reward (atomic + idempotent; shares the daily reference key
+      // with the rewards page so the same day can't be double-claimed)
       if (reward?.reward_type === 'coins' && reward.reward_amount) {
-        await supabase.from('wallet_ledger').insert({
-          user_id: profile.id, delta: reward.reward_amount,
-          reason: 'level_up', reference_id: `daily_${today}`,
+        await supabase.rpc('grant_coins_idempotent', {
+          p_amount: reward.reward_amount,
+          p_reason: 'daily_login',
+          p_reference_id: `daily_${today}`,
         })
-        await supabase.from('profiles')
-          .update({ coins: (profile.coins || 0) + reward.reward_amount }).eq('id', profile.id)
       } else if (reward?.reward_ref) {
         await supabase.from('user_inventory').upsert({
           user_id: profile.id, cosmetic_id: reward.reward_ref, source: 'earned',

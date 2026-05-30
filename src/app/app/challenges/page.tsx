@@ -80,18 +80,14 @@ export default function ChallengesPage() {
     if (!usc?.completed || usc?.claimed) return
     setClaiming(ch.id)
     try {
-      if (ch.reward_coins > 0) {
-        await supabase.from('wallet_ledger').insert({
-          user_id: profile.id, delta: ch.reward_coins, reason: 'weekly_challenge', reference_id: ch.id,
+      if (ch.reward_coins > 0 || ch.reward_xp > 0) {
+        // Atomic + idempotent server-side credit (coins + xp in one shot).
+        await supabase.rpc('grant_coins_idempotent', {
+          p_amount: ch.reward_coins || 0,
+          p_reason: 'weekly_challenge',
+          p_reference_id: ch.id,
+          p_xp: ch.reward_xp || 0,
         })
-        await supabase.from('profiles')
-          .update({ coins: (profile.coins || 0) + ch.reward_coins })
-          .eq('id', profile.id)
-      }
-      if (ch.reward_xp > 0) {
-        await supabase.from('profiles')
-          .update({ xp: (profile.xp || 0) + ch.reward_xp })
-          .eq('id', profile.id)
       }
       await supabase.from('user_weekly_challenges').upsert(
         { user_id: profile.id, challenge_id: ch.id, claimed: true, progress: usc.progress, completed: true },

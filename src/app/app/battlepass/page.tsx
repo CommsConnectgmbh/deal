@@ -24,7 +24,7 @@ interface UserBP {
 }
 
 const REWARD_ICONS: Record<string, string> = {
-  frame: '🖼️', badge: '🏅', card_skin: '🃏', coins: '🪙',
+  frame: '🖼️', badge: '🏅', card_skin: '🎴', coins: '🪙',
   title: '🏷️', avatar_item: '👤', xp: '⭐',
 }
 const REWARD_COLORS: Record<string, string> = {

@@ -391,11 +391,11 @@ export default function DealDetailPage() {
         }
       }
       fetchDeal()
-    } catch {
-      await supabase.from('challenges').update({
-        status: 'completed', winner_id: deal.proposed_winner_id,
-        confirmed_at: new Date().toISOString(),
-      }).eq('id', id)
+    } catch (_err) {
+      // Settlement is server-authoritative (confirm-winner Edge Function).
+      // No client fallback — that would bypass self-confirm / 10-min /
+      // double-completion guards. Surface the error and let the user retry.
+      showActionToast(t('deals.confirmFailed'), 'error')
       fetchDeal()
     }
     setLoading(false)

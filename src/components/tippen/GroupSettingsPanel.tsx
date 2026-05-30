@@ -12,9 +12,6 @@ interface GroupConfig {
   points_exact: number
   points_diff: number
   points_tendency: number
-  joker_enabled: boolean
-  joker_multiplier: number
-  joker_per_matchday: number
   competition_code: string | null
   competition_name: string | null
   season_year: string | null
@@ -76,9 +73,6 @@ export default function GroupSettingsPanel({ group, members, currentUserId, onSy
       points_exact: pointsExact,
       points_diff: pointsDiff,
       points_tendency: pointsTendency,
-      joker_enabled: false,
-      joker_multiplier: 1,
-      joker_per_matchday: 0,
       competition_code: competitionCode || null,
       season_year: seasonYear || null,
     }).eq('id', group.id)

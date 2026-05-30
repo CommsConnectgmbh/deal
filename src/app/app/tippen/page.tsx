@@ -325,7 +325,6 @@ export default function TippenPage() {
       user_id: user.id,
       role: 'admin',
       total_points: 0,
-      jokers_remaining: 3,
     })
 
     // Award +50 XP
@@ -384,7 +383,6 @@ export default function TippenPage() {
       user_id: user.id,
       role: 'member',
       total_points: 0,
-      jokers_remaining: 3,
     })
     setJoinLoading(false)
     fetchGroups()
@@ -427,7 +425,6 @@ export default function TippenPage() {
       user_id: user.id,
       role: 'member',
       total_points: 0,
-      jokers_remaining: 3,
     })
 
     setJoinLoading(false)

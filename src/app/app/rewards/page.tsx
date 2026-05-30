@@ -110,13 +110,12 @@ export default function RewardsPage() {
     setClaiming('daily')
     try {
       if (todayReward.reward_type === 'coins' && todayReward.reward_amount) {
-        await supabase.from('wallet_ledger').insert({
-          user_id: profile.id, delta: todayReward.reward_amount,
-          reason: 'daily_login', reference_id: todayReward.id,
+        // Atomic + idempotent server-side credit (reference_id guards Doppelklick/Tabs).
+        await supabase.rpc('grant_coins_idempotent', {
+          p_amount: todayReward.reward_amount,
+          p_reason: 'daily_login',
+          p_reference_id: `daily_${today}`,
         })
-        await supabase.from('profiles')
-          .update({ coins: (profile.coins || 0) + todayReward.reward_amount })
-          .eq('id', profile.id)
       } else if (todayReward.reward_ref) {
         await supabase.from('user_inventory').upsert(
           { user_id: profile.id, cosmetic_id: todayReward.reward_ref, source: 'daily_login' },
@@ -145,11 +144,11 @@ export default function RewardsPage() {
     setClaiming(sr.id)
     try {
       if (sr.reward_type === 'coins' && sr.reward_amount) {
-        await supabase.from('wallet_ledger').insert({
-          user_id: profile.id, delta: sr.reward_amount, reason: 'streak_reward', reference_id: sr.id,
+        await supabase.rpc('grant_coins_idempotent', {
+          p_amount: sr.reward_amount,
+          p_reason: 'streak_reward',
+          p_reference_id: sr.id,
         })
-        await supabase.from('profiles')
-          .update({ coins: (profile.coins || 0) + sr.reward_amount }).eq('id', profile.id)
       } else if (sr.reward_ref) {
         await supabase.from('user_inventory').upsert(
           { user_id: profile.id, cosmetic_id: sr.reward_ref, source: 'streak_reward' },
@@ -176,11 +175,11 @@ export default function RewardsPage() {
     setClaiming(sc.id)
     try {
       if (sc.reward_type === 'coins' && sc.reward_amount) {
-        await supabase.from('wallet_ledger').insert({
-          user_id: profile.id, delta: sc.reward_amount, reason: 'challenge_reward', reference_id: sc.id,
+        await supabase.rpc('grant_coins_idempotent', {
+          p_amount: sc.reward_amount,
+          p_reason: 'challenge_reward',
+          p_reference_id: sc.id,
         })
-        await supabase.from('profiles')
-          .update({ coins: (profile.coins || 0) + sc.reward_amount }).eq('id', profile.id)
       } else if (sc.reward_ref) {
         await supabase.from('user_inventory').upsert(
           { user_id: profile.id, cosmetic_id: sc.reward_ref, source: 'challenge' },

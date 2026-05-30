@@ -47,13 +47,12 @@ function formatStage(stage: string | null | undefined, groupLabel: string | null
 export interface TipDraft {
   homeScore: string
   awayScore: string
-  joker?: boolean
 }
 
 interface MatchCardProps {
   q: MatchQuestion
   draft: TipDraft
-  existingTip?: { home_score_tip: number | null; away_score_tip: number | null; is_joker: boolean; points_earned: number | null } | null
+  existingTip?: { home_score_tip: number | null; away_score_tip: number | null; points_earned: number | null } | null
   locked: boolean
   resolved: boolean
   onDraftChange: (patch: Partial<TipDraft>) => void
