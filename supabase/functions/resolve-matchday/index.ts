@@ -53,7 +53,7 @@ serve(async (req) => {
     // Get group scoring config
     const { data: group } = await supabase
       .from('tip_groups')
-      .select('points_exact, points_diff, points_tendency, joker_multiplier')
+      .select('points_exact, points_diff, points_tendency')
       .eq('id', group_id)
       .single()
 
@@ -61,7 +61,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Group not found' }), { status: 404, headers: corsHeaders })
     }
 
-    const { points_exact, points_diff, points_tendency, joker_multiplier } = group
+    const { points_exact, points_diff, points_tendency } = group
 
     // Get all FINISHED questions for this matchday
     const { data: questions } = await supabase
@@ -95,7 +95,7 @@ serve(async (req) => {
       // Get all tips for this question
       const { data: tips } = await supabase
         .from('tip_answers')
-        .select('id, user_id, home_score_tip, away_score_tip, is_joker')
+        .select('id, user_id, home_score_tip, away_score_tip')
         .eq('question_id', q.id)
 
       if (!tips) continue
@@ -119,11 +119,6 @@ serve(async (req) => {
         } else if (tipTendency === actualTendency) {
           // Correct tendency (home/away/draw)
           points = points_tendency
-        }
-
-        // Apply joker multiplier
-        if (tip.is_joker && points > 0) {
-          points *= joker_multiplier
         }
 
         // Update tip_answers.points_earned

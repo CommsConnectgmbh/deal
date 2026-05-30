@@ -399,7 +399,7 @@ export default function ShopPage() {
     { key: 'featured',   label: 'FEATURED',   emoji: '⭐' },
     { key: 'coins',      label: 'COINS',      emoji: '🪙' },
     { key: 'frames',     label: 'RAHMEN',     emoji: '💎' },
-    { key: 'packs',      label: 'PACKS',      emoji: '🃏' },
+    { key: 'packs',      label: 'PACKS',      emoji: '🎴' },
     { key: 'archetypes', label: 'ARCHETYPEN', emoji: '🐲' },
     { key: 'inventory',  label: 'INVENTAR',   emoji: '🎒' },
   ]
@@ -432,7 +432,7 @@ export default function ShopPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div onClick={() => router.push('/app/cards')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, background: 'var(--bg-surface)', borderRadius: 18, border: '1px solid rgba(255,184,0,0.15)', cursor: 'pointer' }}>
-            <span style={{ fontSize: 16 }}>🃏</span>
+            <span style={{ fontSize: 16 }}>🎴</span>
           </div>
           <div onClick={() => setSection('coins')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-surface)', borderRadius: 20, padding: '6px 14px', border: '1px solid rgba(255,184,0,0.15)', cursor: 'pointer' }}>
             <CoinIcon size={18} />
@@ -598,7 +598,7 @@ export default function ShopPage() {
       {/* ══════ CARD PACKS ══════ */}
       {section === 'packs' && (
         <div style={{ padding: '0 16px' }}>
-          <p className='font-display' style={{ fontSize: 9, letterSpacing: 3, color: 'var(--text-secondary)', marginBottom: 16 }}>🃏 KARTEN PACKS</p>
+          <p className='font-display' style={{ fontSize: 9, letterSpacing: 3, color: 'var(--text-secondary)', marginBottom: 16 }}>🎴 KARTEN PACKS</p>
           {packDefs.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 20px' }}>
               <div style={{ fontSize: 48, marginBottom: 12, opacity: 0.5 }}>📦</div>
@@ -626,7 +626,7 @@ export default function ShopPage() {
                         </div>
                         <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6, lineHeight: 1.4 }}>{pack.description}</p>
                         <div style={{ display: 'flex', gap: 12, fontSize: 10, color: 'var(--text-muted)' }}>
-                          <span>🃏 {pack.cards_per_pack} {t('shop.cardsCount')}</span>
+                          <span>🎴 {pack.cards_per_pack} {t('shop.cardsCount')}</span>
                           {purchaseCount > 0 && <span>📊 {purchaseCount}x geoffnet</span>}
                         </div>
                       </div>
@@ -658,7 +658,7 @@ export default function ShopPage() {
 
           <div style={{ marginTop: 20, textAlign: 'center' }}>
             <button onClick={() => router.push('/app/cards')} style={{ padding: '12px 24px', borderRadius: 12, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: 'var(--font-display)', fontSize: 11, cursor: 'pointer', letterSpacing: 1, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              🃏 MEINE SAMMLUNG ANZEIGEN
+              🎴 MEINE SAMMLUNG ANZEIGEN
             </button>
           </div>
         </div>

@@ -102,28 +102,12 @@ export default function StreakLoginHandler({ userId }: Props) {
     // Award cycle reward
     const reward = CYCLE_REWARDS[loginCycleDay]
     if (reward) {
-      // Grant coins
-      await supabase.from('wallet_ledger').insert({
-        user_id: userId,
-        delta: reward.coins,
-        reason: 'login_streak',
-        reference_id: `streak_${today}_day${loginCycleDay}`,
-      })
-      await supabase.rpc('increment_coins', { uid: userId, amount: reward.coins }).then(({ error }: any) => {
-        // Fallback: direct update if RPC doesn't exist
-        if (error) {
-          supabase.from('profiles')
-            .select('coins')
-            .eq('id', userId)
-            .single()
-            .then(({ data }: any) => {
-              if (data) {
-                supabase.from('profiles')
-                  .update({ coins: (data.coins || 0) + reward.coins })
-                  .eq('id', userId)
-              }
-            })
-        }
+      // Grant coins (atomic + idempotent server-side; the reference key
+      // makes a given streak day claimable exactly once)
+      await supabase.rpc('grant_coins_idempotent', {
+        p_amount: reward.coins,
+        p_reason: 'login_streak',
+        p_reference_id: `streak_${today}_day${loginCycleDay}`,
       })
 
       // Grant badge cosmetic if applicable

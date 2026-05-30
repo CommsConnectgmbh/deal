@@ -10,7 +10,7 @@ interface GroupQuestion extends MatchQuestion {
 interface Props {
   questions: GroupQuestion[]
   drafts: Record<string, TipDraft>
-  myAnswers: Record<string, { home_score_tip: number | null; away_score_tip: number | null; is_joker: boolean; points_earned: number | null } | undefined>
+  myAnswers: Record<string, { home_score_tip: number | null; away_score_tip: number | null; points_earned: number | null } | undefined>
   onDraftChange: (qId: string, patch: Partial<TipDraft>) => void
   initialOpenGroup?: string | null
 }

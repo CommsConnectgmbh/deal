@@ -53,11 +53,11 @@ export default function MilestonesPage() {
     setClaiming(m.id)
     try {
       if (m.reward_type === 'coins' && m.reward_amount) {
-        await supabase.from('wallet_ledger').insert({
-          user_id: profile.id, delta: m.reward_amount,
-          reason: 'level_up', reference_id: m.id,
+        await supabase.rpc('grant_coins_idempotent', {
+          p_amount: m.reward_amount,
+          p_reason: 'milestone',
+          p_reference_id: m.id,
         })
-        await supabase.from('profiles').update({ coins: (profile.coins||0) + m.reward_amount }).eq('id', profile.id)
       } else if (m.reward_ref) {
         await supabase.from('user_inventory').upsert({
           user_id: profile.id, cosmetic_id: m.reward_ref, source: 'earned',

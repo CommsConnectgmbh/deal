@@ -51,17 +51,12 @@ export default function WelcomePage() {
   const completeOnboarding = useCallback(async () => {
     if (!user) return
     trackOnboardingCompleted()
-    await supabase.from('profiles').update({ onboarding_completed: true }).eq('id', user.id)
-    const currentCoins = profile?.coins || 0
-    await supabase.from('profiles').update({ coins: currentCoins + 50 }).eq('id', user.id)
-    await supabase.from('wallet_ledger').insert({
-      user_id: user.id,
-      amount: 50,
-      type: 'welcome_bonus',
-      description: 'Willkommensbonus',
-    })
+    // Atomic + non-farmable: the 50-coin bonus is hard-coupled to
+    // onboarding_completed=false server-side and writes the ledger entry
+    // in the same transaction.
+    await supabase.rpc('complete_onboarding_bonus')
     await refreshProfile()
-  }, [user, profile, refreshProfile])
+  }, [user, refreshProfile])
 
   const goHome = useCallback(async () => {
     await completeOnboarding()

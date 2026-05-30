@@ -68,7 +68,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!profile) return
     const ch = supabase
       .channel('layout_badge_updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, fetchBadges)
+      // Only our own conversations (realtime filters one column each → two subs).
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations',
+          filter: `participant_1=eq.${profile.id}` }, fetchBadges)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations',
+          filter: `participant_2=eq.${profile.id}` }, fetchBadges)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications',
           filter: `user_id=eq.${profile.id}` }, fetchBadges)
       .subscribe()

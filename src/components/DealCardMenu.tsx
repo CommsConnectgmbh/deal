@@ -78,11 +78,16 @@ export default function DealCardMenu({ dealId, onHide }: DealCardMenuProps) {
         .insert({ deal_id: dealId, reporter_id: user.id, reason })
       if (error) throw error
 
-      // Send email via API route
+      // Send email via API route (auth enforced server-side; reporter
+      // is derived from the verified session token, not client input)
+      const { data: { session } } = await supabase.auth.getSession()
       await fetch('/api/report-deal', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dealId, reason, reporterId: user.id }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ dealId, reason }),
       })
 
       setToast(t('menu.reportSent'))

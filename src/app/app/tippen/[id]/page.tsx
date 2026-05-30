@@ -24,7 +24,6 @@ interface TipGroup {
   league: string | null; stake: string | null; invite_code: string; is_public: boolean
   created_by: string; max_members: number; status: string; created_at: string
   points_exact: number; points_diff: number; points_tendency: number
-  joker_enabled: boolean; joker_multiplier: number; joker_per_matchday: number
   competition_id: number | null; competition_code: string | null
   competition_name: string | null; competition_type: string | null
   season_year: string | null; auto_sync: boolean; last_synced_at: string | null
@@ -50,13 +49,12 @@ interface TipAnswer {
   id: string; question_id: string; user_id: string
   home_score_tip: number | null; away_score_tip: number | null
   tendency: string | null; answer: string | null
-  points_earned: number | null; is_joker: boolean; created_at: string
+  points_earned: number | null; created_at: string
 }
 
 interface MemberRow {
   group_id: string; user_id: string; total_points: number
-  jokers_remaining: number; role: string; joined_at: string
-  jokers_used_matchdays: number[]
+  role: string; joined_at: string
   points_by_matchday: Record<string, number>
   profiles?: { username: string; display_name: string; avatar_url: string | null }
 }
@@ -457,7 +455,6 @@ export default function TippgruppeDetailPage() {
         user_id: user.id,
         home_score_tip: parseInt(homeScore),
         away_score_tip: parseInt(awayScore),
-        is_joker: false,
       }
 
       const { data, error } = await supabase
@@ -749,16 +746,14 @@ export default function TippgruppeDetailPage() {
                       .then(({ data }: any) => setBonusQuestions(data || []))
                   }}
                   onResolve={async (qId, correctAnswer) => {
-                    await supabase.from('tip_bonus_questions')
-                      .update({ correct_answer: correctAnswer, status: 'resolved' })
-                      .eq('id', qId)
-                    const { data: answers } = await supabase.from('tip_bonus_answers').select('*').eq('question_id', qId)
-                    const q = bonusQuestions.find(bq => bq.id === qId)
-                    if (answers && q) {
-                      for (const a of answers) {
-                        const pts = a.answer.toLowerCase().trim() === correctAnswer.toLowerCase().trim() ? q.points : 0
-                        await supabase.from('tip_bonus_answers').update({ points_earned: pts }).eq('id', a.id)
-                      }
+                    // Server-authoritative scoring. points_earned is set by
+                    // the Edge Function (admin JWT verified), never the client.
+                    const { error } = await supabase.functions.invoke('score-bonus-answers', {
+                      body: { question_id: qId, correct_answer: correctAnswer },
+                    })
+                    if (error) {
+                      showToast(t('tippen.resolveFailed'))
+                      return
                     }
                     showToast(t('tippen.challengeResolved'))
                     const { data: bqs } = await supabase.from('tip_bonus_questions').select('*').eq('group_id', groupId).order('sort_order')
@@ -926,7 +921,6 @@ export default function TippgruppeDetailPage() {
                     question_id: qId, user_id: user.id,
                     home_score_tip: parseInt(homeScore),
                     away_score_tip: parseInt(awayScore),
-                    is_joker: false,
                   }, { onConflict: 'question_id,user_id' })
                   .select().single()
                 if (!error && data) {
@@ -1306,9 +1300,6 @@ export default function TippgruppeDetailPage() {
               points_exact: group.points_exact,
               points_diff: group.points_diff,
               points_tendency: group.points_tendency,
-              joker_enabled: group.joker_enabled,
-              joker_multiplier: group.joker_multiplier,
-              joker_per_matchday: group.joker_per_matchday,
               competition_code: group.competition_code,
               competition_name: group.competition_name,
               season_year: group.season_year,
