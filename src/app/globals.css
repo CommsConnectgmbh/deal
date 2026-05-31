@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Comms CI glass bottom nav (copied from Comms CI/components/glass-bottom-nav) */
+@import "./cc-glassnav.css";
 
 /* ══════════════════════════════════════════
    LIGHT THEME (Default — "Instagram for Challenges")

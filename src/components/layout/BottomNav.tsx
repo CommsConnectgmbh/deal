@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Home, Zap, Trophy, User, Plus } from 'lucide-react'
+import type { CSSProperties } from 'react'
+import { useHideOnScroll } from '@/lib/cc/useHideOnScroll'
 
 type IconKey = 'home' | 'blitz' | 'tippen' | 'profile'
 
@@ -27,6 +29,7 @@ interface Props {
 export default function BottomNav({ tabs, createHref = '/app/deals/create' }: Props) {
   const router = useRouter()
   const pathname = usePathname()
+  const hidden = useHideOnScroll()
 
   const isActive = (href: string) => {
     if (href === '/app/profile') {
@@ -46,99 +49,88 @@ export default function BottomNav({ tabs, createHref = '/app/deals/create' }: Pr
   ]
 
   return (
-    <nav style={{
-      position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-      width: '100%', maxWidth: 430,
-      background: 'var(--bg-surface)',
-      borderTop: '1px solid rgba(0,0,0,0.05)',
-      boxShadow: '0 -1px 0 rgba(0,0,0,0.04)',
-      display: 'flex', alignItems: 'flex-end',
-      paddingBottom: 'env(safe-area-inset-bottom)',
-      zIndex: 100, overflow: 'visible',
-    }}>
-      {slots.map((slot, idx) => {
-        if (slot === 'fab') {
-          return (
-            <div key="fab" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-              <motion.button
-                onClick={() => router.push(createHref)}
-                whileTap={{ scale: 0.92 }}
-                whileHover={{ scale: 1.04 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 18 }}
-                style={{
-                  position: 'relative',
-                  width: 60, height: 60, borderRadius: '50%',
-                  background: '#0F0F11',
-                  border: '2px solid var(--gold-glow)', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: 'var(--shadow-md), var(--shadow-gold)',
-                  padding: 0,
-                  marginTop: -20, marginBottom: 4,
-                  flexShrink: 0,
-                }}
-                aria-label="Create"
-              >
-                <img
-                  src="/logo.png"
-                  alt=""
+    <nav
+      data-theme="light"
+      className={`ccnav${hidden ? ' ccnav--hidden' : ''}`}
+      style={{
+        // DealBuddy gold accent drives active tabs; surface stays light glass.
+        ['--ccnav-accent' as string]: 'var(--gold-primary)',
+        ['--ccnav-ink' as string]: 'var(--text-muted)',
+      } as CSSProperties}
+      aria-label="Hauptnavigation"
+    >
+      <div className="ccnav__row">
+        {slots.map((slot) => {
+          if (slot === 'fab') {
+            return (
+              <div key="fab" className="ccnav__fab-slot">
+                <motion.button
+                  onClick={() => router.push(createHref)}
+                  whileTap={{ scale: 0.92 }}
+                  whileHover={{ scale: 1.04 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 18 }}
                   style={{
-                    width: 54, height: 54, objectFit: 'contain',
-                    borderRadius: '50%',
+                    position: 'relative',
+                    width: 60, height: 60, borderRadius: '50%',
+                    background: '#0F0F11',
+                    border: '2px solid var(--gold-glow)', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: 'var(--shadow-md), var(--shadow-gold)',
+                    padding: 0,
+                    marginTop: -20, marginBottom: 4,
+                    flexShrink: 0,
                   }}
-                />
-                <span style={{
-                  position: 'absolute',
-                  bottom: -2, right: -2,
-                  width: 22, height: 22, borderRadius: '50%',
-                  background: 'var(--gold-primary)',
-                  border: '2px solid var(--bg-base)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--text-inverse)',
-                  boxShadow: 'var(--shadow-sm)',
-                }}>
-                  <Plus size={12} strokeWidth={3} />
-                </span>
-              </motion.button>
-            </div>
-          )
-        }
+                  aria-label="Neuer Tipp"
+                >
+                  <img
+                    src="/logo.png"
+                    alt=""
+                    style={{
+                      width: 54, height: 54, objectFit: 'contain',
+                      borderRadius: '50%',
+                    }}
+                  />
+                  <span style={{
+                    position: 'absolute',
+                    bottom: -2, right: -2,
+                    width: 22, height: 22, borderRadius: '50%',
+                    background: 'var(--gold-primary)',
+                    border: '2px solid var(--bg-base)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'var(--text-inverse)',
+                    boxShadow: 'var(--shadow-sm)',
+                  }}>
+                    <Plus size={12} strokeWidth={3} />
+                  </span>
+                </motion.button>
+              </div>
+            )
+          }
 
-        const Icon = ICONS[slot.key]
-        const active = isActive(slot.href)
+          const Icon = ICONS[slot.key]
+          const active = isActive(slot.href)
 
-        return (
-          <Link
-            key={slot.href}
-            href={slot.href}
-            prefetch={false}
-            style={{
-              flex: 1, display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center',
-              padding: '10px 0', textDecoration: 'none', gap: 3,
-              position: 'relative',
-            }}
-          >
-            <motion.div
-              animate={{ scale: active ? 1.08 : 1 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 20 }}
-              style={{
-                display: 'inline-flex',
-                color: active ? 'var(--gold-primary)' : 'var(--text-muted)',
-                transition: 'color 0.2s',
-              }}
+          return (
+            <Link
+              key={slot.href}
+              href={slot.href}
+              prefetch={false}
+              className={`ccnav__tab${active ? ' is-active' : ''}`}
             >
-              <Icon size={22} strokeWidth={active ? 2.4 : 2} />
-            </motion.div>
-            <span className="font-display" style={{
-              fontSize: 9, letterSpacing: 1,
-              color: active ? 'var(--gold-primary)' : 'var(--text-muted)',
-              transition: 'color 0.2s',
-            }}>
-              {slot.label}
-            </span>
-          </Link>
-        )
-      })}
+              <motion.div
+                animate={{ scale: active ? 1.08 : 1 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                style={{ display: 'inline-flex' }}
+              >
+                <Icon size={22} strokeWidth={active ? 2.4 : 2} />
+              </motion.div>
+              <span className="font-display" style={{ fontSize: 9, letterSpacing: 1 }}>
+                {slot.label}
+              </span>
+            </Link>
+          )
+        })}
+      </div>
     </nav>
   )
 }
