@@ -884,16 +884,19 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* ═══ SINGLE FILTER BAR — same chip style as /tippen ═══ */}
+      {/* ═══ SINGLE FILTER BAR — same chip style as /tippen ═══
+          Solid (not glass): a PINNED full-width bar with a translucent fill
+          lets the feed scroll visibly through its edges on iOS → looks like it
+          rides along / bleeds over the edge. Solid + own compositor layer
+          keeps it clean while scrolling. (Glass is for the floating nav only.) */}
       <div style={{
         display: 'flex', gap: 8, padding: '10px 16px',
-        background: 'var(--glass-bg)',
-        backdropFilter: 'blur(24px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+        background: 'var(--bg-base)',
         position: 'sticky', top: 'calc(68px + env(safe-area-inset-top))', zIndex: 30,
-        borderBottom: '1px solid var(--glass-border)',
+        borderBottom: '1px solid var(--border-subtle)',
         overflowX: 'auto', scrollbarWidth: 'none',
         WebkitOverflowScrolling: 'touch',
+        transform: 'translateZ(0)', willChange: 'transform',
       }}>
         {([
           { key: 'alle', label: t('home.filters.alle') },
