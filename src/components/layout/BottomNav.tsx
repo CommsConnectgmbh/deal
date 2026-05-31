@@ -29,7 +29,13 @@ interface Props {
 export default function BottomNav({ tabs, createHref = '/app/deals/create' }: Props) {
   const router = useRouter()
   const pathname = usePathname()
-  const hidden = useHideOnScroll()
+  // The app scrolls inside `.app-content` (body is overflow:hidden), so the
+  // hide-on-scroll listener must attach there — not to the window.
+  const hidden = useHideOnScroll({
+    target: () => document.querySelector<HTMLElement>('.app-content'),
+    getScrollTop: () =>
+      document.querySelector<HTMLElement>('.app-content')?.scrollTop ?? 0,
+  })
 
   const isActive = (href: string) => {
     if (href === '/app/profile') {
