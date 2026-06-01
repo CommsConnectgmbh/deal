@@ -27,6 +27,20 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  /*
+   * Client Router Cache: reuse already-visited route segments on client-side
+   * navigation (bottom-nav / back) instead of remounting the page and re-firing
+   * its useEffect data loads. Without this, every tab switch re-runs the full
+   * query waterfall (the home feed alone fires ~31 queries on every mount).
+   * dynamic=180s keeps revisited screens instant for 3 min; realtime
+   * subscriptions still push live updates, so staleness stays bounded.
+   */
+  experimental: {
+    staleTimes: {
+      dynamic: 180,
+      static: 300,
+    },
+  },
   async headers() {
     return [
       {
