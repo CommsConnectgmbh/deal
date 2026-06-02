@@ -3,6 +3,26 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
 
+// ── Profile cache (stale-while-revalidate) ──
+// The app gates almost everything on `profile`/`loading`. Reading the last-known
+// profile from localStorage lets profile-dependent UI paint instantly on cold open
+// while we revalidate in the background, instead of blocking on a network round-trip.
+const PROFILE_CACHE_PREFIX = 'db_profile_'
+const readProfileCache = (userId: string): Profile | null => {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(PROFILE_CACHE_PREFIX + userId)
+    return raw ? (JSON.parse(raw) as Profile) : null
+  } catch { return null }
+}
+const writeProfileCache = (userId: string, profile: Profile | null) => {
+  if (typeof window === 'undefined') return
+  try {
+    if (profile) window.localStorage.setItem(PROFILE_CACHE_PREFIX + userId, JSON.stringify(profile))
+    else window.localStorage.removeItem(PROFILE_CACHE_PREFIX + userId)
+  } catch { /* quota / private mode — ignore, revalidation still runs */ }
+}
+
 interface Profile {
   id: string
   username: string
@@ -73,8 +93,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const fetchProfile = async (userId: string) => {
+    // Instant paint from last-known profile, then revalidate over the network.
+    const cached = readProfileCache(userId)
+    if (cached) {
+      setProfile(cached)
+      setLoading(false)
+    }
     const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
-    setProfile(data)
+    if (data) {
+      setProfile(data)
+      writeProfileCache(userId, data)
+    } else if (!cached) {
+      setProfile(null)
+    }
     setLoading(false)
   }
 
@@ -101,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
+    if (user) writeProfileCache(user.id, null)
     await supabase.auth.signOut()
   }
 

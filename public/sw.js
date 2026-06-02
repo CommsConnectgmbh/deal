@@ -1,5 +1,5 @@
 // DealBuddy Service Worker — v2 (auto-update)
-const SW_VERSION = 'v23-2026-06-01-router-cache'
+const SW_VERSION = 'v24-2026-06-02-profile-cache'
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
