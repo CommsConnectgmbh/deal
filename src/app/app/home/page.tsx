@@ -56,6 +56,29 @@ const SkeletonStory = () => (
 /* ─── Deal select fields (for Supabase queries) ─── */
 const DEAL_SELECT = '*, creator:creator_id(id,username,display_name,level,streak,active_frame,is_founder,avatar_url,equipped_card_image_url), opponent:opponent_id(id,username,display_name,level,streak,active_frame,is_founder,avatar_url,equipped_card_image_url)'
 
+/* ─── Feed snapshot cache (stale-while-revalidate) ───
+   The home feed fires ~30 queries on mount. Caching a *coherent* snapshot of the whole
+   rendered frame (deals + stories + every enrichment map together) lets the feed paint
+   instantly from the last session while it revalidates in the background — no partial-
+   render glitches. Keyed per user; 24h TTL. */
+const FEED_CACHE_PREFIX = 'db_feed_'
+const FEED_CACHE_TTL = 24 * 60 * 60 * 1000
+const readFeedSnapshot = (userId: string): any | null => {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(FEED_CACHE_PREFIX + userId)
+    if (!raw) return null
+    const snap = JSON.parse(raw)
+    if (!snap || (snap.ts && Date.now() - snap.ts > FEED_CACHE_TTL)) return null
+    return snap
+  } catch { return null }
+}
+const writeFeedSnapshot = (userId: string, snap: any) => {
+  if (typeof window === 'undefined') return
+  try { window.localStorage.setItem(FEED_CACHE_PREFIX + userId, JSON.stringify({ ...snap, ts: Date.now() })) }
+  catch { /* quota / private mode — ignore */ }
+}
+
 export default function HomePage() {
   const { profile } = useAuth()
   const router = useRouter()
@@ -135,6 +158,7 @@ export default function HomePage() {
 
   // Infinite scroll sentinel
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const hasDataRef = useRef(false)
 
   // Follow IDs + Favorite IDs cache
   const [followIds, setFollowIds] = useState<string[]>([])
@@ -150,6 +174,30 @@ export default function HomePage() {
 
   /* ─── Initial Load ─── */
   useEffect(() => { trackScreenView('home') }, [])
+
+  // Hydrate the feed instantly from the last cached snapshot (stale-while-revalidate);
+  // the init effect below then revalidates over the network without blanking the screen.
+  useEffect(() => {
+    if (!profile) return
+    const snap = readFeedSnapshot(profile.id)
+    if (!snap || !snap.deals?.length) return
+    setDeals(snap.deals)
+    setStoryGroups(snap.storyGroups || [])
+    setFeedEvents(snap.feedEvents || [])
+    setPublicTipGroups(snap.publicTipGroups || [])
+    setFeedMedia(snap.feedMedia || {})
+    setChallengeQuotes(snap.challengeQuotes || {})
+    setPendingInvites(snap.pendingInvites || [])
+    setMyChallenges(snap.myChallenges || [])
+    setViewedDealIds(new Set(snap.viewedDealIds || []))
+    setHiddenFeedIds(new Set(snap.hiddenFeedIds || []))
+    setInteractionDealIds(new Set(snap.interactionDealIds || []))
+    setDailyAvailable(!!snap.dailyAvailable)
+    setSpotlight(snap.spotlight ?? null)
+    hasDataRef.current = true
+    setLoading(false)
+    setStoriesLoading(false)
+  }, [profile?.id])
 
   useEffect(() => {
     if (!profile) return
@@ -170,6 +218,18 @@ export default function HomePage() {
     // Only re-run on identity change, not on every profile-object reference
     // churn (updateProfile / hourly token refresh) which caused full feed reloads.
   }, [profile?.id])
+
+  // Persist a coherent snapshot of the rendered feed for instant paint next session.
+  useEffect(() => {
+    if (loading || !profile) return
+    if (!deals.length && !storyGroups.length) return
+    writeFeedSnapshot(profile.id, {
+      deals, storyGroups, feedEvents, publicTipGroups, feedMedia, challengeQuotes,
+      pendingInvites, myChallenges, dailyAvailable, spotlight,
+      viewedDealIds: [...viewedDealIds], hiddenFeedIds: [...hiddenFeedIds],
+      interactionDealIds: [...interactionDealIds],
+    })
+  }, [loading, deals, storyGroups, feedEvents, publicTipGroups, feedMedia, challengeQuotes, pendingInvites, myChallenges, dailyAvailable, spotlight, viewedDealIds, hiddenFeedIds, interactionDealIds, profile?.id])
 
   // Skeleton timeout: show empty state after 3s of loading (was 5s – too slow)
   useEffect(() => {
@@ -198,7 +258,7 @@ export default function HomePage() {
 
   const loadStories = async (followResult?: { ids: string[]; favs: Set<string> }) => {
     if (!profile) return
-    setStoriesLoading(true)
+    if (!hasDataRef.current) setStoriesLoading(true)
     try {
       // Reuse follow data from loadFollowIds (no duplicate query!)
       const fIds = followResult?.ids || followIds
@@ -452,10 +512,14 @@ export default function HomePage() {
   const loadFeed = async (initial = false) => {
     if (!profile) return
     if (initial) {
-      setLoading(true)
+      // Soft-revalidate when we already have (cached or loaded) data: keep the feed
+      // visible instead of flashing the skeleton.
+      if (!hasDataRef.current) {
+        setLoading(true)
+        setDeals([])
+      }
       setCursor(null)
       setHasMore(true)
-      setDeals([])
     } else {
       setLoadingMore(true)
     }
@@ -516,6 +580,7 @@ export default function HomePage() {
       } else {
         setDeals(prev => [...prev, ...newDeals])
       }
+      hasDataRef.current = true
 
       if (newDeals.length < 20) setHasMore(false)
       if (newDeals.length > 0) {
