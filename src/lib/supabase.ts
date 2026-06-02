@@ -3,6 +3,12 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
+// navigator.locks-basierten Lock deaktivieren. Ohne das kann getSession()/der
+// Token-Zugriff beim Laden in einen LockManager-Deadlock laufen → die App hängt
+// im Spinner, erst ein manueller Reload bringt einen rein. (Gleicher Fix wie in
+// CommsOS.)
+const noopLock = async <R>(_name: string, _acquireTimeout: number, fn: () => Promise<R>): Promise<R> => fn()
+
 // When env vars are missing (e.g. misconfigured preview deploy), fail loud
 // and early with a clear message instead of crashing deep inside a query
 // with an opaque "cannot read property of null" error.
@@ -17,5 +23,12 @@ function makeMissingEnvStub(): any {
 }
 
 export const supabase = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        lock: noopLock,
+      },
+    })
   : makeMissingEnvStub()

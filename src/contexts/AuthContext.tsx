@@ -83,13 +83,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null)
       if (session?.user) fetchProfile(session.user.id)
       else setLoading(false)
-    })
+    }).catch(() => setLoading(false))
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e: any, session: any) => {
       setUser(session?.user ?? null)
       if (session?.user) fetchProfile(session.user.id)
       else { setProfile(null); setLoading(false) }
     })
-    return () => subscription.unsubscribe()
+    // Hard-Cap: sollte der Profil-Fetch je hängen (Netz/Token), bleibt der
+    // Spinner nicht ewig stehen — nach 8 s wird das loading-Gate gelöst.
+    const fallback = setTimeout(() => setLoading(false), 8000)
+    return () => { subscription.unsubscribe(); clearTimeout(fallback) }
   }, [])
 
   const fetchProfile = async (userId: string) => {
@@ -99,14 +102,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(cached)
       setLoading(false)
     }
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
-    if (data) {
-      setProfile(data)
-      writeProfileCache(userId, data)
-    } else if (!cached) {
-      setProfile(null)
+    // try/catch/finally: ein Fehler (oder still scheiternder Request) darf den
+    // Spinner nicht dauerhaft stehen lassen — loading wird IMMER gelöst. Bei
+    // Fehler behalten wir einen vorhandenen Cache (kein Flackern auf leer).
+    try {
+      const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
+      if (data) {
+        setProfile(data)
+        writeProfileCache(userId, data)
+      } else if (!cached) {
+        setProfile(null)
+      }
+    } catch {
+      if (!cached) setProfile(null)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const signIn = async (email: string, password: string) => {
