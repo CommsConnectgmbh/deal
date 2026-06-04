@@ -646,6 +646,24 @@ export default function SettingsPage() {
           <div style={{ fontSize: 20, color: '#5865F2' }}>→</div>
         </a>
 
+        {/* Hilfe & Support */}
+        <p style={sectionTitle}>HILFE</p>
+        <div
+          onClick={() => router.push('/app/support')}
+          style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}
+        >
+          <div style={{ fontSize: 24, lineHeight: 1 }}>🎫</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>
+              Hilfe & Support
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              Anfrage stellen und Status verfolgen
+            </div>
+          </div>
+          <div style={{ fontSize: 20, color: 'var(--text-muted)' }}>→</div>
+        </div>
+
         {/* Billing */}
         <p style={sectionTitle}>{t('settings.billing').toUpperCase()}</p>
         <div style={card}>
