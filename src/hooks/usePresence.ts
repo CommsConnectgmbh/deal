@@ -44,20 +44,19 @@ export function usePresence(userId: string | undefined) {
       else goOnline()
     }
     document.addEventListener('visibilitychange', handleVisibility)
+    // pagehide deckt Tab-/App-Schließen ab (auch mobil zuverlässiger als beforeunload).
+    window.addEventListener('pagehide', goOffline)
 
-    // Beforeunload
-    const handleUnload = () => {
-      // Use sendBeacon for reliability on page close
-      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/user_presence?user_id=eq.${userId}`
-      const body = JSON.stringify({ is_online: false, last_seen: new Date().toISOString() })
-      navigator.sendBeacon?.(url, new Blob([body], { type: 'application/json' }))
-    }
-    window.addEventListener('beforeunload', handleUnload)
+    // Hinweis: Der frühere beforeunload-sendBeacon wurde entfernt. sendBeacon kann KEINE
+    // Header setzen → der Call ging ohne apikey/Authorization an PostgREST, und ein POST mit
+    // Row-Filter (?user_id=eq.) ist kein UPDATE → konstante 400/CORS-Fehler auf JEDER
+    // eingeloggten Seite. Offline-Status wird über visibilitychange + pagehide + Cleanup +
+    // Heartbeat-last_seen ohnehin gesetzt.
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
       document.removeEventListener('visibilitychange', handleVisibility)
-      window.removeEventListener('beforeunload', handleUnload)
+      window.removeEventListener('pagehide', goOffline)
       goOffline()
     }
   }, [userId, goOnline, goOffline])
