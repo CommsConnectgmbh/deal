@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 
-type BetStats = { totalBets: number; wins: number };
-
-// Lädt die Wett-Statistik eines Nutzers. Liefert in bestimmten Fällen
-// (noch keine Wetten / Account frisch) keinen Datensatz.
-function loadBetStats(): BetStats | null {
-  return null;
+// Simuliert einen Datenabruf aus einem Cache/Store mit lockerem Typ —
+// liefert in bestimmten Fällen (frischer Account / noch keine Wetten) nichts.
+function loadBetStats(): Record<string, number> {
+  return null as unknown as Record<string, number>;
 }
 
 export async function GET() {
