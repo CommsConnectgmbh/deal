@@ -285,14 +285,19 @@ export default function DealDetailPage() {
     if (!profile) return
     setLoading(true)
     try {
-      const update: any = { status: 'active' }
-      if (deal.status === 'open') update.opponent_id = profile.id
-      // Auto-post as story when deal is accepted (both participants see it)
-      if (deal.is_public !== false) {
-        update.shared_as_story_at = new Date().toISOString()
+      if (deal.status === 'open' && !deal.opponent_id) {
+        // Open deal: RLS verbietet UPDATE durch Nicht-Participant; gehe über
+        // die SECURITY-DEFINER-RPC, die opponent_id/status atomar setzt.
+        const { error } = await supabase.rpc('accept_open_challenge', { p_challenge_id: id })
+        if (error) throw error
+      } else {
+        const update: any = { status: 'active' }
+        if (deal.is_public !== false) {
+          update.shared_as_story_at = new Date().toISOString()
+        }
+        const { error } = await supabase.from('challenges').update(update).eq('id', id)
+        if (error) throw error
       }
-      const { error } = await supabase.from('challenges').update(update).eq('id', id)
-      if (error) throw error
       // Push notification to creator
       if (deal.creator_id !== profile.id) {
         triggerPush(deal.creator_id, '🤝 Deal angenommen!', `@${profile.username} hat deinen Deal angenommen!`, `/app/deals/${id}`)
