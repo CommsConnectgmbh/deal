@@ -1045,6 +1045,7 @@ export default function DealDetailPage() {
             targetSteps={deal.target_steps}
             creator={deal.creator}
             opponent={deal.opponent}
+            performerId={deal.performer_id ?? null}
             currentUserId={profile?.id ?? null}
           />
         )}

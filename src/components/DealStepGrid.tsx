@@ -17,11 +17,12 @@ interface Props {
   targetSteps: number
   creator: Participant
   opponent: Participant | null
+  performerId?: string | null
   currentUserId: string | null
 }
 
 export default function DealStepGrid({
-  dealId, targetSteps, creator, opponent, currentUserId,
+  dealId, targetSteps, creator, opponent, performerId, currentUserId,
 }: Props) {
   const [done, setDone] = useState<Record<string, Set<number>>>({})
   const [busy, setBusy] = useState<string | null>(null)
@@ -69,6 +70,7 @@ export default function DealStepGrid({
 
   const handleToggle = async (userId: string, step: number) => {
     if (userId !== currentUserId) return
+    if (performerId && userId !== performerId) return
     const key = `${userId}:${step}`
     if (busy) return
     setBusy(key)
@@ -94,7 +96,8 @@ export default function DealStepGrid({
   }
 
   const indices = Array.from({ length: targetSteps }, (_, i) => i + 1)
-  const rows = [creator, opponent].filter(Boolean) as Participant[]
+  const all = [creator, opponent].filter(Boolean) as Participant[]
+  const rows = performerId ? all.filter(p => p.id === performerId) : all
 
   return (
     <div style={{
