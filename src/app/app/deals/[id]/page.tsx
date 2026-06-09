@@ -994,8 +994,8 @@ export default function DealDetailPage() {
         <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{timeAgo(deal.created_at)}</span>
       </div>
 
-      {/* ═══ LIVE METRIC TRACKER (visible from the moment both sides exist) ═══ */}
-      {['pending', 'active', 'pending_confirmation'].includes(deal.status) && deal.creator && deal.opponent && (() => {
+      {/* ═══ LIVE METRIC TRACKER — nur wenn KEIN Kästchen-Grid (target_steps<=1) ═══ */}
+      {(deal.target_steps ?? 1) <= 1 && ['pending', 'active', 'pending_confirmation'].includes(deal.status) && deal.creator && deal.opponent && (() => {
         const isStepChallenge = detectStepChallenge(deal.title)
         const metric = isStepChallenge ? 'steps' : 'progress'
         const metricLabel = isStepChallenge ? t('liveTracker.stepsLabel') : t('liveTracker.progressLabel')
