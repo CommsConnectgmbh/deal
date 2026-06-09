@@ -16,6 +16,7 @@ import InteractionBar from '@/components/InteractionBar'
 const ProofUploadSheet = dynamic(() => import('@/components/ProofUploadSheet'), { ssr: false })
 const DealChallengeWidget = dynamic(() => import('@/components/DealChallengeWidget'), { ssr: false })
 const LiveMetricTracker = dynamic(() => import('@/components/LiveMetricTracker'), { ssr: false })
+const DealStepGrid = dynamic(() => import('@/components/DealStepGrid'), { ssr: false })
 import { detectStepChallenge } from '@/components/LiveMetricTracker'
 import WinCelebrationModal from '@/components/WinCelebrationModal'
 import { trackDealAccepted, trackResultSubmitted, trackResultConfirmed, trackScreenView, trackShareClicked } from '@/lib/analytics'
@@ -1035,6 +1036,17 @@ export default function DealDetailPage() {
               </>
             ) : null}
           </div>
+        )}
+
+        {/* Live-Schritt-Tracker (1..target_steps K\u00E4stchen pro Teilnehmer) */}
+        {['active','pending_confirmation'].includes(deal.status) && (deal.target_steps ?? 1) > 1 && deal.creator && (
+          <DealStepGrid
+            dealId={id as string}
+            targetSteps={deal.target_steps}
+            creator={deal.creator}
+            opponent={deal.opponent}
+            currentUserId={profile?.id ?? null}
+          />
         )}
 
         {/* Propose winner */}
