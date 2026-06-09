@@ -266,7 +266,7 @@ export default function HomePage() {
       const favSet = followResult?.favs || favoriteIds
 
       const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-      const storySelect = 'id, title, stake, status, category, created_at, deadline, media_url, media_type, is_public, shared_as_story_at, winner_id, creator_id, opponent_id, creator:creator_id(id,username,display_name,avatar_url,level,streak,active_frame,is_founder,equipped_card_image_url), opponent:opponent_id(id,username,display_name,avatar_url,level,streak,active_frame,is_founder,equipped_card_image_url)'
+      const storySelect = 'id, title, stake, status, category, created_at, deadline, media_url, media_type, is_public, shared_as_story_at, winner_id, creator_id, opponent_id, target_steps, performer_id, creator:creator_id(id,username,display_name,avatar_url,level,streak,active_frame,is_founder,equipped_card_image_url), opponent:opponent_id(id,username,display_name,avatar_url,level,streak,active_frame,is_founder,equipped_card_image_url)'
 
       // ── BATCH 1: All independent queries in parallel ──
       const userFilter = fIds.length > 0 ? `creator_id.in.(${fIds.join(',')}),opponent_id.in.(${fIds.join(',')})` : ''

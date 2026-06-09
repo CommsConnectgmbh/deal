@@ -288,10 +288,6 @@ export default function LiveMetricTracker({
               {error}
             </p>
           )}
-
-          <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 10, textAlign: 'center', lineHeight: 1.5 }}>
-            {t('liveTracker.hint')}
-          </p>
         </>
       )}
     </div>

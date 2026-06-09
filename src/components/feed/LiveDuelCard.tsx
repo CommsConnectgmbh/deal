@@ -157,8 +157,8 @@ export default function LiveDuelCard({
           opponentAvatarUrl={deal.opponent?.avatar_url}
         />
 
-        {/* ═══ Live Metric Tracker — only for participants of an active deal ═══ */}
-        {deal.status === 'active' && deal.creator?.id && deal.opponent?.id && userId &&
+        {/* ═══ Live Metric Tracker — only for participants of an active deal, NOT wenn Step-Grid aktiv ═══ */}
+        {((deal as any).target_steps ?? 1) <= 1 && deal.status === 'active' && deal.creator?.id && deal.opponent?.id && userId &&
           (userId === deal.creator_id || userId === deal.opponent_id) && (() => {
           const isStepChallenge = detectStepChallenge(deal.title)
           const metric = isStepChallenge ? 'steps' : 'progress'
