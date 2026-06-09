@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import ProfileImage from '@/components/ProfileImage'
 import { useLang } from '@/contexts/LanguageContext'
@@ -47,6 +48,7 @@ export default function LiveMetricTracker({
   creator, opponent, currentUserId, isParticipant,
 }: Props) {
   const { t } = useLang()
+  const router = useRouter()
   const [samples, setSamples] = useState<Record<string, Sample>>({})
   const [loading, setLoading] = useState(true)
   const [inputOpen, setInputOpen] = useState(false)
@@ -146,12 +148,17 @@ export default function LiveMetricTracker({
           avatarUrl={user.avatar_url}
           name={user.display_name || user.username || ''}
           goldBorder={isLeader}
+          onClick={user.username ? () => router.push(`/app/profile/${user.username}`) : undefined}
         />
       </div>
-      <p style={{
-        fontSize: 11, color: 'var(--text-muted)', marginBottom: 2,
-        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-      }}>
+      <p
+        onClick={() => user.username && router.push(`/app/profile/${user.username}`)}
+        style={{
+          fontSize: 11, color: 'var(--text-muted)', marginBottom: 2,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          cursor: user.username ? 'pointer' : 'default',
+        }}
+      >
         @{user.username}
       </p>
       <p className="font-display" style={{

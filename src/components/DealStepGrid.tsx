@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import ProfileImage from '@/components/ProfileImage'
 
@@ -24,6 +25,7 @@ interface Props {
 export default function DealStepGrid({
   dealId, targetSteps, creator, opponent, performerId, currentUserId,
 }: Props) {
+  const router = useRouter()
   const [done, setDone] = useState<Record<string, Set<number>>>({})
   const [busy, setBusy] = useState<string | null>(null)
 
@@ -120,11 +122,20 @@ export default function DealStepGrid({
         return (
           <div key={p.id} style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <ProfileImage size={24} avatarUrl={p.avatar_url} name={p.display_name || p.username || '?'} />
-              <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700,
-                color: 'var(--text-primary)', letterSpacing: 0.5, flex: 1,
-              }}>
+              <ProfileImage
+                size={24}
+                avatarUrl={p.avatar_url}
+                name={p.display_name || p.username || '?'}
+                onClick={p.username ? () => router.push(`/app/profile/${p.username}`) : undefined}
+              />
+              <span
+                onClick={() => p.username && router.push(`/app/profile/${p.username}`)}
+                style={{
+                  fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700,
+                  color: 'var(--text-primary)', letterSpacing: 0.5, flex: 1,
+                  cursor: p.username ? 'pointer' : 'default',
+                }}
+              >
                 @{p.username}{isMe ? ' (Du)' : ''}
               </span>
               <span style={{
