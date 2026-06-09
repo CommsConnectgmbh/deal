@@ -64,8 +64,10 @@ interface AuthCtx {
   user: User | null
   profile: Profile | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string, username: string) => Promise<void>
+  requestLoginCode: (email: string) => Promise<void>
+  verifyLoginCode: (email: string, code: string) => Promise<void>
+  requestSignupCode: (email: string, username: string) => Promise<void>
+  verifySignupCode: (email: string, code: string) => Promise<void>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
   updateProfile: (updates: Partial<Profile>) => Promise<void>
@@ -120,25 +122,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+  // 8-stelliger E-Mail-Code statt Passwort. Bei Login darf NUR ein bestehender
+  // Account einen Code bekommen (shouldCreateUser:false), bei Signup darf der
+  // Account angelegt werden und der Username wandert in user_metadata, damit der
+  // handle_new_user-Trigger ihn beim Verify direkt aufnimmt.
+  const requestLoginCode = async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false },
+    })
     if (error) throw error
   }
 
-  const signUp = async (email: string, password: string, username: string) => {
-    // Pass username in metadata so the handle_new_user trigger picks it up immediately
-    const { data, error } = await supabase.auth.signUp({
+  const verifyLoginCode = async (email: string, code: string) => {
+    const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' })
+    if (error) throw error
+  }
+
+  const requestSignupCode = async (email: string, username: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
       email,
-      password,
-      options: { data: { username } },
+      options: { shouldCreateUser: true, data: { username } },
     })
     if (error) throw error
-    // Ensure display_name is set (trigger already sets username, but update is idempotent)
+  }
+
+  const verifySignupCode = async (email: string, code: string) => {
+    const { data, error } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' })
+    if (error) throw error
     if (data.user) {
-      await supabase
-        .from('profiles')
-        .update({ display_name: username })
-        .eq('id', data.user.id)
+      // Trigger setzt username schon — display_name idempotent nachsetzen, falls
+      // der Trigger früher mal ohne username aus metadata gefeuert hat.
+      const meta = (data.user.user_metadata as { username?: string } | null) ?? null
+      const username = meta?.username
+      if (username) {
+        await supabase
+          .from('profiles')
+          .update({ display_name: username })
+          .eq('id', data.user.id)
+      }
     }
   }
 
@@ -158,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, refreshProfile, updateProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, requestLoginCode, verifyLoginCode, requestSignupCode, verifySignupCode, signOut, refreshProfile, updateProfile }}>
       {children}
     </AuthContext.Provider>
   )

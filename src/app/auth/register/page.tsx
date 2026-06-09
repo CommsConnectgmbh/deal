@@ -8,47 +8,24 @@ import Link from 'next/link'
 import { trackSignupStarted, trackSignupCompleted, trackScreenView } from '@/lib/analytics'
 import { useLang } from '@/contexts/LanguageContext'
 
+type Step = 'form' | 'code'
+
 const inputStyle = (hasError: boolean): React.CSSProperties => ({
   width: '100%', padding: '14px 16px', background: 'var(--bg-elevated)',
   border: `1px solid ${hasError ? 'rgba(248,113,113,0.5)' : 'var(--border-subtle)'}`,
   borderRadius: 10, color: 'var(--text-primary)', fontSize: 16,
   outline: 'none',
 })
+const codeInputStyle = (hasError: boolean): React.CSSProperties => ({
+  width: '100%', padding: '18px 16px', background: 'var(--bg-elevated)',
+  border: `1px solid ${hasError ? 'rgba(248,113,113,0.5)' : 'var(--border-subtle)'}`,
+  borderRadius: 12, color: 'var(--text-primary)', fontSize: 28,
+  letterSpacing: '0.4em', textAlign: 'center', fontFamily: 'var(--font-mono, monospace)',
+  outline: 'none',
+})
 const labelStyle: React.CSSProperties = {
   display: 'block', fontFamily: 'var(--font-display)', fontSize: 9,
   letterSpacing: 2, color: 'var(--text-secondary)', marginBottom: 8,
-}
-
-function PasswordStrengthInner({ password }: { password: string }) {
-  const { t } = useLang()
-  if (!password) return null
-  const checks = [
-    { label: t('auth.pwCheckMinChars'), ok: password.length >= 6 },
-    { label: t('auth.pwCheckLetters'), ok: /[a-zA-Z]/.test(password) },
-    { label: t('auth.pwCheckSpecial'), ok: /[0-9!@#$%^&*]/.test(password) },
-  ]
-  const score = checks.filter(c => c.ok).length
-  const colors = ['var(--status-error)', 'var(--gold-primary)', '#4ade80']
-  const labels = [t('auth.pwWeak'), t('auth.pwMedium'), t('auth.pwStrong')]
-  return (
-    <div style={{ marginTop: 8 }}>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
-        {[0, 1, 2].map(i => (
-          <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i < score ? colors[score - 1] : 'var(--border-subtle)', transition: 'background 0.3s' }} />
-        ))}
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {checks.map(c => (
-            <span key={c.label} style={{ fontSize: 10, color: c.ok ? '#4ade80' : 'var(--text-muted)' }}>
-              {c.ok ? '✓' : '○'} {c.label}
-            </span>
-          ))}
-        </div>
-        {score > 0 && <span style={{ fontSize: 10, color: colors[score - 1], fontFamily: 'var(--font-display)' }}>{labels[score - 1]}</span>}
-      </div>
-    </div>
-  )
 }
 
 export default function RegisterPage() {
@@ -60,44 +37,44 @@ export default function RegisterPage() {
 }
 
 function RegisterForm() {
+  const [step, setStep] = useState<Step>('form')
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
+  const [code, setCode] = useState('')
   const [emailErr, setEmailErr] = useState('')
-  const [pwErr, setPwErr] = useState('')
   const [unErr, setUnErr] = useState('')
+  const [codeErr, setCodeErr] = useState('')
   const [ageAccepted, setAgeAccepted] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [consentErr, setConsentErr] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { signUp } = useAuth()
+  const { requestSignupCode, verifySignupCode } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const referralCode = useRef<string | null>(null)
   const pendingAcceptDealId = useRef<string | null>(null)
   const { t } = useLang()
 
-  // Track page view + capture referral code on mount
   useEffect(() => {
     trackScreenView('register')
     trackSignupStarted()
-    // Referral: check URL param first, then localStorage (set by /join/[code])
     const urlRef = searchParams.get('ref') || searchParams.get('code')
     const storedRef = typeof window !== 'undefined' ? localStorage.getItem('dealbuddy_referral') : null
     referralCode.current = urlRef || storedRef || null
 
-    // Pending deal accept: ?accept=<dealId> OR localStorage (set by public /deal/[id] page)
     const urlAccept = searchParams.get('accept')
     const storedAccept = typeof window !== 'undefined' ? localStorage.getItem('dealbuddy_pending_accept') : null
     pendingAcceptDealId.current = urlAccept || storedAccept || null
   }, [searchParams])
 
   const mapError = (msg: string): string => {
-    if (msg.includes('already registered') || msg.includes('already exists')) return t('auth.errorAlreadyRegistered')
-    if (msg.includes('Password should be')) return t('auth.errorPasswordTooShort')
+    if (msg.includes('already registered') || msg.includes('already exists') || msg.includes('User already')) return t('auth.errorAlreadyRegistered')
     if (msg.includes('invalid email')) return t('auth.errorEmailInvalid')
+    if (msg.includes('Token has expired') || msg.includes('expired')) return 'Code abgelaufen. Bitte neuen Code anfordern.'
+    if (msg.includes('Invalid') || msg.includes('invalid')) return 'Code ist falsch. Bitte prüfen — jede Ziffer zählt.'
     if (msg.includes('Database error')) return t('auth.errorDatabase')
+    if (msg.includes('Too many requests') || msg.includes('rate limit')) return 'Zu viele Versuche — bitte einen Moment warten.'
     if (msg.includes('network')) return t('auth.errorNetwork')
     return msg
   }
@@ -114,20 +91,13 @@ function RegisterForm() {
     if (!/\S+@\S+\.\S+/.test(v)) return t('auth.errorEmailInvalid')
     return ''
   }
-  const validatePassword = (v: string) => {
-    if (!v) return t('auth.errorPasswordRequired')
-    if (v.length < 6) return t('auth.errorMinChars')
-    return ''
-  }
 
-  const handle = async () => {
+  const handleSendCode = async () => {
     const uErr = validateUsername(username)
     const eErr = validateEmail(email)
-    const pErr = validatePassword(password)
     setUnErr(uErr)
     setEmailErr(eErr)
-    setPwErr(pErr)
-    if (uErr || eErr || pErr) return
+    if (uErr || eErr) return
 
     if (!ageAccepted || !termsAccepted) {
       setConsentErr(
@@ -140,15 +110,31 @@ function RegisterForm() {
       return
     }
     setConsentErr('')
-
     setError('')
     setLoading(true)
     try {
-      await signUp(email, password, username)
+      await requestSignupCode(email.trim().toLowerCase(), username.trim().toLowerCase())
+      setStep('code')
+    } catch (e: unknown) {
+      setError(mapError((e as Error).message))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleVerify = async () => {
+    const c = code.trim()
+    if (c.length !== 8) {
+      setCodeErr('Bitte den 8-stelligen Code aus der Mail eingeben.')
+      return
+    }
+    setCodeErr('')
+    setError('')
+    setLoading(true)
+    try {
+      await verifySignupCode(email.trim().toLowerCase(), c)
       trackSignupCompleted('email')
 
-      // After signUp, the user may need email confirmation OR be auto-confirmed
-      // Try to grant founder items client-side (trigger does it too, belt+suspenders)
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         try {
@@ -164,11 +150,8 @@ function RegisterForm() {
             active_badge: 'season1_founder',
             is_founder: true,
           }).eq('id', user.id)
-        } catch {
-          // Non-fatal – trigger handles it too
-        }
+        } catch { /* trigger handles it too */ }
 
-        // Referral tracking: link new user to referrer
         if (referralCode.current) {
           try {
             const { data: referrer } = await supabase
@@ -180,7 +163,6 @@ function RegisterForm() {
               await supabase.from('profiles').update({
                 referred_by: referrer.id
               }).eq('id', user.id)
-              // Award referral bonus coins to referrer (50 coins)
               await supabase.from('wallet_ledger').insert({
                 user_id: referrer.id,
                 delta: 50,
@@ -189,18 +171,13 @@ function RegisterForm() {
               })
               try { await supabase.rpc('add_coins', { p_user_id: referrer.id, p_amount: 50 }) } catch { /* noop */ }
             }
-            // Clear stored referral code
             localStorage.removeItem('dealbuddy_referral')
-          } catch {
-            // Non-fatal
-          }
+          } catch { /* non-fatal */ }
         }
 
-        // Pending deal accept: if user came via a public /deal/[id] invite, auto-accept now
         if (pendingAcceptDealId.current) {
           try {
             const dealId = pendingAcceptDealId.current
-            // Only accept if deal is still open and has no opponent yet (race-condition safe)
             const { data: deal } = await supabase
               .from('challenges')
               .select('id, status, opponent_id, creator_id, is_public, title')
@@ -235,14 +212,23 @@ function RegisterForm() {
             localStorage.setItem('dealbuddy_skip_avatar_setup', '1')
             router.replace(`/app/deals/${dealId}`)
             return
-          } catch {
-            // Fall through to default redirect on error
-          }
+          } catch { /* fall through */ }
         }
       }
 
-      // Redirect to avatar card creation for new users
       router.replace('/app/avatar-card/create')
+    } catch (e: unknown) {
+      setError(mapError((e as Error).message))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResend = async () => {
+    setError('')
+    setLoading(true)
+    try {
+      await requestSignupCode(email.trim().toLowerCase(), username.trim().toLowerCase())
     } catch (e: unknown) {
       setError(mapError((e as Error).message))
     } finally {
@@ -260,7 +246,6 @@ function RegisterForm() {
       </div>
 
       <div style={{ width: '100%', background: 'var(--bg-surface)', borderRadius: 16, border: '1px solid var(--border-subtle)', padding: 24 }}>
-        {/* Founder badge */}
         <div style={{ background: 'var(--gold-subtle)', border: '1px solid var(--gold-glow)', borderRadius: 10, padding: '10px 14px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 20 }}>⚡</span>
           <div>
@@ -276,103 +261,147 @@ function RegisterForm() {
           </div>
         )}
 
-        <div style={{ marginBottom: 16 }}>
-          <label style={labelStyle}>{t('auth.username').toUpperCase()}</label>
-          <input
-            value={username}
-            onChange={e => { setUsername(e.target.value.toLowerCase()); if (unErr) setUnErr('') }}
-            onBlur={() => setUnErr(validateUsername(username))}
-            onKeyDown={e => e.key === 'Enter' && handle()}
-            placeholder={t('auth.usernamePlaceholder')}
-            style={inputStyle(!!unErr)}
-            autoCapitalize="none"
-            autoComplete="username"
-            spellCheck={false}
-          />
-          {unErr
-            ? <p style={{ color: 'var(--status-error)', fontSize: 12, marginTop: 6 }}>{unErr}</p>
-            : <p style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 6 }}>{t('auth.usernameHint')}</p>
-          }
-        </div>
+        {step === 'form' ? (
+          <>
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>{t('auth.username').toUpperCase()}</label>
+              <input
+                value={username}
+                onChange={e => { setUsername(e.target.value.toLowerCase()); if (unErr) setUnErr('') }}
+                onBlur={() => setUnErr(validateUsername(username))}
+                onKeyDown={e => e.key === 'Enter' && handleSendCode()}
+                placeholder={t('auth.usernamePlaceholder')}
+                style={inputStyle(!!unErr)}
+                autoCapitalize="none"
+                autoComplete="username"
+                spellCheck={false}
+              />
+              {unErr
+                ? <p style={{ color: 'var(--status-error)', fontSize: 12, marginTop: 6 }}>{unErr}</p>
+                : <p style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 6 }}>{t('auth.usernameHint')}</p>
+              }
+            </div>
 
-        <div style={{ marginBottom: 16 }}>
-          <label style={labelStyle}>{t('auth.email').toUpperCase()}</label>
-          <input
-            type="email"
-            value={email}
-            onChange={e => { setEmail(e.target.value); if (emailErr) setEmailErr('') }}
-            onBlur={() => setEmailErr(validateEmail(email))}
-            onKeyDown={e => e.key === 'Enter' && handle()}
-            placeholder={t('auth.emailPlaceholder')}
-            style={inputStyle(!!emailErr)}
-            autoComplete="email"
-            inputMode="email"
-            autoCapitalize="none"
-            spellCheck={false}
-          />
-          {emailErr && <p style={{ color: 'var(--status-error)', fontSize: 12, marginTop: 6 }}>{emailErr}</p>}
-        </div>
+            <div style={{ marginBottom: 24 }}>
+              <label style={labelStyle}>{t('auth.email').toUpperCase()}</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => { setEmail(e.target.value); if (emailErr) setEmailErr('') }}
+                onBlur={() => setEmailErr(validateEmail(email))}
+                onKeyDown={e => e.key === 'Enter' && handleSendCode()}
+                placeholder={t('auth.emailPlaceholder')}
+                style={inputStyle(!!emailErr)}
+                autoComplete="email"
+                inputMode="email"
+                autoCapitalize="none"
+                spellCheck={false}
+              />
+              {emailErr && <p style={{ color: 'var(--status-error)', fontSize: 12, marginTop: 6 }}>{emailErr}</p>}
+            </div>
 
-        <div style={{ marginBottom: 24 }}>
-          <label style={labelStyle}>{t('auth.password').toUpperCase()}</label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => { setPassword(e.target.value); if (pwErr) setPwErr('') }}
-            onBlur={() => setPwErr(validatePassword(password))}
-            onKeyDown={e => e.key === 'Enter' && handle()}
-            placeholder={t('auth.errorMinChars')}
-            style={inputStyle(!!pwErr)}
-            autoComplete="new-password"
-          />
-          {pwErr
-            ? <p style={{ color: 'var(--status-error)', fontSize: 12, marginTop: 6 }}>{pwErr}</p>
-            : <PasswordStrengthInner password={password} />
-          }
-        </div>
+            <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, lineHeight: 1.45, color: 'var(--text-secondary)' }}>
+                <input
+                  type="checkbox"
+                  checked={ageAccepted}
+                  onChange={e => { setAgeAccepted(e.target.checked); if (consentErr) setConsentErr('') }}
+                  style={{ width: 18, height: 18, marginTop: 1, accentColor: 'var(--gold-primary)', cursor: 'pointer', flexShrink: 0 }}
+                />
+                <span>Ich bin mindestens <strong style={{ color: 'var(--text-primary)' }}>18 Jahre</strong> alt.</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, lineHeight: 1.45, color: 'var(--text-secondary)' }}>
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={e => { setTermsAccepted(e.target.checked); if (consentErr) setConsentErr('') }}
+                  style={{ width: 18, height: 18, marginTop: 1, accentColor: 'var(--gold-primary)', cursor: 'pointer', flexShrink: 0 }}
+                />
+                <span>
+                  Ich akzeptiere die{' '}
+                  <Link href="/legal/terms" target="_blank" style={{ color: 'var(--gold-primary)', textDecoration: 'underline' }}>AGB</Link>
+                  {' '}und die{' '}
+                  <Link href="/legal/privacy" target="_blank" style={{ color: 'var(--gold-primary)', textDecoration: 'underline' }}>Datenschutzerklärung</Link>.
+                </span>
+              </label>
+              {consentErr && (
+                <p style={{ color: 'var(--status-error)', fontSize: 12, margin: 0 }}>{consentErr}</p>
+              )}
+            </div>
 
-        {/* AGE + TERMS GATE (§ 14 JuSchG + DSGVO Art. 7) */}
-        <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, lineHeight: 1.45, color: 'var(--text-secondary)' }}>
-            <input
-              type="checkbox"
-              checked={ageAccepted}
-              onChange={e => { setAgeAccepted(e.target.checked); if (consentErr) setConsentErr('') }}
-              style={{ width: 18, height: 18, marginTop: 1, accentColor: 'var(--gold-primary)', cursor: 'pointer', flexShrink: 0 }}
-            />
-            <span>Ich bin mindestens <strong style={{ color: 'var(--text-primary)' }}>18 Jahre</strong> alt.</span>
-          </label>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, lineHeight: 1.45, color: 'var(--text-secondary)' }}>
-            <input
-              type="checkbox"
-              checked={termsAccepted}
-              onChange={e => { setTermsAccepted(e.target.checked); if (consentErr) setConsentErr('') }}
-              style={{ width: 18, height: 18, marginTop: 1, accentColor: 'var(--gold-primary)', cursor: 'pointer', flexShrink: 0 }}
-            />
-            <span>
-              Ich akzeptiere die{' '}
-              <Link href="/legal/terms" target="_blank" style={{ color: 'var(--gold-primary)', textDecoration: 'underline' }}>AGB</Link>
-              {' '}und die{' '}
-              <Link href="/legal/privacy" target="_blank" style={{ color: 'var(--gold-primary)', textDecoration: 'underline' }}>Datenschutzerklärung</Link>.
-            </span>
-          </label>
-          {consentErr && (
-            <p style={{ color: 'var(--status-error)', fontSize: 12, margin: 0 }}>{consentErr}</p>
-          )}
-        </div>
+            <button
+              onClick={handleSendCode}
+              disabled={loading}
+              style={{ width: '100%', padding: 18, borderRadius: 12, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', background: loading ? 'var(--gold-subtle)' : 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary), var(--gold-bright))', color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700, letterSpacing: 3, opacity: loading ? 0.7 : 1 }}
+            >
+              {loading ? 'SENDE…' : 'CODE SENDEN'}
+            </button>
 
-        <button
-          onClick={handle}
-          disabled={loading}
-          style={{ width: '100%', padding: 18, borderRadius: 12, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', background: loading ? 'var(--gold-subtle)' : 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary), var(--gold-bright))', color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700, letterSpacing: 3, opacity: loading ? 0.7 : 1 }}
-        >
-          {loading ? t('auth.registering').toUpperCase() : t('auth.registerTitle').toUpperCase()}
-        </button>
+            <div style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: 'var(--text-secondary)' }}>
+              {t('auth.hasAccount')}{' '}
+              <Link href="/auth/login" style={{ color: 'var(--gold-primary)', fontWeight: 600 }}>{t('auth.login')}</Link>
+            </div>
+          </>
+        ) : (
+          <>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 6, lineHeight: 1.6 }}>
+              Code gesendet an
+            </p>
+            <p style={{ fontSize: 14, color: 'var(--text-primary)', marginBottom: 20, fontWeight: 600 }}>
+              {email}
+            </p>
 
-        <div style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: 'var(--text-secondary)' }}>
-          {t('auth.hasAccount')}{' '}
-          <Link href="/auth/login" style={{ color: 'var(--gold-primary)', fontWeight: 600 }}>{t('auth.login')}</Link>
-        </div>
+            <div style={{ marginBottom: 24 }}>
+              <label style={labelStyle}>BESTÄTIGUNGS-CODE</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]{8}"
+                autoComplete="one-time-code"
+                autoFocus
+                maxLength={8}
+                minLength={8}
+                value={code}
+                onChange={e => {
+                  const v = e.target.value.replace(/\D/g, '').slice(0, 8)
+                  setCode(v)
+                  if (codeErr) setCodeErr('')
+                }}
+                placeholder="••••••••"
+                style={codeInputStyle(!!codeErr)}
+                onKeyDown={e => e.key === 'Enter' && handleVerify()}
+              />
+              {codeErr && <p style={{ color: 'var(--status-error)', fontSize: 12, marginTop: 6 }}>{codeErr}</p>}
+            </div>
+
+            <button
+              onClick={handleVerify}
+              disabled={loading || code.length !== 8}
+              style={{ width: '100%', padding: 18, borderRadius: 12, border: 'none', cursor: loading || code.length !== 8 ? 'not-allowed' : 'pointer', background: loading || code.length !== 8 ? 'var(--gold-subtle)' : 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary), var(--gold-bright))', color: 'var(--text-inverse)', fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700, letterSpacing: 3, opacity: loading || code.length !== 8 ? 0.7 : 1 }}
+            >
+              {loading ? 'PRÜFE…' : t('auth.registerTitle').toUpperCase()}
+            </button>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, fontSize: 12 }}>
+              <button
+                type="button"
+                onClick={() => { setStep('form'); setCode(''); setError(''); setCodeErr('') }}
+                disabled={loading}
+                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', textDecoration: 'underline', fontSize: 12, padding: 0 }}
+              >
+                ← Zurück
+              </button>
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={loading}
+                style={{ background: 'none', border: 'none', color: 'var(--gold-primary)', cursor: 'pointer', textDecoration: 'underline', fontSize: 12, padding: 0 }}
+              >
+                Code nochmal senden
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
