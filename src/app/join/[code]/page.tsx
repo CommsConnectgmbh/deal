@@ -1,22 +1,73 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/lib/supabase'
+
+type Status = 'loading' | 'self' | 'duel' | 'register' | 'unknown'
 
 export default function JoinInvitePage() {
   const params = useParams()
   const router = useRouter()
-  const [saved, setSaved] = useState(false)
-  const code = params?.code as string | undefined
+  const { user, profile, loading } = useAuth()
+  const [status, setStatus] = useState<Status>('loading')
+  const [senderName, setSenderName] = useState<string | null>(null)
+  const code = (params?.code as string | undefined)?.toUpperCase()
 
   useEffect(() => {
-    if (!code) return
-    localStorage.setItem('dealbuddy_referral', code)
-    setSaved(true)
-    const t = setTimeout(() => {
-      router.replace('/auth/register')
-    }, 1500)
-    return () => clearTimeout(t)
-  }, [code, router])
+    if (!code || loading) return
+
+    let cancelled = false
+    ;(async () => {
+      const { data: sender } = await supabase
+        .from('profiles')
+        .select('id, username, display_name')
+        .eq('invite_code', code)
+        .maybeSingle()
+
+      if (cancelled) return
+
+      if (user && profile) {
+        if (!sender) {
+          setStatus('unknown')
+          setTimeout(() => router.replace('/app/home'), 1500)
+          return
+        }
+        if (sender.id === profile.id) {
+          setStatus('self')
+          setTimeout(() => router.replace('/app/home'), 1500)
+          return
+        }
+        setSenderName(sender.display_name || sender.username)
+        setStatus('duel')
+        setTimeout(() => {
+          router.replace(`/app/deals/create?opponent=${encodeURIComponent(sender.username)}`)
+        }, 1200)
+        return
+      }
+
+      localStorage.setItem('dealbuddy_referral', code)
+      if (sender) setSenderName(sender.display_name || sender.username)
+      setStatus('register')
+      setTimeout(() => router.replace('/auth/register'), 1500)
+    })()
+
+    return () => { cancelled = true }
+  }, [code, loading, user, profile, router])
+
+  const headline =
+    status === 'duel'     ? `Duell gegen ${senderName}!` :
+    status === 'register' ? 'Einladung angenommen!' :
+    status === 'self'     ? 'Das ist dein eigener Code' :
+    status === 'unknown'  ? 'Einladung ungültig' :
+                            'Lade…'
+
+  const sub =
+    status === 'duel'     ? 'Weiterleitung zum Challenge-Erstellen…' :
+    status === 'register' ? 'Weiterleitung zur Registrierung…' :
+    status === 'self'     ? 'Du kannst dich nicht selbst einladen.' :
+    status === 'unknown'  ? 'Dieser Code ist nicht (mehr) gültig.' :
+                            'Einen Moment…'
 
   return (
     <div style={{
@@ -31,14 +82,16 @@ export default function JoinInvitePage() {
       textAlign: 'center',
       padding: '40px 24px',
     }}>
-      <div style={{ fontSize: 64, marginBottom: 24 }}>{'\uD83C\uDF89'}</div>
+      <div style={{ fontSize: 64, marginBottom: 24 }}>
+        {status === 'duel' ? '⚔️' : status === 'unknown' ? '⚠️' : '🎉'}
+      </div>
       <h1 className="font-display" style={{
         fontSize: 28,
         color: 'var(--gold-primary)',
         marginBottom: 12,
         letterSpacing: 2,
       }}>
-        {saved ? 'Einladung angenommen!' : 'Lade...'}
+        {headline}
       </h1>
       <p style={{
         fontSize: 16,
@@ -46,7 +99,7 @@ export default function JoinInvitePage() {
         fontFamily: 'var(--font-body)',
         marginBottom: 24,
       }}>
-        Weiterleitung zur Registrierung...
+        {sub}
       </p>
       <div style={{
         width: 40, height: 40, borderRadius: '50%',
