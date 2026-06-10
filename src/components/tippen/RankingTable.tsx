@@ -30,9 +30,10 @@ export default function RankingTable({ members, totalMatchdays, currentUserId, o
   // Show matchday columns (last 5 + total)
   const mdCols = Array.from({ length: Math.min(totalMatchdays, 5) }, (_, i) => totalMatchdays - 4 + i).filter(m => m >= 1)
 
-  // Count total tips for each member
+  // Count total tipped matchdays for each member (only real numeric matchdays —
+  // synthetic buckets like 'bracket'/'bonus' must not inflate the count).
   const getTippedMatchdays = (m: MemberRanking) => {
-    return Object.values(m.points_by_matchday).filter(v => v > 0).length
+    return Object.entries(m.points_by_matchday).filter(([k, v]) => /^\d+$/.test(k) && v > 0).length
   }
 
   if (sorted.length === 0) {

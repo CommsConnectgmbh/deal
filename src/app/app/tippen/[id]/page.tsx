@@ -269,7 +269,18 @@ export default function TippgruppeDetailPage() {
           })
         }
 
-        // 3. Reload questions after sync
+        // 3. Re-score the KO bracket, then reload questions after sync
+        if (group.competition_type === 'TOURNAMENT' || group.competition_type === 'CUP') {
+          await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/score-bracket`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
+              apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+            },
+            body: JSON.stringify({ group_id: groupId }),
+          }).catch(() => {})
+        }
         loadQuestions()
       } catch {}
     }
@@ -548,6 +559,8 @@ export default function TippgruppeDetailPage() {
             showToast(`${totalResolved} ${t('tippen.matchesResolved')}`)
           }
         } catch {}
+        // Re-score the KO bracket from the freshly synced fixtures.
+        if (isTournament) scoreBracket({ silent: true })
         loadQuestions()
       }
     } catch (err: unknown) {
@@ -615,6 +628,39 @@ export default function TippgruppeDetailPage() {
       showToast(t('tippen.tipSaved'))
     }
   }
+
+  /* ── Reload bracket tips ── */
+  const loadBracketTips = useCallback(async () => {
+    if (!groupId || !user) return
+    const { data } = await supabase.from('tip_bracket_tips').select('*').eq('group_id', groupId).eq('user_id', user.id)
+    setBracketTips(data || [])
+  }, [groupId, user])
+
+  /* ── Score bracket (admin / auto) — server-authoritative, 3 pts per hit ── */
+  const scoreBracket = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!groupId) return
+    try {
+      const { data: { session } } = await supabase.auth.refreshSession()
+      if (!session) return
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/score-bracket`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+        },
+        body: JSON.stringify({ group_id: groupId }),
+      })
+      const result = await res.json()
+      if (!opts?.silent) {
+        if (result.error) showToast(t('tippen.error') + ': ' + result.error)
+        else showToast(`${result.scored_rows || 0} ${t('tippen.matchesResolved')}`)
+      }
+      loadBracketTips()
+    } catch {
+      if (!opts?.silent) showToast(t('tippen.resolveFailed'))
+    }
+  }, [groupId, t, showToast, loadBracketTips])
 
   /* ── Draft helpers ── */
   const getDraft = (qId: string): TipDraft => drafts[qId] || { homeScore: '', awayScore: '' }
@@ -1160,6 +1206,18 @@ export default function TippgruppeDetailPage() {
          ════════════════════════════════════════════════════════════ */}
       {activeTab === 'bracket' && isTournament && (
         <div style={{ padding: '16px 0' }}>
+          {isAdmin && (
+            <div style={{ padding: '0 16px 12px' }}>
+              <button onClick={() => scoreBracket()} style={{
+                width: '100%', padding: '10px', background: 'var(--bg-elevated)',
+                border: '1px solid var(--gold-primary)', borderRadius: 10,
+                color: 'var(--gold-primary)', fontSize: 11, fontFamily: 'var(--font-display)',
+                fontWeight: 700, cursor: 'pointer', letterSpacing: 0.5,
+              }}>
+                ✓ BRACKET AUSWERTEN
+              </button>
+            </div>
+          )}
           <TournamentBracket
             tips={bracketTips.map(t => ({
               stage: t.stage,
