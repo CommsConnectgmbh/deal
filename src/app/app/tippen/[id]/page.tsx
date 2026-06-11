@@ -611,8 +611,12 @@ export default function TippgruppeDetailPage() {
 
   /* ── Save bracket tip ── */
   const saveBracketTip = async (stage: string, position: number, teamName: string) => {
-    if (!user || !groupId) return
-    const { data } = await supabase
+    if (!user || !groupId) {
+      // Session/Group nicht bereit — nie lautlos verschlucken.
+      showToast(t('tippen.resolveFailed'))
+      return
+    }
+    const { data, error } = await supabase
       .from('tip_bracket_tips')
       .upsert({
         group_id: groupId, user_id: user.id,
@@ -620,13 +624,18 @@ export default function TippgruppeDetailPage() {
       }, { onConflict: 'group_id,user_id,stage,position' })
       .select()
       .single()
-    if (data) {
-      setBracketTips(prev => {
-        const filtered = prev.filter(t => !(t.stage === stage && t.position === position))
-        return [...filtered, data]
-      })
-      showToast(t('tippen.tipSaved'))
+    if (error || !data) {
+      // Speichern fehlgeschlagen (RLS/Session/Netz) → Fehler zeigen statt so zu tun,
+      // als sei es gespeichert, und mit der DB-Wahrheit resynchronisieren.
+      showToast(t('tippen.error') + (error ? ': ' + error.message : ''))
+      loadBracketTips()
+      return
     }
+    setBracketTips(prev => {
+      const filtered = prev.filter(t => !(t.stage === stage && t.position === position))
+      return [...filtered, data]
+    })
+    showToast(t('tippen.tipSaved'))
   }
 
   /* ── Reload bracket tips ── */
