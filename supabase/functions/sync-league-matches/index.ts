@@ -116,15 +116,13 @@ serve(async (req) => {
       // Build question text
       const question = `${homeTeam} vs ${awayTeam}`
 
-      // Map football-data status to our status
-      let questionStatus = 'open'
-      if (['FINISHED', 'AWARDED'].includes(matchStatus)) {
-        questionStatus = 'resolved'
-      } else if (['POSTPONED', 'CANCELLED', 'SUSPENDED'].includes(matchStatus)) {
-        questionStatus = 'cancelled'
-      } else if (['IN_PLAY', 'PAUSED', 'HALFTIME'].includes(matchStatus)) {
-        questionStatus = 'open' // still open but live
-      }
+      // `status` is the SCORING lifecycle ('open' → 'resolved'), owned solely by
+      // resolve-matchday. The sync must NEVER mark a finished match 'resolved' itself —
+      // otherwise the auto-resolver (which looks for FINISHED + status != 'resolved')
+      // skips it and the tips are never scored. New questions start 'open' so the
+      // resolver picks them up; existing questions keep their current scoring state.
+      // Only cancellations are flagged here.
+      const isCancelled = ['POSTPONED', 'CANCELLED', 'SUSPENDED'].includes(matchStatus)
 
       const isLive = ['IN_PLAY', 'PAUSED', 'HALFTIME'].includes(matchStatus)
 
@@ -159,7 +157,7 @@ serve(async (req) => {
             competition_stage: stage,
             group_label: groupLabel,
             deadline,
-            status: questionStatus,
+            ...(isCancelled ? { status: 'cancelled' } : {}),
             is_live: isLive,
             last_updated_at: new Date().toISOString(),
           })
@@ -193,7 +191,7 @@ serve(async (req) => {
             competition_stage: stage,
             group_label: groupLabel,
             deadline,
-            status: questionStatus,
+            status: isCancelled ? 'cancelled' : 'open',
             is_live: isLive,
             last_updated_at: new Date().toISOString(),
           })

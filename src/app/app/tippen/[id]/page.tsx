@@ -713,7 +713,7 @@ export default function TippgruppeDetailPage() {
     { key: 'spieltag', label: isCustomGroup ? 'CHALLENGES' : t('tippen.tabMatchday'), show: !hasGroupStage || isCustomGroup },
     { key: 'bracket', label: 'BRACKET', show: isTournament && !isCustomGroup },
     { key: 'bonus', label: hasGroupStage ? 'SPEZIAL' : t('tippen.tabBonus'), show: !isCustomGroup },
-    { key: 'uebersicht', label: t('tippen.tabOverview'), show: !isCustomGroup && !hasGroupStage },
+    { key: 'uebersicht', label: t('tippen.tabOverview'), show: !isCustomGroup },
     { key: 'rangliste', label: t('tippen.tabRanking'), show: true },
     { key: 'chat', label: 'CHAT', show: true },
     { key: 'settings', label: '\u2699\uFE0F', show: true },

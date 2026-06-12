@@ -99,9 +99,11 @@ serve(async (req) => {
       const displayHome = isLive ? (m.score?.fullTime?.home ?? m.score?.halfTime?.home ?? null) : homeScore
       const displayAway = isLive ? (m.score?.fullTime?.away ?? m.score?.halfTime?.away ?? null) : awayScore
 
-      let questionStatus = 'open'
-      if (isFinished) questionStatus = 'resolved'
-      else if (['POSTPONED', 'CANCELLED', 'SUSPENDED'].includes(matchStatus)) questionStatus = 'cancelled'
+      // `status` is the SCORING lifecycle ('open' → 'resolved'), owned solely by
+      // resolve-matchday. Live-sync must never set 'resolved' (that makes the
+      // auto-resolver skip the match → tips never scored) nor revert an already
+      // scored match back to 'open'. It may only flag cancellations.
+      const isCancelled = ['POSTPONED', 'CANCELLED', 'SUSPENDED'].includes(matchStatus)
 
       // Update matching tip_question
       const { data: updatedRow, error } = await supabase
@@ -114,7 +116,7 @@ serve(async (req) => {
           match_status: matchStatus,
           match_minute: matchMinute,
           is_live: isLive,
-          status: questionStatus,
+          ...(isCancelled ? { status: 'cancelled' } : {}),
           last_updated_at: new Date().toISOString(),
         })
         .eq('group_id', group_id)
