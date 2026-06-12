@@ -1,0 +1,121 @@
+// Supabase Edge Function: cron-score-groups
+// Server-side scheduler entrypoint. For every competition-linked tip group with
+// relevant activity it runs the full scoring pipeline IN ORDER, awaiting each step:
+//   1. sync-league-matches  — pull fresh fixtures/scores from football-data.org
+//   2. resolve-matchday     — score tips for every FINISHED-but-unresolved matchday
+//   3. score-bracket        — re-score the KO bracket (tournaments/cups only)
+//
+// It reuses the exact same edge functions the client triggers, so the scoring
+// logic lives in exactly one place (no drift). Those functions accept a trusted
+// internal call when the Authorization bearer is the service-role key.
+//
+// Auth: invoked by pg_cron via pg_net with header `x-cron-secret: <secret>`, where
+// the secret lives in the RLS-locked public.app_secrets table (only the postgres /
+// service_role roles can read it). verify_jwt is disabled; we validate the header
+// against that stored secret. Calls to the sub-functions use the service-role key.
+
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
+const FINISHED_STATES = ['FINISHED', 'AWARDED']
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  try {
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
+    const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+    const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
+
+    // Only the scheduler may invoke this: validate the shared secret (RLS-locked,
+    // readable only by the service role) against the x-cron-secret header.
+    const { data: secretRow } = await supabase
+      .from('app_secrets')
+      .select('value')
+      .eq('key', 'cron_secret')
+      .single()
+    const provided = req.headers.get('x-cron-secret') || ''
+    if (!secretRow?.value || provided !== secretRow.value) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+    }
+    const internalHeaders = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${SERVICE_KEY}`,
+    }
+    const call = (fn: string, body: Record<string, unknown>) =>
+      fetch(`${SUPABASE_URL}/functions/v1/${fn}`, { method: 'POST', headers: internalHeaders, body: JSON.stringify(body) })
+
+    // Candidate groups: competition-linked AND with at least one question that is
+    // still in play, recently kicked off, or finished-but-unscored. This keeps the
+    // football-data.org call count bounded to groups that actually need attention.
+    const { data: groups } = await supabase
+      .from('tip_groups')
+      .select('id, competition_code, season_year, competition_type')
+      .not('competition_code', 'is', null)
+
+    const nowMs = Date.now()
+    const windowStart = new Date(nowMs - 24 * 60 * 60 * 1000).toISOString() // 24h ago
+    const windowEnd = new Date(nowMs + 3 * 60 * 60 * 1000).toISOString()    // 3h ahead
+
+    const results: Array<Record<string, unknown>> = []
+
+    for (const g of groups || []) {
+      // Is this group relevant right now?
+      const { data: live } = await supabase
+        .from('tip_questions')
+        .select('id')
+        .eq('group_id', g.id)
+        .neq('status', 'resolved')
+        .neq('status', 'cancelled')
+        .or(`match_status.in.(${FINISHED_STATES.join(',')}),and(match_utc_date.gte.${windowStart},match_utc_date.lte.${windowEnd})`)
+        .limit(1)
+
+      if (!live || live.length === 0) continue
+
+      try {
+        // 1. Pull fresh fixtures/scores (awaited so the DB is current for step 2).
+        await call('sync-league-matches', {
+          group_id: g.id,
+          competition_code: g.competition_code,
+          season: g.season_year || '2025',
+        })
+
+        // 2. Score every FINISHED-but-unresolved matchday.
+        const { data: unresolved } = await supabase
+          .from('tip_questions')
+          .select('matchday')
+          .eq('group_id', g.id)
+          .in('match_status', FINISHED_STATES)
+          .neq('status', 'resolved')
+          .not('matchday', 'is', null)
+
+        const matchdays = [...new Set((unresolved || []).map(q => q.matchday))]
+        for (const md of matchdays) {
+          await call('resolve-matchday', { group_id: g.id, matchday: md })
+        }
+
+        // 3. Re-score the KO bracket for tournaments/cups.
+        if (['TOURNAMENT', 'CUP'].includes(g.competition_type)) {
+          await call('score-bracket', { group_id: g.id })
+        }
+
+        results.push({ group_id: g.id, resolved_matchdays: matchdays })
+      } catch (e) {
+        results.push({ group_id: g.id, error: String((e as Error).message || e) })
+      }
+    }
+
+    return new Response(JSON.stringify({ processed: results.length, results }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  } catch (err) {
+    return new Response(JSON.stringify({ error: (err as Error).message }), { status: 500, headers: corsHeaders })
+  }
+})

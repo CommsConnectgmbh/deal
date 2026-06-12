@@ -60,14 +60,22 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
+    // Trusted internal/cron invocation: Authorization carries the service-role key.
+    // Such calls skip the per-user JWT + admin checks (the scheduler is authoritative).
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: corsHeaders })
-    }
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+    const token = (authHeader || '').replace('Bearer ', '')
+    const isInternal = !!token && token === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+    let user: { id: string } | null = null
+    if (!isInternal) {
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: corsHeaders })
+      }
+      const { data, error: authError } = await supabase.auth.getUser(token)
+      user = data.user
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+      }
     }
 
     const { group_id } = await req.json()
@@ -75,15 +83,17 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'group_id required' }), { status: 400, headers: corsHeaders })
     }
 
-    // Verify admin
-    const { data: membership } = await supabase
-      .from('tip_group_members')
-      .select('role')
-      .eq('group_id', group_id)
-      .eq('user_id', user.id)
-      .single()
-    if (!membership || membership.role !== 'admin') {
-      return new Response(JSON.stringify({ error: 'Only group admins can score the bracket' }), { status: 403, headers: corsHeaders })
+    // Verify admin (skipped for trusted internal/cron calls)
+    if (!isInternal) {
+      const { data: membership } = await supabase
+        .from('tip_group_members')
+        .select('role')
+        .eq('group_id', group_id)
+        .eq('user_id', user!.id)
+        .single()
+      if (!membership || membership.role !== 'admin') {
+        return new Response(JSON.stringify({ error: 'Only group admins can score the bracket' }), { status: 403, headers: corsHeaders })
+      }
     }
 
     // Load all KO questions for the group
