@@ -70,19 +70,13 @@ interface BonusA {
   points_earned: number; created_at: string
 }
 
-interface BracketTip {
-  id: string; group_id: string; user_id: string; stage: string; position: number
-  predicted_team_name: string | null; actual_team_name: string | null
-  is_correct: boolean | null; points_earned: number; deadline: string | null
-}
-
 interface ChatMsg {
   id: string; sender_id: string; content: string; created_at: string
   message_type: string; media_url: string | null; group_id: string
   profiles?: { username: string; display_name: string; avatar_url: string | null }
 }
 
-type Tab = 'spieltag' | 'gruppen' | 'uebersicht' | 'rangliste' | 'bonus' | 'bracket' | 'chat' | 'settings'
+type Tab = 'spieltag' | 'gruppen' | 'uebersicht' | 'rangliste' | 'bonus' | 'turnier' | 'chat' | 'settings'
 
 /* ═══════════════════════════════════════════════════════════════
    HELPERS
@@ -141,9 +135,6 @@ export default function TippgruppeDetailPage() {
   const [bonusQuestions, setBonusQuestions] = useState<BonusQ[]>([])
   const [bonusAnswers, setBonusAnswers] = useState<Record<string, BonusA>>({})
 
-  // Bracket
-  const [bracketTips, setBracketTips] = useState<BracketTip[]>([])
-
   // Chat
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([])
   const [chatText, setChatText] = useState('')
@@ -171,6 +162,9 @@ export default function TippgruppeDetailPage() {
   const hasGroupStage = isTournament && questions.some(q =>
     (q.competition_stage === 'GROUP_STAGE' || q.competition_stage === 'GROUP_PHASE') && q.group_label
   )
+  // K.o.-Runde: alle Turnier-Partien außer Gruppen-/Liga-Phase.
+  const KO_STAGE_SET = new Set(['LAST_32', 'ROUND_OF_32', 'LAST_16', 'ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'THIRD_PLACE', 'FINAL'])
+  const koQuestions = questions.filter(q => q.competition_stage && KO_STAGE_SET.has(q.competition_stage))
 
   // Default-Tab für Turniere: Gruppen-Ansicht statt Spieltag (sobald Gruppen-Daten da sind).
   useEffect(() => {
@@ -217,6 +211,39 @@ export default function TippgruppeDetailPage() {
 
   useEffect(() => { loadQuestions() }, [loadQuestions])
 
+  /* ── Resolve every FINISHED-but-unresolved matchday AND KO stage ──
+     Numeric matchdays (league / group phase) resolve by matchday; KO fixtures
+     carry matchday=null and resolve by competition_stage. Both use the same
+     exact/diff/tendency scoring in resolve-matchday. Returns how many were scored. */
+  const resolveAllUnresolved = useCallback(async (accessToken: string): Promise<number> => {
+    const headers = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+    }
+    const resolve = (body: Record<string, unknown>) =>
+      fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/resolve-matchday`, {
+        method: 'POST', headers, body: JSON.stringify({ group_id: groupId, ...body }),
+      }).then(r => r.json()).catch(() => ({}))
+
+    let total = 0
+    // Numeric matchdays
+    const { data: mdRows } = await supabase
+      .from('tip_questions').select('matchday')
+      .eq('group_id', groupId).eq('match_status', 'FINISHED').neq('status', 'resolved')
+      .not('matchday', 'is', null)
+    const mds = [...new Set((mdRows || []).map((q: any) => q.matchday).filter(Boolean))]
+    for (const md of mds) total += (await resolve({ matchday: md })).resolved || 0
+    // KO stages (matchday-null)
+    const { data: koRows } = await supabase
+      .from('tip_questions').select('competition_stage')
+      .eq('group_id', groupId).eq('match_status', 'FINISHED').neq('status', 'resolved')
+      .is('matchday', null).not('competition_stage', 'is', null)
+    const stages = [...new Set((koRows || []).map((q: any) => q.competition_stage).filter(Boolean))]
+    for (const st of stages) total += (await resolve({ stage: st })).resolved || 0
+    return total
+  }, [groupId])
+
   /* ── Auto-sync on page load (for admin, if auto_sync enabled & stale) ── */
   useEffect(() => {
     if (!group || !group.auto_sync || !group.competition_code || !user || !membership) return
@@ -249,38 +276,8 @@ export default function TippgruppeDetailPage() {
           }),
         })
 
-        // 2. Auto-resolve all finished but unresolved matchdays
-        const { data: unresolvedQ } = await supabase
-          .from('tip_questions')
-          .select('matchday')
-          .eq('group_id', groupId)
-          .eq('match_status', 'FINISHED')
-          .neq('status', 'resolved')
-        const unresolvedMDs = [...new Set((unresolvedQ || []).map((q: any) => q.matchday).filter(Boolean))]
-        for (const md of unresolvedMDs) {
-          await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/resolve-matchday`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${session.access_token}`,
-              apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-            },
-            body: JSON.stringify({ group_id: groupId, matchday: md }),
-          })
-        }
-
-        // 3. Re-score the KO bracket, then reload questions after sync
-        if (group.competition_type === 'TOURNAMENT' || group.competition_type === 'CUP') {
-          await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/score-bracket`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${session.access_token}`,
-              apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-            },
-            body: JSON.stringify({ group_id: groupId }),
-          }).catch(() => {})
-        }
+        // 2. Auto-resolve all finished but unresolved matchdays + KO stages.
+        await resolveAllUnresolved(session.access_token)
         loadQuestions()
       } catch {}
     }
@@ -370,16 +367,6 @@ export default function TippgruppeDetailPage() {
     }
     load()
   }, [groupId, user, loadBonusTab])
-
-  /* ── Load bracket ── */
-  useEffect(() => {
-    if (!groupId || !user || activeTab !== 'bracket') return
-    const load = async () => {
-      const { data } = await supabase.from('tip_bracket_tips').select('*').eq('group_id', groupId).eq('user_id', user.id)
-      setBracketTips(data || [])
-    }
-    load()
-  }, [groupId, user, activeTab])
 
   /* ── Load chat ── */
   useEffect(() => {
@@ -532,35 +519,13 @@ export default function TippgruppeDetailPage() {
         showToast(t('tippen.error') + ': ' + result.error)
       } else {
         showToast(`${result.synced} ${t('tippen.matchesSynced')}`)
-        // Auto-resolve ALL finished but unresolved matchdays
+        // Auto-resolve ALL finished but unresolved matchdays + KO stages.
         try {
-          const { data: unresolvedQ } = await supabase
-            .from('tip_questions')
-            .select('matchday')
-            .eq('group_id', groupId)
-            .eq('match_status', 'FINISHED')
-            .neq('status', 'resolved')
-          const unresolvedMDs = [...new Set((unresolvedQ || []).map((q: any) => q.matchday).filter(Boolean))]
-          let totalResolved = 0
-          for (const md of unresolvedMDs) {
-            const resolveRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/resolve-matchday`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${session.access_token}`,
-                apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-              },
-              body: JSON.stringify({ group_id: groupId, matchday: md }),
-            })
-            const resolveResult = await resolveRes.json()
-            totalResolved += resolveResult.resolved || 0
-          }
+          const totalResolved = await resolveAllUnresolved(session.access_token)
           if (totalResolved > 0) {
             showToast(`${totalResolved} ${t('tippen.matchesResolved')}`)
           }
         } catch {}
-        // Re-score the KO bracket from the freshly synced fixtures.
-        if (isTournament) scoreBracket({ silent: true })
         loadQuestions()
       }
     } catch (err: unknown) {
@@ -609,67 +574,30 @@ export default function TippgruppeDetailPage() {
     }
   }
 
-  /* ── Save bracket tip ── */
-  const saveBracketTip = async (stage: string, position: number, teamName: string) => {
-    if (!user || !groupId) {
-      // Session/Group nicht bereit — nie lautlos verschlucken.
-      showToast(t('tippen.resolveFailed'))
-      return
+  /* ── Save score tips for an arbitrary set of match questions (reused by the
+        K.o.-tree, which tips the real KO fixtures exactly like the Spieltag). ── */
+  const saveDraftsForQuestions = async (targetQuestions: TipQuestion[]): Promise<number> => {
+    if (!user || !membership) return 0
+    let saved = 0
+    for (const q of targetQuestions) {
+      if (q.question_type !== 'match' || deadlinePassed(q.deadline)) continue
+      const draft = drafts[q.id]
+      const existing = myAnswers[q.id]
+      const homeScore = draft?.homeScore || (existing?.home_score_tip != null ? String(existing.home_score_tip) : '')
+      const awayScore = draft?.awayScore || (existing?.away_score_tip != null ? String(existing.away_score_tip) : '')
+      if (homeScore === '' || awayScore === '') continue
+      const { data, error } = await supabase
+        .from('tip_answers')
+        .upsert({
+          question_id: q.id, user_id: user.id,
+          home_score_tip: parseInt(homeScore), away_score_tip: parseInt(awayScore),
+        }, { onConflict: 'question_id,user_id' })
+        .select().single()
+      if (!error && data) { setMyAnswers(prev => ({ ...prev, [q.id]: data })); saved++ }
     }
-    const { data, error } = await supabase
-      .from('tip_bracket_tips')
-      .upsert({
-        group_id: groupId, user_id: user.id,
-        stage, position, predicted_team_name: teamName,
-      }, { onConflict: 'group_id,user_id,stage,position' })
-      .select()
-      .single()
-    if (error || !data) {
-      // Speichern fehlgeschlagen (RLS/Session/Netz) → Fehler zeigen statt so zu tun,
-      // als sei es gespeichert, und mit der DB-Wahrheit resynchronisieren.
-      showToast(t('tippen.error') + (error ? ': ' + error.message : ''))
-      loadBracketTips()
-      return
-    }
-    setBracketTips(prev => {
-      const filtered = prev.filter(t => !(t.stage === stage && t.position === position))
-      return [...filtered, data]
-    })
-    showToast(t('tippen.tipSaved'))
+    setDrafts(prev => { const n = { ...prev }; targetQuestions.forEach(q => delete n[q.id]); return n })
+    return saved
   }
-
-  /* ── Reload bracket tips ── */
-  const loadBracketTips = useCallback(async () => {
-    if (!groupId || !user) return
-    const { data } = await supabase.from('tip_bracket_tips').select('*').eq('group_id', groupId).eq('user_id', user.id)
-    setBracketTips(data || [])
-  }, [groupId, user])
-
-  /* ── Score bracket (admin / auto) — server-authoritative, 3 pts per hit ── */
-  const scoreBracket = useCallback(async (opts?: { silent?: boolean }) => {
-    if (!groupId) return
-    try {
-      const { data: { session } } = await supabase.auth.refreshSession()
-      if (!session) return
-      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/score-bracket`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-        },
-        body: JSON.stringify({ group_id: groupId }),
-      })
-      const result = await res.json()
-      if (!opts?.silent) {
-        if (result.error) showToast(t('tippen.error') + ': ' + result.error)
-        else showToast(`${result.scored_rows || 0} ${t('tippen.matchesResolved')}`)
-      }
-      loadBracketTips()
-    } catch {
-      if (!opts?.silent) showToast(t('tippen.resolveFailed'))
-    }
-  }, [groupId, t, showToast, loadBracketTips])
 
   /* ── Draft helpers ── */
   const getDraft = (qId: string): TipDraft => drafts[qId] || { homeScore: '', awayScore: '' }
@@ -711,7 +639,7 @@ export default function TippgruppeDetailPage() {
   const tabs: { key: Tab; label: string; show: boolean }[] = [
     { key: 'gruppen', label: 'GRUPPEN', show: hasGroupStage },
     { key: 'spieltag', label: isCustomGroup ? 'CHALLENGES' : t('tippen.tabMatchday'), show: !hasGroupStage || isCustomGroup },
-    { key: 'bracket', label: 'BRACKET', show: isTournament && !isCustomGroup },
+    { key: 'turnier', label: 'TURNIER', show: isTournament && !isCustomGroup },
     { key: 'bonus', label: hasGroupStage ? 'SPEZIAL' : t('tippen.tabBonus'), show: !isCustomGroup },
     { key: 'uebersicht', label: t('tippen.tabOverview'), show: !isCustomGroup },
     { key: 'rangliste', label: t('tippen.tabRanking'), show: true },
@@ -1211,56 +1139,59 @@ export default function TippgruppeDetailPage() {
       )}
 
       {/* ════════════════════════════════════════════════════════════
-         BRACKET TAB (tournament only)
+         TURNIER TAB (K.o.-Baum, tournament only)
          ════════════════════════════════════════════════════════════ */}
-      {activeTab === 'bracket' && isTournament && (
+      {activeTab === 'turnier' && isTournament && (
         <div style={{ padding: '16px 0' }}>
-          {isAdmin && (
+          {/* Admin sync — pulls the latest pairings so the tree fills up */}
+          {isAdmin && group.competition_code && (
             <div style={{ padding: '0 16px 12px' }}>
-              <button onClick={() => scoreBracket()} style={{
+              <button onClick={syncMatches} style={{
                 width: '100%', padding: '10px', background: 'var(--bg-elevated)',
-                border: '1px solid var(--gold-primary)', borderRadius: 10,
+                border: '1px solid var(--border-subtle)', borderRadius: 10,
                 color: 'var(--gold-primary)', fontSize: 11, fontFamily: 'var(--font-display)',
                 fontWeight: 700, cursor: 'pointer', letterSpacing: 0.5,
               }}>
-                ✓ BRACKET AUSWERTEN
+                ⟳ SYNC
               </button>
             </div>
           )}
+
           <TournamentBracket
-            tips={bracketTips.map(t => ({
-              stage: t.stage,
-              position: t.position,
-              predicted_team_name: t.predicted_team_name,
-              actual_team_name: t.actual_team_name,
-              is_correct: t.is_correct,
-              points_earned: t.points_earned,
+            questions={koQuestions.map(q => ({
+              id: q.id, question: q.question,
+              home_team: q.home_team, away_team: q.away_team,
+              home_team_logo: q.home_team_logo, away_team_logo: q.away_team_logo,
+              home_team_short: q.home_team_short, away_team_short: q.away_team_short,
+              home_score: q.home_score, away_score: q.away_score,
+              halftime_home: q.halftime_home, halftime_away: q.halftime_away,
+              match_utc_date: q.match_utc_date, match_status: q.match_status,
+              match_minute: q.match_minute, is_live: q.is_live,
+              deadline: q.deadline, status: q.status, matchday: q.matchday,
+              competition_stage: q.competition_stage, group_label: q.group_label,
             }))}
-            stages={(() => {
-              // Derive stages from question data
-              const stagesSet = new Set(questions.filter(q => q.competition_stage).map(q => q.competition_stage!))
-              const stageOrder = ['LAST_32', 'ROUND_OF_32', 'LAST_16', 'ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'THIRD_PLACE', 'FINAL']
-              return stageOrder.filter(s => stagesSet.has(s))
-            })()}
-            teamOptions={(() => {
-              const teams = new Set<string>()
-              questions.forEach(q => {
-                if (q.home_team) teams.add(q.home_team)
-                if (q.away_team) teams.add(q.away_team)
-              })
-              return [...teams].sort()
-            })()}
-            teamLogos={(() => {
-              const map: Record<string, string> = {}
-              questions.forEach(q => {
-                if (q.home_team && q.home_team_logo) map[q.home_team] = q.home_team_logo
-                if (q.away_team && q.away_team_logo) map[q.away_team] = q.away_team_logo
-              })
-              return map
-            })()}
-            onSave={saveBracketTip}
-            locked={false}
+            drafts={drafts}
+            myAnswers={myAnswers}
+            onDraftChange={(qId, patch) => updateDraft(qId, patch)}
           />
+
+          {koQuestions.length > 0 && (
+            <MatchdaySaveAll
+              onSave={async () => {
+                if (saving) return
+                setSaving(true)
+                const saved = await saveDraftsForQuestions(koQuestions)
+                setSaving(false)
+                showToast(`${saved} ${t('tippen.tipsSaved')}`)
+              }}
+              saving={saving}
+              tippCount={koQuestions.filter(q => {
+                if (deadlinePassed(q.deadline)) return false
+                const d = drafts[q.id]
+                return !!d?.homeScore && !!d?.awayScore
+              }).length}
+            />
+          )}
         </div>
       )}
 

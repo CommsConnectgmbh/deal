@@ -1,6 +1,13 @@
 // Supabase Edge Function: resolve-matchday
-// Calculates points for all tips in a matchday using group's scoring config
-// POST { group_id, matchday }
+// Calculates points for all tips in a matchday using group's scoring config.
+// POST { group_id, matchday }            — score one numeric matchday (league / group phase)
+// POST { group_id, stage }               — score one KO stage (matchday-null cup fixtures)
+//
+// KO matches synced from football-data.org carry matchday=null and only a
+// competition_stage (LAST_16, QUARTER_FINALS, FINAL, …). They are scored with
+// the SAME exact/diff/tendency logic as every other match; their points are
+// bucketed under the stage key in points_by_matchday (e.g. 'QUARTER_FINALS')
+// so they add to total_points without polluting the numeric matchday columns.
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -38,10 +45,14 @@ serve(async (req) => {
       }
     }
 
-    const { group_id, matchday } = await req.json()
-    if (!group_id || matchday === undefined) {
-      return new Response(JSON.stringify({ error: 'group_id and matchday required' }), { status: 400, headers: corsHeaders })
+    const { group_id, matchday, stage } = await req.json()
+    if (!group_id || (matchday === undefined && !stage)) {
+      return new Response(JSON.stringify({ error: 'group_id and (matchday or stage) required' }), { status: 400, headers: corsHeaders })
     }
+
+    // Bucket key under which points land in points_by_matchday: the numeric
+    // matchday for league/group fixtures, or the stage name for KO fixtures.
+    const bucketKey = stage ? String(stage) : String(matchday)
 
     // Verify admin (skipped for trusted internal/cron calls)
     if (!isInternal) {
@@ -70,15 +81,20 @@ serve(async (req) => {
 
     const { points_exact, points_diff, points_tendency } = group
 
-    // Get all FINISHED questions for this matchday
-    const { data: questions } = await supabase
+    // Get all FINISHED questions for this matchday (numeric) or KO stage.
+    // For a stage we restrict to matchday IS NULL so a KO fixture that also
+    // happens to carry a matchday is only ever scored once (via the numeric path).
+    let questionQuery = supabase
       .from('tip_questions')
       .select('id, home_score, away_score, match_status')
       .eq('group_id', group_id)
-      .eq('matchday', matchday)
+    questionQuery = stage
+      ? questionQuery.eq('competition_stage', stage).is('matchday', null)
+      : questionQuery.eq('matchday', matchday)
+    const { data: questions } = await questionQuery
 
     if (!questions || questions.length === 0) {
-      return new Response(JSON.stringify({ error: 'No questions found for this matchday' }), { status: 404, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'No questions found for this matchday/stage' }), { status: 404, headers: corsHeaders })
     }
 
     const finishedQuestions = questions.filter(q =>
@@ -160,9 +176,8 @@ serve(async (req) => {
 
       if (!member) continue
 
-      const currentTotal = member.total_points || 0
       const byMatchday = (member.points_by_matchday as Record<string, number>) || {}
-      byMatchday[String(matchday)] = pts
+      byMatchday[bucketKey] = pts
 
       // Recalculate total from all matchdays
       const newTotal = Object.values(byMatchday).reduce((sum, p) => sum + p, 0)
@@ -179,6 +194,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       resolved: totalResolved,
+      bucket: bucketKey,
       total_questions: questions.length,
       finished: finishedQuestions.length,
       users_scored: Object.keys(userPoints).length,

@@ -3,7 +3,8 @@
 // relevant activity it runs the full scoring pipeline IN ORDER, awaiting each step:
 //   1. sync-league-matches  — pull fresh fixtures/scores from football-data.org
 //   2. resolve-matchday     — score tips for every FINISHED-but-unresolved matchday
-//   3. score-bracket        — re-score the KO bracket (tournaments/cups only)
+//      (numeric matchdays) AND every FINISHED-but-unresolved KO stage (matchday-null
+//      cup fixtures, scored by competition_stage with the same exact/diff/tendency logic)
 //
 // It reuses the exact same edge functions the client triggers, so the scoring
 // logic lives in exactly one place (no drift). Those functions accept a trusted
@@ -87,8 +88,8 @@ serve(async (req) => {
           season: g.season_year || '2025',
         })
 
-        // 2. Score every FINISHED-but-unresolved matchday.
-        const { data: unresolved } = await supabase
+        // 2a. Score every FINISHED-but-unresolved numeric matchday.
+        const { data: unresolvedMd } = await supabase
           .from('tip_questions')
           .select('matchday')
           .eq('group_id', g.id)
@@ -96,17 +97,27 @@ serve(async (req) => {
           .neq('status', 'resolved')
           .not('matchday', 'is', null)
 
-        const matchdays = [...new Set((unresolved || []).map(q => q.matchday))]
+        const matchdays = [...new Set((unresolvedMd || []).map(q => q.matchday))]
         for (const md of matchdays) {
           await call('resolve-matchday', { group_id: g.id, matchday: md })
         }
 
-        // 3. Re-score the KO bracket for tournaments/cups.
-        if (['TOURNAMENT', 'CUP'].includes(g.competition_type)) {
-          await call('score-bracket', { group_id: g.id })
+        // 2b. Score every FINISHED-but-unresolved KO stage (matchday IS NULL).
+        const { data: unresolvedKo } = await supabase
+          .from('tip_questions')
+          .select('competition_stage')
+          .eq('group_id', g.id)
+          .in('match_status', FINISHED_STATES)
+          .neq('status', 'resolved')
+          .is('matchday', null)
+          .not('competition_stage', 'is', null)
+
+        const stages = [...new Set((unresolvedKo || []).map(q => q.competition_stage))]
+        for (const st of stages) {
+          await call('resolve-matchday', { group_id: g.id, stage: st })
         }
 
-        results.push({ group_id: g.id, resolved_matchdays: matchdays })
+        results.push({ group_id: g.id, resolved_matchdays: matchdays, resolved_stages: stages })
       } catch (e) {
         results.push({ group_id: g.id, error: String((e as Error).message || e) })
       }

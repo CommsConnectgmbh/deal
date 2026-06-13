@@ -1,80 +1,90 @@
 'use client'
-import { useState } from 'react'
-
-interface BracketTip {
-  stage: string
-  position: number
-  predicted_team_name: string | null
-  actual_team_name: string | null
-  is_correct: boolean | null
-  points_earned: number
-}
+import { useMemo } from 'react'
+import MatchCard, { MatchQuestion, TipDraft } from './MatchCard'
 
 interface Props {
-  tips: BracketTip[]
-  stages: string[] // e.g. ['ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL']
-  onSave: (stage: string, position: number, teamName: string) => Promise<void>
-  teamOptions: string[]
-  /** team-name → crest-url (optional). */
-  teamLogos?: Record<string, string>
-  locked: boolean
+  /** All group questions; the component filters the KO stages itself. */
+  questions: MatchQuestion[]
+  drafts: Record<string, TipDraft>
+  myAnswers: Record<string, { home_score_tip: number | null; away_score_tip: number | null; points_earned: number | null } | undefined>
+  onDraftChange: (qId: string, patch: Partial<TipDraft>) => void
 }
 
-/** Points awarded per correctly predicted team that advances from a stage. */
-const POINTS_PER_HIT = 3
+/** KO stages in bracket order, earliest round first. */
+const KO_STAGE_ORDER = [
+  'LAST_32', 'ROUND_OF_32',
+  'LAST_16', 'ROUND_OF_16',
+  'QUARTER_FINALS',
+  'SEMI_FINALS',
+  'THIRD_PLACE',
+  'FINAL',
+]
+const KO_STAGES = new Set(KO_STAGE_ORDER)
 
 const STAGE_LABELS: Record<string, string> = {
-  'LAST_32': 'Sechzehntelfinale',
-  'ROUND_OF_32': 'Sechzehntelfinale',
-  'LAST_16': 'Achtelfinale',
-  'ROUND_OF_16': 'Achtelfinale',
-  'QUARTER_FINALS': 'Viertelfinale',
-  'SEMI_FINALS': 'Halbfinale',
-  'FINAL': 'Finale',
-  'THIRD_PLACE': '3. Platz',
-}
-
-const STAGE_POSITIONS: Record<string, number> = {
-  'LAST_32': 16,
-  'ROUND_OF_32': 16,
-  'LAST_16': 8,
-  'ROUND_OF_16': 8,
-  'QUARTER_FINALS': 4,
-  'SEMI_FINALS': 2,
-  'FINAL': 1,
-  'THIRD_PLACE': 1,
+  LAST_32: 'Sechzehntelfinale',
+  ROUND_OF_32: 'Sechzehntelfinale',
+  LAST_16: 'Achtelfinale',
+  ROUND_OF_16: 'Achtelfinale',
+  QUARTER_FINALS: 'Viertelfinale',
+  SEMI_FINALS: 'Halbfinale',
+  THIRD_PLACE: 'Spiel um Platz 3',
+  FINAL: 'Finale',
 }
 
 /** Placeholder names that come from the fixture sync but are not real teams. */
-const NON_TEAM_VALUES = new Set(['TBA', 'TBD', 'N/A', ''])
+const NON_TEAM = new Set(['TBA', 'TBD', 'N/A', ''])
+function teamKnown(name: string | null | undefined) {
+  return !!name && !NON_TEAM.has(name)
+}
+function deadlinePassed(iso: string) { return new Date(iso).getTime() < Date.now() }
+
+function formatKickoff(iso: string | null): string {
+  if (!iso) return 'Termin offen'
+  const d = new Date(iso)
+  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) +
+    ' · ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+}
 
 /**
- * TournamentBracket — Visual KO bracket using CSS grid.
- * Each stage shows slots for predicted teams.
+ * TournamentBracket — the real K.o.-tree (Sechzehntelfinale → Finale).
+ *
+ * Driven entirely by the synced fixtures (tip_questions of the KO stages). As
+ * group winners are determined, football-data.org fills the pairings and the
+ * tree fills up. Once a pairing stands, the match is tipped inline with the
+ * exact same score inputs + scoring as the Spieltag — there is no separate
+ * "who advances" prediction.
  */
-export default function TournamentBracket({ tips, stages, onSave, teamOptions, teamLogos, locked }: Props) {
-  const [saving, setSaving] = useState<string | null>(null)
+export default function TournamentBracket({ questions, drafts, myAnswers, onDraftChange }: Props) {
+  const stageColumns = useMemo(() => {
+    const koQuestions = questions.filter(q => q.competition_stage && KO_STAGES.has(q.competition_stage))
+    const byStage = new Map<string, MatchQuestion[]>()
+    for (const q of koQuestions) {
+      const s = q.competition_stage as string
+      if (!byStage.has(s)) byStage.set(s, [])
+      byStage.get(s)!.push(q)
+    }
+    return KO_STAGE_ORDER
+      .filter(s => byStage.has(s))
+      .map(stage => {
+        const matches = [...byStage.get(stage)!].sort((a, b) => {
+          const ta = a.match_utc_date ? new Date(a.match_utc_date).getTime() : Number.MAX_SAFE_INTEGER
+          const tb = b.match_utc_date ? new Date(b.match_utc_date).getTime() : Number.MAX_SAFE_INTEGER
+          return ta - tb
+        })
+        return { stage, label: STAGE_LABELS[stage] || stage, matches }
+      })
+  }, [questions])
 
-  const tipMap: Record<string, BracketTip> = {}
-  tips.forEach(t => { tipMap[`${t.stage}_${t.position}`] = t })
-
-  // Real, selectable teams only (drop "TBA" placeholders + dedupe).
-  const realTeamOptions = [...new Set(teamOptions.filter(t => !NON_TEAM_VALUES.has(t)))].sort()
-
-  // Bracket scoring summary.
-  const totalPoints = tips.reduce((s, t) => s + (t.points_earned || 0), 0)
-  const correctCount = tips.filter(t => t.is_correct === true).length
-  const isScored = tips.some(t => t.is_correct !== null)
-
-  if (stages.length === 0) {
+  if (stageColumns.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '40px 16px' }}>
+      <div style={{ textAlign: 'center', padding: '48px 16px' }}>
         <p style={{ fontSize: 40, lineHeight: 1, marginBottom: 12 }}>🏆</p>
         <p style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 6 }}>
-          Turnierbaum wird nach der Gruppenphase freigeschaltet
+          Der Turnierbaum füllt sich nach der Gruppenphase
         </p>
-        <p style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 280, margin: '0 auto', lineHeight: 1.45 }}>
-          Sobald die Achtelfinal-Paarungen feststehen, kannst du hier deine Tipps für die K.o.-Runde abgeben.
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 300, margin: '0 auto', lineHeight: 1.45 }}>
+          Sobald die K.o.-Paarungen feststehen, erscheinen sie hier — und du tippst das Ergebnis direkt im Baum.
         </p>
       </div>
     )
@@ -82,58 +92,33 @@ export default function TournamentBracket({ tips, stages, onSave, teamOptions, t
 
   return (
     <div>
-      {/* ── Scoring banner ── */}
+      {/* ── Info banner ── */}
       <div style={{
-        margin: '0 16px 12px', padding: '10px 14px', borderRadius: 12,
+        margin: '0 16px 14px', padding: '10px 14px', borderRadius: 12,
         background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
       }}>
-        <div style={{ minWidth: 0 }}>
-          <p style={{
-            margin: 0, fontSize: 11, fontFamily: 'var(--font-display)', fontWeight: 700,
-            color: 'var(--gold-primary)', letterSpacing: 1, textTransform: 'uppercase',
-          }}>
-            {POINTS_PER_HIT} Punkte je richtig getipptem Team
-          </p>
-          <p style={{ margin: '3px 0 0', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4 }}>
-            {isScored
-              ? `${correctCount} Treffer · pro Runde zählt jedes Team einmal`
-              : 'Wird nach jeder K.o.-Runde automatisch ausgewertet.'}
-          </p>
-        </div>
-        <div style={{
-          flexShrink: 0, textAlign: 'center', background: 'rgba(34,197,94,0.10)',
-          border: '1px solid rgba(34,197,94,0.30)', borderRadius: 10, padding: '6px 12px',
+        <p style={{
+          margin: 0, fontSize: 11, fontFamily: 'var(--font-display)', fontWeight: 700,
+          color: 'var(--gold-primary)', letterSpacing: 1, textTransform: 'uppercase',
         }}>
-          <p style={{ margin: 0, fontSize: 18, fontWeight: 700, fontFamily: 'var(--font-display)', color: '#22C55E', lineHeight: 1 }}>
-            {totalPoints}
-          </p>
-          <p style={{ margin: '2px 0 0', fontSize: 9, color: 'var(--text-muted)', letterSpacing: 0.5 }}>PUNKTE</p>
-        </div>
+          K.o.-Runde
+        </p>
+        <p style={{ margin: '3px 0 0', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4 }}>
+          Tippe jede Partie wie im Spieltag — gleiche Punkte. Steht eine Paarung noch nicht fest,
+          füllt sie sich automatisch, sobald die Sieger feststehen.
+        </p>
       </div>
 
-      <div style={{ padding: '0 0 8px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-        <div style={{
-          display: 'flex', gap: 16, minWidth: stages.length * 160,
-          alignItems: 'flex-start', padding: '0 16px',
-        }}>
-          {stages.map(stage => {
-            const positions = STAGE_POSITIONS[stage] || 2
-            const label = STAGE_LABELS[stage] || stage
-
-            // Teams already picked elsewhere in THIS stage — a team can only
-            // advance once per round, so it must not be selectable twice here.
-            // (Across different stages the same team may legitimately repeat.)
-            const takenInStage = new Set(
-              tips.filter(t => t.stage === stage && t.predicted_team_name)
-                .map(t => t.predicted_team_name as string)
-            )
-
+      {/* ── Bracket: one column per round, horizontal scroll ── */}
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 8 }}>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '0 16px', minWidth: 'min-content' }}>
+          {stageColumns.map(({ stage, label, matches }) => {
+            const knownCount = matches.filter(m => teamKnown(m.home_team) && teamKnown(m.away_team)).length
             return (
-              <div key={stage} style={{ flex: 1, minWidth: 140 }}>
+              <div key={stage} style={{ width: 290, flexShrink: 0 }}>
                 {/* Stage header */}
                 <div style={{
-                  textAlign: 'center', padding: '8px 0', marginBottom: 8,
+                  textAlign: 'center', padding: '8px 0', marginBottom: 10,
                   borderBottom: '1px solid var(--border-subtle)',
                 }}>
                   <span style={{
@@ -142,83 +127,45 @@ export default function TournamentBracket({ tips, stages, onSave, teamOptions, t
                   }}>
                     {label}
                   </span>
+                  <span style={{ display: 'block', fontSize: 9, color: 'var(--text-muted)', marginTop: 2, letterSpacing: 0.5 }}>
+                    {knownCount}/{matches.length} Paarungen
+                  </span>
                 </div>
 
-                {/* Slots */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {Array.from({ length: positions }, (_, i) => {
-                    const key = `${stage}_${i}`
-                    const tip = tipMap[key]
-                    const predicted = tip?.predicted_team_name || ''
-                    const actual = tip?.actual_team_name
-                    const isCorrect = tip?.is_correct
-                    const points = tip?.points_earned || 0
-
-                    // Exclude teams already taken in this stage, except this slot's own pick.
-                    const slotOptions = realTeamOptions.filter(o => o === predicted || !takenInStage.has(o))
-
+                {/* Matches */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  {matches.map(q => {
+                    const isSet = teamKnown(q.home_team) && teamKnown(q.away_team)
+                    if (isSet) {
+                      return (
+                        <MatchCard
+                          key={q.id}
+                          q={q}
+                          draft={drafts[q.id] || { homeScore: '', awayScore: '' }}
+                          existingTip={myAnswers[q.id] || null}
+                          locked={deadlinePassed(q.deadline)}
+                          resolved={q.status === 'resolved'}
+                          onDraftChange={patch => onDraftChange(q.id, patch)}
+                        />
+                      )
+                    }
+                    // Undrawn pairing — placeholder slot, fills in after the feeding round.
                     return (
-                      <div key={key} style={{
+                      <div key={q.id} style={{
                         background: 'var(--bg-surface)',
-                        border: isCorrect === true ? '1px solid #22C55E'
-                          : isCorrect === false ? '1px solid var(--status-error)'
-                          : '1px solid var(--border-subtle)',
-                        borderRadius: 10, padding: '8px 10px',
+                        border: '1px dashed var(--border-subtle)',
+                        borderRadius: 14, padding: '16px 14px', marginBottom: 10,
+                        textAlign: 'center',
                       }}>
-                        {locked || predicted ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
-                              {predicted && teamLogos?.[predicted] && (
-                                <img src={teamLogos[predicted]} alt="" style={{ width: 18, height: 18, objectFit: 'contain', flexShrink: 0 }} />
-                              )}
-                              <span style={{
-                                fontSize: 12, fontWeight: 600,
-                                color: predicted ? 'var(--text-primary)' : 'var(--text-muted)',
-                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                              }}>
-                                {predicted || '–'}
-                              </span>
-                            </div>
-                            {isCorrect === true && (
-                              <span style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
-                                {points > 0 && (
-                                  <span style={{ fontSize: 10, fontWeight: 700, color: '#22C55E', fontFamily: 'var(--font-display)' }}>
-                                    +{points}
-                                  </span>
-                                )}
-                                <span style={{ fontSize: 14, color: '#22C55E' }}>✓</span>
-                              </span>
-                            )}
-                            {isCorrect === false && <span style={{ fontSize: 14, color: 'var(--status-error)', flexShrink: 0 }}>✗</span>}
-                            {actual && actual !== predicted && (
-                              <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>
-                                ({actual})
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <select
-                            value={predicted}
-                            onChange={async (e) => {
-                              if (!e.target.value) return
-                              setSaving(key)
-                              await onSave(stage, i, e.target.value)
-                              setSaving(null)
-                            }}
-                            disabled={saving === key}
-                            style={{
-                              width: '100%', padding: '4px 6px',
-                              background: 'var(--input-bg)', border: '1px solid var(--input-border)',
-                              borderRadius: 6, color: 'var(--input-text)', fontSize: 12,
-                              outline: 'none', boxSizing: 'border-box',
-                            }}
-                          >
-                            <option value="">Wählen...</option>
-                            {slotOptions.map(t => (
-                              <option key={t} value={t}>{t}</option>
-                            ))}
-                          </select>
-                        )}
+                        <p style={{
+                          margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--text-muted)',
+                          fontFamily: 'var(--font-display)', letterSpacing: 0.5,
+                        }}>
+                          Paarung steht noch nicht fest
+                        </p>
+                        <p style={{ margin: '6px 0 0', fontSize: 10, color: 'var(--text-muted)', letterSpacing: 0.3 }}>
+                          {formatKickoff(q.match_utc_date)}
+                        </p>
                       </div>
                     )
                   })}
