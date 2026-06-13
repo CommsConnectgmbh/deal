@@ -951,6 +951,7 @@ export default function TippgruppeDetailPage() {
                 user_id: m.user_id,
                 username: m.profiles?.username || '?',
                 avatar_url: m.profiles?.avatar_url || null,
+                total_points: m.total_points || 0,
               }))}
               tips={allAnswers.map(a => ({
                 question_id: a.question_id,

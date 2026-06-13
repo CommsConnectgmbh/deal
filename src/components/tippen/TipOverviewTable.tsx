@@ -6,6 +6,7 @@ interface MemberInfo {
   username: string
   display_name?: string | null
   avatar_url: string | null
+  total_points?: number
 }
 
 interface QuestionInfo {
@@ -67,6 +68,9 @@ export default function TipOverviewTable({ questions, members, tips }: Props) {
     tipMap[t.question_id][t.user_id] = t
   })
 
+  // Columns sorted left→right by current rank (Platz 1 first).
+  const sortedMembers = [...members].sort((a, b) => (b.total_points ?? 0) - (a.total_points ?? 0))
+
   return (
     <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', padding: '8px 0' }}>
       <table style={{
@@ -82,14 +86,28 @@ export default function TipOverviewTable({ questions, members, tips }: Props) {
             }}>
               Spiel
             </th>
-            {members.map(m => (
+            {sortedMembers.map(m => (
               <th key={m.user_id} style={{
                 padding: '6px 4px', textAlign: 'center',
                 borderBottom: '1px solid var(--border-subtle)',
                 color: 'var(--text-secondary)', fontWeight: 600, minWidth: 50,
               }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                  <ProfileImage size={22} avatarUrl={m.avatar_url} name={m.display_name || m.username} />
+                  <div style={{ position: 'relative' }}>
+                    <ProfileImage size={22} avatarUrl={m.avatar_url} name={m.display_name || m.username} />
+                    {/* Aktuelle Punktzahl, hochgestellt an der Avatar-Ecke */}
+                    <span style={{
+                      position: 'absolute', top: -6, right: -8,
+                      minWidth: 14, height: 14, padding: '0 3px', boxSizing: 'border-box',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'linear-gradient(135deg, var(--gold-dim), var(--gold-primary))',
+                      color: 'var(--text-inverse)', borderRadius: 7,
+                      fontSize: 9, fontWeight: 800, fontFamily: 'var(--font-display)',
+                      lineHeight: 1, letterSpacing: 0, border: '1px solid var(--bg-base)',
+                    }}>
+                      {m.total_points ?? 0}
+                    </span>
+                  </div>
                   <span style={{ fontSize: 9, maxWidth: 50, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {m.display_name || m.username}
                   </span>
@@ -120,7 +138,7 @@ export default function TipOverviewTable({ questions, members, tips }: Props) {
                 }}>
                   {matchLabel}
                 </td>
-                {members.map(m => {
+                {sortedMembers.map(m => {
                   const tip = tipMap[q.id]?.[m.user_id]
                   const hasTip = tip && tip.home_score_tip !== null
                   const showTip = dlPassed && hasTip
