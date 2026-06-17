@@ -300,16 +300,41 @@ export default function TippgruppeDetailPage() {
   }, [groupId, activeTab, activeMatchday, questions])
 
   /* ── Load ranking ── */
+  const loadRanking = useCallback(async () => {
+    if (!groupId) return
+    const { data } = await supabase
+      .from('tip_group_members').select('*, profiles(username, display_name, avatar_url)')
+      .eq('group_id', groupId).order('total_points', { ascending: false })
+    setMembers(data || [])
+  }, [groupId])
+
+  useEffect(() => { loadRanking() }, [loadRanking, activeTab])
+
+  /* ── Live-Sync Leaderboard ──
+     1) Realtime: jede Punkte-Änderung in tip_group_members refetcht die Rangliste.
+        Sonst zeigt eine offen liegende Page veraltete Werte, während der Cron im
+        Hintergrund neu bepunktet (Resolved-Status-Wechsel auf tip_questions).
+     2) Visibilitychange: Rückkehr zum Tab erzwingt einen Refresh —
+        Realtime kann auf Mobile im Background pausieren. */
   useEffect(() => {
     if (!groupId) return
-    const load = async () => {
-      const { data } = await supabase
-        .from('tip_group_members').select('*, profiles(username, display_name, avatar_url)')
-        .eq('group_id', groupId).order('total_points', { ascending: false })
-      setMembers(data || [])
+    const ch = supabase.channel(`group_ranking_${groupId}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'tip_group_members',
+        filter: `group_id=eq.${groupId}`,
+      }, () => { loadRanking() })
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'tip_questions',
+        filter: `group_id=eq.${groupId}`,
+      }, () => { loadRanking(); loadQuestions() })
+      .subscribe()
+    const onVis = () => { if (document.visibilityState === 'visible') { loadRanking(); loadQuestions() } }
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      supabase.removeChannel(ch)
+      document.removeEventListener('visibilitychange', onVis)
     }
-    load()
-  }, [groupId, activeTab])
+  }, [groupId, loadRanking, loadQuestions])
 
   /* ── Load winner prediction ── */
   useEffect(() => {
