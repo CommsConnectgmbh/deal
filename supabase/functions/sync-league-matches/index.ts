@@ -111,11 +111,13 @@ serve(async (req) => {
       const halftimeAway = m.score?.halfTime?.away ?? null
       const matchMinute = m.minute ?? null
 
-      // Deadline: 1 hour before kick-off (fallback: 1 year from now)
+      // Deadline: Kick-off (fallback: 1 year from now). Einzelne Spiele sind bis
+      // zum Anpfiff tippbar — gilt sowohl für Liga-Spieltage als auch KO-Matches.
+      // Bonus/Spezial-Fragen (z.B. Gruppensieger, Torschütze) haben eigene
+      // Deadlines und werden hier nicht angefasst.
       let deadline: string
       if (matchUtcDate) {
-        const kickoff = new Date(matchUtcDate)
-        deadline = new Date(kickoff.getTime() - 60 * 60 * 1000).toISOString()
+        deadline = new Date(matchUtcDate).toISOString()
       } else {
         deadline = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
       }
