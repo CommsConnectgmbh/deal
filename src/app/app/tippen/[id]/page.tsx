@@ -920,8 +920,8 @@ export default function TippgruppeDetailPage() {
                 const q = questions.find(x => x.id === qId)
                 if (!q || q.question_type !== 'match' || deadlinePassed(q.deadline)) continue
                 const existing = myAnswers[qId]
-                const homeScore = draft.homeScore || (existing?.home_score_tip !== null ? String(existing?.home_score_tip ?? '') : '')
-                const awayScore = draft.awayScore || (existing?.away_score_tip !== null ? String(existing?.away_score_tip ?? '') : '')
+                const homeScore = draft.homeScore || (existing?.home_score_tip != null ? String(existing.home_score_tip) : '')
+                const awayScore = draft.awayScore || (existing?.away_score_tip != null ? String(existing.away_score_tip) : '')
                 if (homeScore === '' || awayScore === '') continue
                 const { data, error } = await supabase
                   .from('tip_answers')
@@ -941,7 +941,13 @@ export default function TippgruppeDetailPage() {
               showToast(`${saved} ${t('tippen.tipsSaved')}`)
             }}
             saving={saving}
-            tippCount={Object.values(drafts).filter(d => d.homeScore && d.awayScore).length}
+            tippCount={Object.entries(drafts).filter(([qId, d]) => {
+              if (!d.homeScore && !d.awayScore) return false
+              const ex = myAnswers[qId]
+              const h = d.homeScore || (ex?.home_score_tip != null ? String(ex.home_score_tip) : '')
+              const a = d.awayScore || (ex?.away_score_tip != null ? String(ex.away_score_tip) : '')
+              return h !== '' && a !== ''
+            }).length}
           />
         </div>
       )}
@@ -1214,7 +1220,11 @@ export default function TippgruppeDetailPage() {
               tippCount={koQuestions.filter(q => {
                 if (deadlinePassed(q.deadline)) return false
                 const d = drafts[q.id]
-                return !!d?.homeScore && !!d?.awayScore
+                if (!d?.homeScore && !d?.awayScore) return false
+                const ex = myAnswers[q.id]
+                const h = d?.homeScore || (ex?.home_score_tip != null ? String(ex.home_score_tip) : '')
+                const a = d?.awayScore || (ex?.away_score_tip != null ? String(ex.away_score_tip) : '')
+                return h !== '' && a !== ''
               }).length}
             />
           )}
