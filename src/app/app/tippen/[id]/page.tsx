@@ -468,8 +468,8 @@ export default function TippgruppeDetailPage() {
       const existing = myAnswers[q.id]
 
       // Get effective values
-      const homeScore = draft?.homeScore || (existing?.home_score_tip !== null ? String(existing.home_score_tip) : '')
-      const awayScore = draft?.awayScore || (existing?.away_score_tip !== null ? String(existing.away_score_tip) : '')
+      const homeScore = draft?.homeScore || (existing?.home_score_tip != null ? String(existing.home_score_tip) : '')
+      const awayScore = draft?.awayScore || (existing?.away_score_tip != null ? String(existing.away_score_tip) : '')
 
       if (homeScore === '' || awayScore === '') continue
 
@@ -635,8 +635,8 @@ export default function TippgruppeDetailPage() {
     if (q.question_type !== 'match' || deadlinePassed(q.deadline)) return false
     const d = drafts[q.id]
     const ex = myAnswers[q.id]
-    const h = d?.homeScore || (ex?.home_score_tip !== null ? String(ex?.home_score_tip) : '')
-    const a = d?.awayScore || (ex?.away_score_tip !== null ? String(ex?.away_score_tip) : '')
+    const h = d?.homeScore || (ex?.home_score_tip != null ? String(ex.home_score_tip) : '')
+    const a = d?.awayScore || (ex?.away_score_tip != null ? String(ex.away_score_tip) : '')
     return h !== '' && a !== ''
   }).length
 
