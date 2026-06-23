@@ -312,7 +312,7 @@ export default function GroupStageView({
             {/* Matches in this group */}
             <div>
               {sortedMatches.map(q => {
-                const draft = drafts[q.id] || { homeScore: '', awayScore: '' }
+                const draft = drafts[q.id] || { homeScore: undefined, awayScore: undefined }
                 return (
                   <MatchCard
                     key={q.id}

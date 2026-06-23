@@ -625,7 +625,7 @@ export default function TippgruppeDetailPage() {
   }
 
   /* ── Draft helpers ── */
-  const getDraft = (qId: string): TipDraft => drafts[qId] || { homeScore: '', awayScore: '' }
+  const getDraft = (qId: string): TipDraft => drafts[qId] || { homeScore: undefined, awayScore: undefined }
   const updateDraft = (qId: string, patch: Partial<TipDraft>) => {
     setDrafts(prev => ({ ...prev, [qId]: { ...getDraft(qId), ...patch } }))
   }

@@ -141,7 +141,7 @@ export default function TournamentBracket({ questions, drafts, myAnswers, onDraf
                         <MatchCard
                           key={q.id}
                           q={q}
-                          draft={drafts[q.id] || { homeScore: '', awayScore: '' }}
+                          draft={drafts[q.id] || { homeScore: undefined, awayScore: undefined }}
                           existingTip={myAnswers[q.id] || null}
                           locked={deadlinePassed(q.deadline)}
                           resolved={q.status === 'resolved'}

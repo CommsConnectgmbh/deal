@@ -45,8 +45,10 @@ function formatStage(stage: string | null | undefined, groupLabel: string | null
 }
 
 export interface TipDraft {
-  homeScore: string
-  awayScore: string
+  // undefined = unberührt, '' = vom User aktiv geleert, sonst getippter Wert.
+  // Wichtig damit Backspace nicht auf den bestehenden Tipp zurückspringt.
+  homeScore: string | undefined
+  awayScore: string | undefined
 }
 
 interface MatchCardProps {
@@ -255,7 +257,7 @@ export default function MatchCard({
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <input
                 type="number" min="0" max="20"
-                value={hasTipped && !draft.homeScore ? String(existingTip!.home_score_tip ?? '') : draft.homeScore}
+                value={draft.homeScore !== undefined ? draft.homeScore : (hasTipped ? String(existingTip!.home_score_tip ?? '') : '')}
                 onChange={e => onDraftChange({ homeScore: e.target.value })}
                 style={{
                   width: 36, height: 40, textAlign: 'center', fontSize: 18, fontWeight: 700,
@@ -267,7 +269,7 @@ export default function MatchCard({
               <span style={{ fontSize: 16, color: 'var(--text-muted)', fontWeight: 700 }}>:</span>
               <input
                 type="number" min="0" max="20"
-                value={hasTipped && !draft.awayScore ? String(existingTip!.away_score_tip ?? '') : draft.awayScore}
+                value={draft.awayScore !== undefined ? draft.awayScore : (hasTipped ? String(existingTip!.away_score_tip ?? '') : '')}
                 onChange={e => onDraftChange({ awayScore: e.target.value })}
                 style={{
                   width: 36, height: 40, textAlign: 'center', fontSize: 18, fontWeight: 700,
