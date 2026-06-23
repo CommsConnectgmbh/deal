@@ -256,26 +256,30 @@ export default function MatchCard({
             // Editable inputs
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <input
-                type="number" min="0" max="20"
+                type="text" inputMode="numeric" pattern="[0-9]*" maxLength={2}
                 value={draft.homeScore !== undefined ? draft.homeScore : (hasTipped ? String(existingTip!.home_score_tip ?? '') : '')}
-                onChange={e => onDraftChange({ homeScore: e.target.value })}
+                onChange={e => onDraftChange({ homeScore: e.target.value.replace(/[^0-9]/g, '').slice(0, 2) })}
+                onFocus={e => e.currentTarget.select()}
                 style={{
                   width: 36, height: 40, textAlign: 'center', fontSize: 18, fontWeight: 700,
                   background: 'var(--input-bg)', border: '1px solid var(--input-border)',
                   borderRadius: 8, color: 'var(--input-text)', outline: 'none',
                   fontFamily: 'var(--font-display)',
+                  WebkitAppearance: 'none', appearance: 'none',
                 }}
               />
               <span style={{ fontSize: 16, color: 'var(--text-muted)', fontWeight: 700 }}>:</span>
               <input
-                type="number" min="0" max="20"
+                type="text" inputMode="numeric" pattern="[0-9]*" maxLength={2}
                 value={draft.awayScore !== undefined ? draft.awayScore : (hasTipped ? String(existingTip!.away_score_tip ?? '') : '')}
-                onChange={e => onDraftChange({ awayScore: e.target.value })}
+                onChange={e => onDraftChange({ awayScore: e.target.value.replace(/[^0-9]/g, '').slice(0, 2) })}
+                onFocus={e => e.currentTarget.select()}
                 style={{
                   width: 36, height: 40, textAlign: 'center', fontSize: 18, fontWeight: 700,
                   background: 'var(--input-bg)', border: '1px solid var(--input-border)',
                   borderRadius: 8, color: 'var(--input-text)', outline: 'none',
                   fontFamily: 'var(--font-display)',
+                  WebkitAppearance: 'none', appearance: 'none',
                 }}
               />
             </div>
