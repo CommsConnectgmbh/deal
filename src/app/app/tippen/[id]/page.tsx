@@ -99,6 +99,22 @@ function findCurrentMatchday(questions: TipQuestion[]): number {
   return matchdays[matchdays.length - 1]
 }
 
+/* ── KO-Stage-Mapping ──
+   football-data.org sendet je nach Wettbewerb 'LAST_*' oder 'ROUND_OF_*'.
+   Wir kollabieren beide auf einen kanonischen Key + kurzes Chip-Label. */
+const KO_STAGES_ORDERED: { key: string; label: string; raw: string[] }[] = [
+  { key: 'R32', label: '1/16', raw: ['LAST_32', 'ROUND_OF_32'] },
+  { key: 'R16', label: '1/8',  raw: ['LAST_16', 'ROUND_OF_16'] },
+  { key: 'QF',  label: '1/4',  raw: ['QUARTER_FINALS'] },
+  { key: 'SF',  label: '1/2',  raw: ['SEMI_FINALS'] },
+  { key: 'TP',  label: 'P3',   raw: ['THIRD_PLACE'] },
+  { key: 'F',   label: 'F',    raw: ['FINAL'] },
+]
+const RAW_TO_KO_KEY: Record<string, string> = KO_STAGES_ORDERED.reduce((acc, s) => {
+  s.raw.forEach(r => { acc[r] = s.key })
+  return acc
+}, {} as Record<string, string>)
+
 /* ═══════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════════════════════════════ */
@@ -120,6 +136,8 @@ export default function TippgruppeDetailPage() {
   const [myAnswers, setMyAnswers] = useState<Record<string, TipAnswer>>({})
   const [drafts, setDrafts] = useState<Record<string, TipDraft>>({})
   const [activeMatchday, setActiveMatchday] = useState(1)
+  // KO-Stage-Auswahl in der Matchday-Leiste (R32/R16/QF/SF/TP/F); null = numerischer Spieltag aktiv.
+  const [activeKoStage, setActiveKoStage] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
@@ -154,7 +172,6 @@ export default function TippgruppeDetailPage() {
   // Derived data
   const matchdays = [...new Set(questions.filter(q => q.matchday).map(q => q.matchday!))].sort((a, b) => a - b)
   const totalMatchdays = matchdays.length > 0 ? matchdays[matchdays.length - 1] : 0
-  const mdQuestions = questions.filter(q => q.matchday === activeMatchday)
   const isAdmin = membership?.role === 'admin'
   const isTournament = group?.competition_type === 'TOURNAMENT' || group?.competition_type === 'CUP'
   const isCustomGroup = group?.category === 'custom'
@@ -163,8 +180,26 @@ export default function TippgruppeDetailPage() {
     (q.competition_stage === 'GROUP_STAGE' || q.competition_stage === 'GROUP_PHASE') && q.group_label
   )
   // K.o.-Runde: alle Turnier-Partien außer Gruppen-/Liga-Phase.
-  const KO_STAGE_SET = new Set(['LAST_32', 'ROUND_OF_32', 'LAST_16', 'ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'THIRD_PLACE', 'FINAL'])
-  const koQuestions = questions.filter(q => q.competition_stage && KO_STAGE_SET.has(q.competition_stage))
+  const koQuestions = questions.filter(q => q.competition_stage && RAW_TO_KO_KEY[q.competition_stage])
+
+  // Chips für die K.o.-Stages, die in dieser Gruppe tatsächlich existieren — in Turnier-Reihenfolge.
+  const koStagesPresent: Set<string> = new Set(koQuestions.map(q => RAW_TO_KO_KEY[q.competition_stage!]))
+  const koChips = KO_STAGES_ORDERED
+    .filter(s => koStagesPresent.has(s.key))
+    .map(s => {
+      const stageQs = koQuestions.filter(q => RAW_TO_KO_KEY[q.competition_stage!] === s.key)
+      const isCurrent = stageQs.some(q => q.status !== 'resolved' && q.status !== 'cancelled')
+      return { key: s.key, label: s.label, isCurrent }
+    })
+
+  // Aktuell sichtbare Spiele: bei KO-Auswahl nach Stage, sonst nach Spieltag.
+  const mdQuestions = activeKoStage
+    ? koQuestions.filter(q => RAW_TO_KO_KEY[q.competition_stage!] === activeKoStage)
+    : questions.filter(q => q.matchday === activeMatchday)
+
+  // Auswahl-Handler — beide schließen sich gegenseitig aus.
+  const selectMatchday = (md: number) => { setActiveKoStage(null); setActiveMatchday(md) }
+  const selectKoStage = (key: string) => { setActiveKoStage(key) }
 
   // Default-Tab für Turniere: Gruppen-Ansicht statt Spieltag (sobald Gruppen-Daten da sind).
   useEffect(() => {
@@ -290,14 +325,14 @@ export default function TippgruppeDetailPage() {
   useEffect(() => {
     if (!groupId || activeTab !== 'uebersicht') return
     const load = async () => {
-      const mdQ = questions.filter(q => q.matchday === activeMatchday)
-      const qIds = mdQ.map(q => q.id)
-      if (qIds.length === 0) return
+      const qIds = mdQuestions.map(q => q.id)
+      if (qIds.length === 0) { setAllAnswers([]); return }
       const { data } = await supabase.from('tip_answers').select('*').in('question_id', qIds)
       setAllAnswers(data || [])
     }
     load()
-  }, [groupId, activeTab, activeMatchday, questions])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId, activeTab, activeMatchday, activeKoStage, questions])
 
   /* ── Load ranking ── */
   const loadRanking = useCallback(async () => {
@@ -558,28 +593,41 @@ export default function TippgruppeDetailPage() {
     }
   }
 
-  /* ── Resolve matchday (admin) ── */
+  /* ── Resolve current selection (admin) ──
+     Numerischer Spieltag → ein resolve-Call mit matchday.
+     K.o.-Auswahl → ein resolve-Call pro raw Stage, das gerade angezeigt wird
+     (LAST_16 und ROUND_OF_16 kollabieren auf denselben Chip, müssen aber
+      einzeln aufgelöst werden). */
   const resolveMatchday = async () => {
     if (!user || !groupId) return
     try {
-      // Force token refresh to avoid stale JWT (401 errors)
       const { data: { session }, error: refreshErr } = await supabase.auth.refreshSession()
       if (refreshErr || !session) { showToast(t('tippen.sessionExpired')); return }
-      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/resolve-matchday`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-        },
-        body: JSON.stringify({ group_id: groupId, matchday: activeMatchday }),
-      })
-      const result = await res.json()
-      if (result.error) showToast(t('tippen.error') + ': ' + result.error)
-      else {
-        showToast(`${result.resolved} ${t('tippen.matchesResolved')}`)
-        loadQuestions()
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
       }
+      const call = (body: Record<string, unknown>) =>
+        fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/resolve-matchday`, {
+          method: 'POST', headers, body: JSON.stringify({ group_id: groupId, ...body }),
+        }).then(r => r.json())
+
+      if (activeKoStage) {
+        const rawStages = [...new Set(mdQuestions.map(q => q.competition_stage).filter(Boolean) as string[])]
+        let total = 0
+        for (const stage of rawStages) {
+          const result = await call({ stage })
+          if (result.error) { showToast(t('tippen.error') + ': ' + result.error); return }
+          total += result.resolved || 0
+        }
+        showToast(`${total} ${t('tippen.matchesResolved')}`)
+      } else {
+        const result = await call({ matchday: activeMatchday })
+        if (result.error) { showToast(t('tippen.error') + ': ' + result.error); return }
+        showToast(`${result.resolved} ${t('tippen.matchesResolved')}`)
+      }
+      loadQuestions()
     } catch {
       showToast(t('tippen.resolveFailed'))
     }
@@ -793,12 +841,15 @@ export default function TippgruppeDetailPage() {
           ) : (
             /* ── FOOTBALL GROUP: Standard Spieltag ── */
             <>
-              {totalMatchdays > 0 && (
+              {(totalMatchdays > 0 || koChips.length > 0) && (
                 <MatchdayNav
                   totalMatchdays={totalMatchdays}
                   currentMatchday={findCurrentMatchday(questions)}
                   activeMatchday={activeMatchday}
-                  onSelect={setActiveMatchday}
+                  onSelect={selectMatchday}
+                  koStages={koChips}
+                  activeKoStage={activeKoStage}
+                  onSelectKo={selectKoStage}
                 />
               )}
 
@@ -957,12 +1008,15 @@ export default function TippgruppeDetailPage() {
          ════════════════════════════════════════════════════════════ */}
       {activeTab === 'uebersicht' && (
         <div>
-          {totalMatchdays > 0 && (
+          {(totalMatchdays > 0 || koChips.length > 0) && (
             <MatchdayNav
               totalMatchdays={totalMatchdays}
               currentMatchday={findCurrentMatchday(questions)}
               activeMatchday={activeMatchday}
-              onSelect={setActiveMatchday}
+              onSelect={selectMatchday}
+              koStages={koChips}
+              activeKoStage={activeKoStage}
+              onSelectKo={selectKoStage}
             />
           )}
           <div style={{ padding: '0 8px' }}>
