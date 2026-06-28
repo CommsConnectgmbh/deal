@@ -119,6 +119,12 @@ const RAW_TO_KO_KEY: Record<string, string> = KO_STAGES_ORDERED.reduce((acc, s) 
   return acc
 }, {} as Record<string, string>)
 
+/** K.o.-Partie? In der K.o.-Runde gibt es kein Unentschieden — ein Sieger steht
+    immer fest (Verlängerung/Elfmeterschießen), also ist ein Remis-Tipp gesperrt. */
+function isKoQuestion(q: { competition_stage: string | null }): boolean {
+  return !!q.competition_stage && !!RAW_TO_KO_KEY[q.competition_stage]
+}
+
 /* ═══════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════════════════════════════ */
@@ -510,6 +516,7 @@ export default function TippgruppeDetailPage() {
 
     const matchQuestions = mdQuestions.filter(q => q.question_type === 'match' && !deadlinePassed(q.deadline))
     let saved = 0
+    let koDrawSkipped = 0
 
     for (const q of matchQuestions) {
       const draft = drafts[q.id]
@@ -520,6 +527,10 @@ export default function TippgruppeDetailPage() {
       const awayScore = draft?.awayScore || (existing?.away_score_tip != null ? String(existing.away_score_tip) : '')
 
       if (homeScore === '' || awayScore === '') continue
+
+      // K.o.-Runde: kein Unentschieden erlaubt — der Sieger steht via Verlängerung/
+      // Elfmeterschießen immer fest, also muss ein Sieger getippt werden.
+      if (isKoQuestion(q) && homeScore === awayScore) { koDrawSkipped++; continue }
 
       const payload = {
         question_id: q.id,
@@ -548,7 +559,11 @@ export default function TippgruppeDetailPage() {
     })
 
     setSaving(false)
-    showToast(`${saved} ${t('tippen.tipsSaved')}`)
+    if (koDrawSkipped > 0) {
+      showToast('K.o.: kein Unentschieden – Sieger tippen')
+    } else {
+      showToast(`${saved} ${t('tippen.tipsSaved')}`)
+    }
   }
 
   /* ── Send chat message ── */
@@ -665,6 +680,7 @@ export default function TippgruppeDetailPage() {
   const saveDraftsForQuestions = async (targetQuestions: TipQuestion[]): Promise<number> => {
     if (!user || !membership) return 0
     let saved = 0
+    let koDrawSkipped = 0
     for (const q of targetQuestions) {
       if (q.question_type !== 'match' || deadlinePassed(q.deadline)) continue
       const draft = drafts[q.id]
@@ -672,6 +688,8 @@ export default function TippgruppeDetailPage() {
       const homeScore = draft?.homeScore || (existing?.home_score_tip != null ? String(existing.home_score_tip) : '')
       const awayScore = draft?.awayScore || (existing?.away_score_tip != null ? String(existing.away_score_tip) : '')
       if (homeScore === '' || awayScore === '') continue
+      // K.o.-Runde: kein Unentschieden erlaubt (Sieger muss getippt werden).
+      if (isKoQuestion(q) && homeScore === awayScore) { koDrawSkipped++; continue }
       const { data, error } = await supabase
         .from('tip_answers')
         .upsert({
@@ -682,6 +700,7 @@ export default function TippgruppeDetailPage() {
       if (!error && data) { setMyAnswers(prev => ({ ...prev, [q.id]: data })); saved++ }
     }
     setDrafts(prev => { const n = { ...prev }; targetQuestions.forEach(q => delete n[q.id]); return n })
+    if (koDrawSkipped > 0) showToast('K.o.: kein Unentschieden – Sieger tippen')
     return saved
   }
 

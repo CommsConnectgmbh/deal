@@ -109,16 +109,20 @@ serve(async (req) => {
     let totalResolved = 0
     const userPoints: Record<string, number> = {}
 
+    // In einer K.o.-Runde (stage gesetzt) kann es kein Unentschieden geben — es
+    // wird IMMER ein Sieger ermittelt (Verlängerung / Elfmeterschießen). Darum
+    // gilt hier eine andere Wertung als in der Liga/Gruppenphase:
+    //   • Gewertet wird das ENDERGEBNIS, d.h. der Stand nach Verlängerung (120').
+    //     home_score/away_score = 90'-Stand, extratime_* = Tore der Verlängerung
+    //     → 120'-Endstand = home_score + extratime.
+    //   • Der Sieger steht über match_winner fest (HOME_TEAM | AWAY_TEAM).
+    //   • Ein Unentschieden-Tipp ist in der K.o. nicht erlaubt (UI sperrt das) und
+    //     kann nie „exakt" sein, weil das Endergebnis immer einen Sieger hat.
+    // In der Gruppenphase/Liga bleibt es beim Kicktipp-Standard (90'-Stand, Remis ok).
+    const isKo = !!stage
     for (const q of finishedQuestions) {
-      // Kicktipp-Standard:
-      //   exact / diff  → 90 min (home_score/away_score = fullTime)
-      //   tendency      → Gesamtsieger inkl. Verlängerung + Elfmeterschießen,
-      //                   gespeichert in match_winner (HOME_TEAM | AWAY_TEAM | DRAW).
-      // → Wer „1:1" auf ein Spiel tippt, das im Elfmeterschießen entschieden wird,
-      //   bekommt Exakt (90' stimmt). Wer „2:1 Heim" tippt und Heim gewinnt via E11m,
-      //   bekommt Tendenz. Niemand wird für die Schul-Tippregel bestraft.
-      const actualHome = q.home_score!
-      const actualAway = q.away_score!
+      const actualHome = isKo ? q.home_score! + (q.extratime_home ?? 0) : q.home_score!
+      const actualAway = isKo ? q.away_score! + (q.extratime_away ?? 0) : q.away_score!
       const actualDiff = actualHome - actualAway
       const tendencyFromWinner = q.match_winner === 'HOME_TEAM' ? 'home'
         : q.match_winner === 'AWAY_TEAM' ? 'away'

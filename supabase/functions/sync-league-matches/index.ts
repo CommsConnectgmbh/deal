@@ -105,14 +105,21 @@ serve(async (req) => {
       const groupLabel = m.group || null
 
       // Scores. football-data.org liefert in v4:
-      //   score.fullTime    — Tore nach 90 min regulärer Zeit
+      //   score.regularTime — Tore nach 90 min (NUR gesetzt bei ET/Elfmeter-Spielen)
+      //   score.fullTime    — Gesamt-/Endstand INKL. Verlängerung UND Elfmeterschießen
+      //                       (bei Elfmeter zählt fullTime die E11m mit, z.B. 6:4!)
       //   score.halfTime    — Tore zur Pause
-      //   score.extraTime   — Tore NACH Verlängerung (kumulativ, inkl. 90 min)
+      //   score.extraTime   — Tore aus der Verlängerung (nur ET-Phase)
       //   score.penalties   — Elfmeterschießen
       //   score.duration    — REGULAR | EXTRA_TIME | PENALTY_SHOOTOUT
       //   score.winner      — HOME_TEAM | AWAY_TEAM | DRAW (Gesamtsieger inkl. E11m)
-      const homeScore = m.score?.fullTime?.home ?? null
-      const awayScore = m.score?.fullTime?.away ?? null
+      //
+      // Kicktipp-Standard: exact/diff werden gegen den 90'-Stand gerechnet. Der steht
+      // bei normalen Spielen in fullTime, bei ET/Elfmeter-Spielen aber in regularTime
+      // (fullTime ist dort der ET-/Elfmeter-inflationierte Endstand). Darum:
+      //   90'-Stand = regularTime ?? fullTime  → home_score/away_score.
+      const homeScore = m.score?.regularTime?.home ?? m.score?.fullTime?.home ?? null
+      const awayScore = m.score?.regularTime?.away ?? m.score?.fullTime?.away ?? null
       const halftimeHome = m.score?.halfTime?.home ?? null
       const halftimeAway = m.score?.halfTime?.away ?? null
       const extratimeHome = m.score?.extraTime?.home ?? null

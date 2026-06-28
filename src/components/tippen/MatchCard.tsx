@@ -32,6 +32,12 @@ export interface MatchQuestion {
   group_label?: string | null
 }
 
+// K.o.-Runden: hier gibt es kein Unentschieden (Sieger via Verlängerung/Elfer).
+const KO_STAGES = new Set([
+  'LAST_32', 'ROUND_OF_32', 'LAST_16', 'ROUND_OF_16',
+  'QUARTER_FINALS', 'SEMI_FINALS', 'THIRD_PLACE', 'FINAL',
+])
+
 function formatStage(stage: string | null | undefined, groupLabel: string | null | undefined): string {
   if (groupLabel) {
     const short = groupLabel.replace(/^(?:Group|Gruppe)[\s_]+/i, '').replace(/^GROUP_/, '')
@@ -142,13 +148,23 @@ export default function MatchCard({
   const isLive = q.is_live
   const hasTipped = !!existingTip && existingTip.home_score_tip !== null
 
-  // Headline = 90'-Score (das, worauf getippt wird, Kicktipp-Stil).
-  // Footer zeigt n.V.-Endstand und Elfmeterschießen, sodass das vollständige
-  // Endergebnis sichtbar ist, ohne die Tipper zu verwirren.
+  // K.o.-Spiel? Dann gibt es kein Unentschieden — gewertet wird der Endstand
+  // (nach Verlängerung), der Sieger steht via Elfmeterschießen immer fest.
+  const isKo = !!q.competition_stage && KO_STAGES.has(q.competition_stage)
+
+  // Headline-Score: in der Liga/Gruppenphase der 90'-Stand (Kicktipp), in der
+  // K.o. der Endstand nach Verlängerung (home_score + extratime). Footer zeigt
+  // zusätzlich n.V. und Elfmeterschießen.
   const usedExtraTime = q.extratime_home != null && q.extratime_away != null
   const usedPenalties = q.penalty_home != null && q.penalty_away != null
-  const displayHome = q.home_score
-  const displayAway = q.away_score
+  const displayHome = isKo && q.home_score != null ? q.home_score + (q.extratime_home ?? 0) : q.home_score
+  const displayAway = isKo && q.away_score != null ? q.away_score + (q.extratime_away ?? 0) : q.away_score
+
+  // K.o.-Validierung: ein Unentschieden-Tipp ist nicht erlaubt. Wir zeigen einen
+  // Hinweis, sobald beide Felder gleich befüllt sind (Speichern blockt der Parent).
+  const curHome = draft.homeScore !== undefined ? draft.homeScore : (hasTipped ? String(existingTip!.home_score_tip ?? '') : '')
+  const curAway = draft.awayScore !== undefined ? draft.awayScore : (hasTipped ? String(existingTip!.away_score_tip ?? '') : '')
+  const koDraw = isKo && curHome !== '' && curAway !== '' && curHome === curAway
 
   return (
     <div style={{
@@ -315,6 +331,17 @@ export default function MatchCard({
           </span>
         </div>
       </div>
+
+      {/* K.o.: Unentschieden-Tipp ist nicht erlaubt — Hinweis bei Gleichstand. */}
+      {koDraw && !locked && !resolved && (
+        <div style={{
+          marginTop: 8, textAlign: 'center',
+          fontSize: 10, fontFamily: 'var(--font-display)', fontWeight: 700,
+          color: '#EF4444', letterSpacing: 0.5,
+        }}>
+          K.O. – KEIN UNENTSCHIEDEN, SIEGER TIPPEN
+        </div>
+      )}
 
       {/* K.o.-Endergebnis: 120' (n.V.) und Elfmeterschießen, falls relevant. */}
       {(usedExtraTime || usedPenalties) && (
