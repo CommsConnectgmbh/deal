@@ -15,6 +15,12 @@ export interface MatchQuestion {
   away_score: number | null
   halftime_home: number | null
   halftime_away: number | null
+  extratime_home?: number | null
+  extratime_away?: number | null
+  penalty_home?: number | null
+  penalty_away?: number | null
+  match_duration?: string | null // REGULAR | EXTRA_TIME | PENALTY_SHOOTOUT
+  match_winner?: string | null   // HOME_TEAM | AWAY_TEAM | DRAW
   match_utc_date: string | null
   match_status: string | null
   match_minute: number | null
@@ -136,6 +142,14 @@ export default function MatchCard({
   const isLive = q.is_live
   const hasTipped = !!existingTip && existingTip.home_score_tip !== null
 
+  // KO-Endergebnis inkl. Verlängerung & Elfmeterschießen:
+  // Headline = Score nach 120 min (extratime) wenn ET stattfand, sonst 90 min.
+  // Footer-Badge zeigt n.V. und i.E. mit Detail-Werten.
+  const usedExtraTime = q.extratime_home != null && q.extratime_away != null
+  const usedPenalties = q.penalty_home != null && q.penalty_away != null
+  const displayHome = usedExtraTime ? q.extratime_home! : q.home_score
+  const displayAway = usedExtraTime ? q.extratime_away! : q.away_score
+
   return (
     <div style={{
       background: 'var(--bg-surface)',
@@ -208,7 +222,7 @@ export default function MatchCard({
                 color: isLive ? '#22C55E' : 'var(--text-primary)',
                 background: 'var(--bg-elevated)', borderRadius: 6,
               }}>
-                {q.home_score ?? '-'}
+                {displayHome ?? '-'}
               </span>
               <span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 700 }}>:</span>
               <span style={{
@@ -217,7 +231,7 @@ export default function MatchCard({
                 color: isLive ? '#22C55E' : 'var(--text-primary)',
                 background: 'var(--bg-elevated)', borderRadius: 6,
               }}>
-                {q.away_score ?? '-'}
+                {displayAway ?? '-'}
               </span>
             </div>
           ) : hasTipped && locked ? (
@@ -301,6 +315,24 @@ export default function MatchCard({
           </span>
         </div>
       </div>
+
+      {/* K.o.-Endergebnis-Detail: 90'-Score und Elfmeterschießen, falls relevant. */}
+      {(usedExtraTime || usedPenalties) && (
+        <div style={{
+          marginTop: 8, display: 'flex', justifyContent: 'center', gap: 8,
+          fontSize: 10, fontFamily: 'var(--font-display)', fontWeight: 700,
+          color: 'var(--text-muted)', letterSpacing: 0.5,
+        }}>
+          {usedExtraTime && (
+            <span>n.V. · 90&apos; {q.home_score ?? '-'}:{q.away_score ?? '-'}</span>
+          )}
+          {usedPenalties && (
+            <span style={{ color: 'var(--gold-primary)' }}>
+              i.E. {q.penalty_home}:{q.penalty_away}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Bottom: points (if resolved) or saved confirmation */}
       {resolved && hasTipped && (

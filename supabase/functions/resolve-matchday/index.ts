@@ -86,7 +86,7 @@ serve(async (req) => {
     // happens to carry a matchday is only ever scored once (via the numeric path).
     let questionQuery = supabase
       .from('tip_questions')
-      .select('id, home_score, away_score, match_status')
+      .select('id, home_score, away_score, extratime_home, extratime_away, match_duration, match_winner, match_status')
       .eq('group_id', group_id)
     questionQuery = stage
       ? questionQuery.eq('competition_stage', stage).is('matchday', null)
@@ -110,10 +110,22 @@ serve(async (req) => {
     const userPoints: Record<string, number> = {}
 
     for (const q of finishedQuestions) {
-      const actualHome = q.home_score!
-      const actualAway = q.away_score!
+      // "Endergebnis inkl. Elfmeter":
+      //  - Verlängerung → kumulativer ET-Score zählt für exact/diff
+      //  - Elfmeterschießen → ET-Score (Tore aus 120 min) zählt für exact/diff,
+      //    aber der TENDENZ-Sieger kommt aus match_winner (HOME_TEAM/AWAY_TEAM/DRAW).
+      //    DRAW bleibt nur in regulärer Zeit ohne Verlängerung möglich.
+      const usedExtraTime = q.extratime_home !== null && q.extratime_away !== null
+      const actualHome = usedExtraTime ? q.extratime_home! : q.home_score!
+      const actualAway = usedExtraTime ? q.extratime_away! : q.away_score!
       const actualDiff = actualHome - actualAway
-      const actualTendency = actualHome > actualAway ? 'home' : actualHome < actualAway ? 'away' : 'draw'
+      // Bei Elfmeterschießen entscheidet der Gesamtsieger über die Tendenz —
+      // selbst wenn ET noch unentschieden war (1:1 → home/away via E11m).
+      const tendencyFromWinner = q.match_winner === 'HOME_TEAM' ? 'home'
+        : q.match_winner === 'AWAY_TEAM' ? 'away'
+        : q.match_winner === 'DRAW' ? 'draw' : null
+      const actualTendency = tendencyFromWinner
+        ?? (actualHome > actualAway ? 'home' : actualHome < actualAway ? 'away' : 'draw')
 
       // Get all tips for this question
       const { data: tips } = await supabase

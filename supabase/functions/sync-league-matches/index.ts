@@ -104,11 +104,23 @@ serve(async (req) => {
       const stage = m.stage || null
       const groupLabel = m.group || null
 
-      // Scores
+      // Scores. football-data.org liefert in v4:
+      //   score.fullTime    — Tore nach 90 min regulärer Zeit
+      //   score.halfTime    — Tore zur Pause
+      //   score.extraTime   — Tore NACH Verlängerung (kumulativ, inkl. 90 min)
+      //   score.penalties   — Elfmeterschießen
+      //   score.duration    — REGULAR | EXTRA_TIME | PENALTY_SHOOTOUT
+      //   score.winner      — HOME_TEAM | AWAY_TEAM | DRAW (Gesamtsieger inkl. E11m)
       const homeScore = m.score?.fullTime?.home ?? null
       const awayScore = m.score?.fullTime?.away ?? null
       const halftimeHome = m.score?.halfTime?.home ?? null
       const halftimeAway = m.score?.halfTime?.away ?? null
+      const extratimeHome = m.score?.extraTime?.home ?? null
+      const extratimeAway = m.score?.extraTime?.away ?? null
+      const penaltyHome = m.score?.penalties?.home ?? null
+      const penaltyAway = m.score?.penalties?.away ?? null
+      const matchDuration = m.score?.duration ?? null
+      const matchWinner = m.score?.winner ?? null
       const matchMinute = m.minute ?? null
 
       // Deadline: Kick-off (fallback: 1 year from now). Einzelne Spiele sind bis
@@ -159,6 +171,12 @@ serve(async (req) => {
             away_score: awayScore,
             halftime_home: halftimeHome,
             halftime_away: halftimeAway,
+            extratime_home: extratimeHome,
+            extratime_away: extratimeAway,
+            penalty_home: penaltyHome,
+            penalty_away: penaltyAway,
+            match_duration: matchDuration,
+            match_winner: matchWinner,
             match_utc_date: matchUtcDate,
             match_status: matchStatus,
             match_minute: matchMinute,
@@ -192,6 +210,12 @@ serve(async (req) => {
             away_score: awayScore,
             halftime_home: halftimeHome,
             halftime_away: halftimeAway,
+            extratime_home: extratimeHome,
+            extratime_away: extratimeAway,
+            penalty_home: penaltyHome,
+            penalty_away: penaltyAway,
+            match_duration: matchDuration,
+            match_winner: matchWinner,
             match_api_id: matchApiId,
             match_utc_date: matchUtcDate,
             match_status: matchStatus,

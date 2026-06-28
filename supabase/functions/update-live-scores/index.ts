@@ -88,6 +88,12 @@ serve(async (req) => {
       const awayScore = m.score?.fullTime?.away ?? null
       const halftimeHome = m.score?.halfTime?.home ?? null
       const halftimeAway = m.score?.halfTime?.away ?? null
+      const extratimeHome = m.score?.extraTime?.home ?? null
+      const extratimeAway = m.score?.extraTime?.away ?? null
+      const penaltyHome = m.score?.penalties?.home ?? null
+      const penaltyAway = m.score?.penalties?.away ?? null
+      const matchDuration = m.score?.duration ?? null
+      const matchWinner = m.score?.winner ?? null
       const matchMinute = m.minute ?? null
       const isLive = ['IN_PLAY', 'PAUSED', 'HALFTIME'].includes(matchStatus)
       const isFinished = ['FINISHED', 'AWARDED'].includes(matchStatus)
@@ -113,6 +119,12 @@ serve(async (req) => {
           away_score: displayAway,
           halftime_home: halftimeHome,
           halftime_away: halftimeAway,
+          extratime_home: extratimeHome,
+          extratime_away: extratimeAway,
+          penalty_home: penaltyHome,
+          penalty_away: penaltyAway,
+          match_duration: matchDuration,
+          match_winner: matchWinner,
           match_status: matchStatus,
           match_minute: matchMinute,
           is_live: isLive,

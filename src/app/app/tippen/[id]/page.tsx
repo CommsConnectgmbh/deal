@@ -38,6 +38,9 @@ interface TipQuestion {
   match_api_id: string | null; options: string[] | null; result: string | null
   home_score: number | null; away_score: number | null
   halftime_home: number | null; halftime_away: number | null
+  extratime_home: number | null; extratime_away: number | null
+  penalty_home: number | null; penalty_away: number | null
+  match_duration: string | null; match_winner: string | null
   match_utc_date: string | null; match_status: string | null
   match_minute: number | null; is_live: boolean
   competition_stage: string | null; group_label: string | null
@@ -951,6 +954,9 @@ export default function TippgruppeDetailPage() {
               home_team_short: q.home_team_short, away_team_short: q.away_team_short,
               home_score: q.home_score, away_score: q.away_score,
               halftime_home: q.halftime_home, halftime_away: q.halftime_away,
+              extratime_home: q.extratime_home, extratime_away: q.extratime_away,
+              penalty_home: q.penalty_home, penalty_away: q.penalty_away,
+              match_duration: q.match_duration, match_winner: q.match_winner,
               match_utc_date: q.match_utc_date, match_status: q.match_status,
               match_minute: q.match_minute, is_live: q.is_live,
               deadline: q.deadline, status: q.status, matchday: q.matchday,
@@ -1029,6 +1035,11 @@ export default function TippgruppeDetailPage() {
                 away_team: q.away_team,
                 home_score: q.home_score,
                 away_score: q.away_score,
+                extratime_home: q.extratime_home,
+                extratime_away: q.extratime_away,
+                penalty_home: q.penalty_home,
+                penalty_away: q.penalty_away,
+                match_winner: q.match_winner,
                 deadline: q.deadline,
                 status: q.status,
               }))}
@@ -1251,6 +1262,9 @@ export default function TippgruppeDetailPage() {
               home_team_short: q.home_team_short, away_team_short: q.away_team_short,
               home_score: q.home_score, away_score: q.away_score,
               halftime_home: q.halftime_home, halftime_away: q.halftime_away,
+              extratime_home: q.extratime_home, extratime_away: q.extratime_away,
+              penalty_home: q.penalty_home, penalty_away: q.penalty_away,
+              match_duration: q.match_duration, match_winner: q.match_winner,
               match_utc_date: q.match_utc_date, match_status: q.match_status,
               match_minute: q.match_minute, is_live: q.is_live,
               deadline: q.deadline, status: q.status, matchday: q.matchday,

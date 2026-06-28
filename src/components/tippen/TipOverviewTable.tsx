@@ -17,6 +17,11 @@ interface QuestionInfo {
   away_team: string | null
   home_score: number | null
   away_score: number | null
+  extratime_home?: number | null
+  extratime_away?: number | null
+  penalty_home?: number | null
+  penalty_away?: number | null
+  match_winner?: string | null
   deadline: string
   status: string
 }
@@ -46,6 +51,18 @@ function getCellColor(tip: TipInfo | undefined, q: QuestionInfo): string {
   if (pts >= 3) return 'rgba(234,179,8,0.15)'  // yellow — diff
   if (pts >= 2) return 'rgba(249,115,22,0.15)' // orange — tendency
   return 'rgba(255,255,255,0.03)' // miss
+}
+
+// Endergebnis für die Erg.-Zelle: nach Verlängerung der ET-Score (kumulativ),
+// bei Elfmeterschießen zusätzlich der E11m-Stand. Tendenz folgt match_winner.
+function formatFinalScore(q: QuestionInfo): string {
+  if (q.home_score === null || q.away_score === null) return '–'
+  const usedET = q.extratime_home != null && q.extratime_away != null
+  const usedPens = q.penalty_home != null && q.penalty_away != null
+  const head = usedET ? `${q.extratime_home}:${q.extratime_away}` : `${q.home_score}:${q.away_score}`
+  if (usedPens) return `${head} i.E. ${q.penalty_home}:${q.penalty_away}`
+  if (usedET) return `${head} n.V.`
+  return head
 }
 
 /**
@@ -176,11 +193,10 @@ export default function TipOverviewTable({ questions, members, tips }: Props) {
                 <td style={{
                   padding: '6px', textAlign: 'center',
                   borderBottom: '1px solid var(--border-subtle)',
-                  fontWeight: 700, color: 'var(--gold-primary)', fontSize: 12,
+                  fontWeight: 700, color: 'var(--gold-primary)', fontSize: 11,
+                  whiteSpace: 'nowrap',
                 }}>
-                  {q.status === 'resolved' && q.home_score !== null
-                    ? `${q.home_score}:${q.away_score}`
-                    : '–'}
+                  {q.status === 'resolved' ? formatFinalScore(q) : '–'}
                 </td>
               </tr>
             )

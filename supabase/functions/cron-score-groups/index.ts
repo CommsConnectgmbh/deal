@@ -68,7 +68,25 @@ serve(async (req) => {
     const results: Array<Record<string, unknown>> = []
 
     for (const g of groups || []) {
-      // Is this group relevant right now?
+      // Turnier-/Cup-Gruppen werden IMMER mitgesyncht, sobald sie noch
+      // unresolved Fragen UND mindestens eine Partie mit TBA-Teilnehmer
+      // haben — andernfalls würden zwischen Gruppenphase und K.o.-Runde
+      // gerade festgelegte Paarungen nicht ins System wandern, weil das
+      // ±-Zeitfenster sie noch nicht erfasst.
+      const isTournament = g.competition_type === 'TOURNAMENT' || g.competition_type === 'CUP'
+      const { data: tbaRow } = isTournament
+        ? await supabase
+            .from('tip_questions')
+            .select('id')
+            .eq('group_id', g.id)
+            .neq('status', 'resolved')
+            .neq('status', 'cancelled')
+            .or('home_team.eq.TBA,away_team.eq.TBA')
+            .limit(1)
+        : { data: null as null | { id: string }[] }
+      const hasTbaPairing = !!tbaRow && tbaRow.length > 0
+
+      // Is this group relevant right now (in-window oder gerade fertig)?
       const { data: live } = await supabase
         .from('tip_questions')
         .select('id')
@@ -78,7 +96,7 @@ serve(async (req) => {
         .or(`match_status.in.(${FINISHED_STATES.join(',')}),and(match_utc_date.gte.${windowStart},match_utc_date.lte.${windowEnd})`)
         .limit(1)
 
-      if (!live || live.length === 0) continue
+      if (!hasTbaPairing && (!live || live.length === 0)) continue
 
       try {
         // 1. Pull fresh fixtures/scores (awaited so the DB is current for step 2).
