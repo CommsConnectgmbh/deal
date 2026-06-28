@@ -53,16 +53,19 @@ function getCellColor(tip: TipInfo | undefined, q: QuestionInfo): string {
   return 'rgba(255,255,255,0.03)' // miss
 }
 
-// Endergebnis für die Erg.-Zelle: nach Verlängerung der ET-Score (kumulativ),
-// bei Elfmeterschießen zusätzlich der E11m-Stand. Tendenz folgt match_winner.
-function formatFinalScore(q: QuestionInfo): string {
-  if (q.home_score === null || q.away_score === null) return '–'
-  const usedET = q.extratime_home != null && q.extratime_away != null
-  const usedPens = q.penalty_home != null && q.penalty_away != null
-  const head = usedET ? `${q.extratime_home}:${q.extratime_away}` : `${q.home_score}:${q.away_score}`
-  if (usedPens) return `${head} i.E. ${q.penalty_home}:${q.penalty_away}`
-  if (usedET) return `${head} n.V.`
-  return head
+// Erg.-Zelle (Kicktipp-Stil): 90'-Score ist die Headline (darauf wird getippt),
+// 120' (n.V.) und Elfmeterschießen als kleiner Annex.
+function renderFinalScore(q: QuestionInfo): { head: string; suffix: string } {
+  if (q.home_score === null || q.away_score === null) return { head: '–', suffix: '' }
+  const head = `${q.home_score}:${q.away_score}`
+  const parts: string[] = []
+  if (q.extratime_home != null && q.extratime_away != null) {
+    parts.push(`n.V. ${q.extratime_home}:${q.extratime_away}`)
+  }
+  if (q.penalty_home != null && q.penalty_away != null) {
+    parts.push(`i.E. ${q.penalty_home}:${q.penalty_away}`)
+  }
+  return { head, suffix: parts.join(' · ') }
 }
 
 /**
@@ -193,10 +196,21 @@ export default function TipOverviewTable({ questions, members, tips }: Props) {
                 <td style={{
                   padding: '6px', textAlign: 'center',
                   borderBottom: '1px solid var(--border-subtle)',
-                  fontWeight: 700, color: 'var(--gold-primary)', fontSize: 11,
                   whiteSpace: 'nowrap',
                 }}>
-                  {q.status === 'resolved' ? formatFinalScore(q) : '–'}
+                  {q.status === 'resolved' ? (() => {
+                    const { head, suffix } = renderFinalScore(q)
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                        <span style={{ fontWeight: 700, color: 'var(--gold-primary)', fontSize: 12 }}>{head}</span>
+                        {suffix && (
+                          <span style={{ fontSize: 8, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: 0.3 }}>
+                            {suffix}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })() : <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>–</span>}
                 </td>
               </tr>
             )

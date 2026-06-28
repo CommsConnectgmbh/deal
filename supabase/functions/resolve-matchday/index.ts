@@ -110,17 +110,16 @@ serve(async (req) => {
     const userPoints: Record<string, number> = {}
 
     for (const q of finishedQuestions) {
-      // "Endergebnis inkl. Elfmeter":
-      //  - Verlängerung → kumulativer ET-Score zählt für exact/diff
-      //  - Elfmeterschießen → ET-Score (Tore aus 120 min) zählt für exact/diff,
-      //    aber der TENDENZ-Sieger kommt aus match_winner (HOME_TEAM/AWAY_TEAM/DRAW).
-      //    DRAW bleibt nur in regulärer Zeit ohne Verlängerung möglich.
-      const usedExtraTime = q.extratime_home !== null && q.extratime_away !== null
-      const actualHome = usedExtraTime ? q.extratime_home! : q.home_score!
-      const actualAway = usedExtraTime ? q.extratime_away! : q.away_score!
+      // Kicktipp-Standard:
+      //   exact / diff  → 90 min (home_score/away_score = fullTime)
+      //   tendency      → Gesamtsieger inkl. Verlängerung + Elfmeterschießen,
+      //                   gespeichert in match_winner (HOME_TEAM | AWAY_TEAM | DRAW).
+      // → Wer „1:1" auf ein Spiel tippt, das im Elfmeterschießen entschieden wird,
+      //   bekommt Exakt (90' stimmt). Wer „2:1 Heim" tippt und Heim gewinnt via E11m,
+      //   bekommt Tendenz. Niemand wird für die Schul-Tippregel bestraft.
+      const actualHome = q.home_score!
+      const actualAway = q.away_score!
       const actualDiff = actualHome - actualAway
-      // Bei Elfmeterschießen entscheidet der Gesamtsieger über die Tendenz —
-      // selbst wenn ET noch unentschieden war (1:1 → home/away via E11m).
       const tendencyFromWinner = q.match_winner === 'HOME_TEAM' ? 'home'
         : q.match_winner === 'AWAY_TEAM' ? 'away'
         : q.match_winner === 'DRAW' ? 'draw' : null

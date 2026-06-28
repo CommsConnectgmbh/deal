@@ -58,33 +58,38 @@ serve(async (req) => {
     // football-data.org call count bounded to groups that actually need attention.
     const { data: groups } = await supabase
       .from('tip_groups')
-      .select('id, competition_code, season_year, competition_type')
+      .select('id, competition_code, season_year, competition_type, last_synced_at')
       .not('competition_code', 'is', null)
 
     const nowMs = Date.now()
     const windowStart = new Date(nowMs - 24 * 60 * 60 * 1000).toISOString() // 24h ago
     const windowEnd = new Date(nowMs + 3 * 60 * 60 * 1000).toISOString()    // 3h ahead
+    // TBA-Paarungen ändern sich höchstens 1× pro Spiel — alle 15 min die
+    // football-data.org-API zu pollen wäre Verschwendung und kratzt am
+    // Rate-Limit. Eine Stunde Cool-down pro Gruppe reicht völlig.
+    const TBA_SYNC_COOLDOWN_MS = 60 * 60 * 1000
 
     const results: Array<Record<string, unknown>> = []
 
     for (const g of groups || []) {
-      // Turnier-/Cup-Gruppen werden IMMER mitgesyncht, sobald sie noch
-      // unresolved Fragen UND mindestens eine Partie mit TBA-Teilnehmer
-      // haben — andernfalls würden zwischen Gruppenphase und K.o.-Runde
-      // gerade festgelegte Paarungen nicht ins System wandern, weil das
-      // ±-Zeitfenster sie noch nicht erfasst.
+      // Turnier-/Cup-Gruppen mit unresolved TBA-Paarungen werden auch außerhalb
+      // des Aktivitätsfensters synchronisiert (gedrosselt, s.o.), damit gerade
+      // festgelegte K.o.-Pairings ins System fließen.
       const isTournament = g.competition_type === 'TOURNAMENT' || g.competition_type === 'CUP'
-      const { data: tbaRow } = isTournament
-        ? await supabase
-            .from('tip_questions')
-            .select('id')
-            .eq('group_id', g.id)
-            .neq('status', 'resolved')
-            .neq('status', 'cancelled')
-            .or('home_team.eq.TBA,away_team.eq.TBA')
-            .limit(1)
-        : { data: null as null | { id: string }[] }
-      const hasTbaPairing = !!tbaRow && tbaRow.length > 0
+      const lastSyncMs = g.last_synced_at ? new Date(g.last_synced_at).getTime() : 0
+      const tbaCheckDue = nowMs - lastSyncMs >= TBA_SYNC_COOLDOWN_MS
+      let hasTbaPairing = false
+      if (isTournament && tbaCheckDue) {
+        const { data: tbaRow } = await supabase
+          .from('tip_questions')
+          .select('id')
+          .eq('group_id', g.id)
+          .neq('status', 'resolved')
+          .neq('status', 'cancelled')
+          .or('home_team.eq.TBA,away_team.eq.TBA')
+          .limit(1)
+        hasTbaPairing = !!tbaRow && tbaRow.length > 0
+      }
 
       // Is this group relevant right now (in-window oder gerade fertig)?
       const { data: live } = await supabase
@@ -95,8 +100,9 @@ serve(async (req) => {
         .neq('status', 'cancelled')
         .or(`match_status.in.(${FINISHED_STATES.join(',')}),and(match_utc_date.gte.${windowStart},match_utc_date.lte.${windowEnd})`)
         .limit(1)
+      const hasLive = !!live && live.length > 0
 
-      if (!hasTbaPairing && (!live || live.length === 0)) continue
+      if (!hasTbaPairing && !hasLive) continue
 
       try {
         // 1. Pull fresh fixtures/scores (awaited so the DB is current for step 2).

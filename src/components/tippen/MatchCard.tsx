@@ -142,13 +142,13 @@ export default function MatchCard({
   const isLive = q.is_live
   const hasTipped = !!existingTip && existingTip.home_score_tip !== null
 
-  // KO-Endergebnis inkl. Verlängerung & Elfmeterschießen:
-  // Headline = Score nach 120 min (extratime) wenn ET stattfand, sonst 90 min.
-  // Footer-Badge zeigt n.V. und i.E. mit Detail-Werten.
+  // Headline = 90'-Score (das, worauf getippt wird, Kicktipp-Stil).
+  // Footer zeigt n.V.-Endstand und Elfmeterschießen, sodass das vollständige
+  // Endergebnis sichtbar ist, ohne die Tipper zu verwirren.
   const usedExtraTime = q.extratime_home != null && q.extratime_away != null
   const usedPenalties = q.penalty_home != null && q.penalty_away != null
-  const displayHome = usedExtraTime ? q.extratime_home! : q.home_score
-  const displayAway = usedExtraTime ? q.extratime_away! : q.away_score
+  const displayHome = q.home_score
+  const displayAway = q.away_score
 
   return (
     <div style={{
@@ -316,15 +316,15 @@ export default function MatchCard({
         </div>
       </div>
 
-      {/* K.o.-Endergebnis-Detail: 90'-Score und Elfmeterschießen, falls relevant. */}
+      {/* K.o.-Endergebnis: 120' (n.V.) und Elfmeterschießen, falls relevant. */}
       {(usedExtraTime || usedPenalties) && (
         <div style={{
-          marginTop: 8, display: 'flex', justifyContent: 'center', gap: 8,
+          marginTop: 8, display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap',
           fontSize: 10, fontFamily: 'var(--font-display)', fontWeight: 700,
           color: 'var(--text-muted)', letterSpacing: 0.5,
         }}>
           {usedExtraTime && (
-            <span>n.V. · 90&apos; {q.home_score ?? '-'}:{q.away_score ?? '-'}</span>
+            <span>n.V. {q.extratime_home}:{q.extratime_away}</span>
           )}
           {usedPenalties && (
             <span style={{ color: 'var(--gold-primary)' }}>
