@@ -141,7 +141,18 @@ serve(async (req) => {
           await call('resolve-matchday', { group_id: g.id, stage: st })
         }
 
-        results.push({ group_id: g.id, resolved_matchdays: matchdays, resolved_stages: stages })
+        // 3. Auto-Auflösung der „Sieger Gruppe X"-Bonusfragen, sobald die jeweilige
+        //    Gruppenphase komplett resolved ist — schreibt korrekten Sieger,
+        //    bepunktet Tipps und faltet die Bonus-Punkte in tip_group_members ein.
+        const bonusRes = await call('resolve-bonus-auto', { group_id: g.id })
+          .then(r => r.json()).catch(() => ({}))
+
+        results.push({
+          group_id: g.id,
+          resolved_matchdays: matchdays,
+          resolved_stages: stages,
+          resolved_bonus: bonusRes?.resolved || 0,
+        })
       } catch (e) {
         results.push({ group_id: g.id, error: String((e as Error).message || e) })
       }

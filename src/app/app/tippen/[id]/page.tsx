@@ -11,6 +11,7 @@ import MatchdaySaveAll from '@/components/tippen/MatchdaySaveAll'
 import TipOverviewTable from '@/components/tippen/TipOverviewTable'
 import RankingTable from '@/components/tippen/RankingTable'
 import BonusQuestionCard from '@/components/tippen/BonusQuestionCard'
+import BonusAnswersOverview from '@/components/tippen/BonusAnswersOverview'
 import BonusQuestionAdmin from '@/components/tippen/BonusQuestionAdmin'
 import TournamentBracket from '@/components/tippen/TournamentBracket'
 import GroupStageView from '@/components/tippen/GroupStageView'
@@ -155,6 +156,9 @@ export default function TippgruppeDetailPage() {
   // Bonus
   const [bonusQuestions, setBonusQuestions] = useState<BonusQ[]>([])
   const [bonusAnswers, setBonusAnswers] = useState<Record<string, BonusA>>({})
+  // Alle Bonus-Antworten aller Mitglieder (für Übersichts-Matrix). Erst nach
+  // Deadline einer Frage werden fremde Tipps in der Matrix sichtbar.
+  const [allBonusAnswers, setAllBonusAnswers] = useState<BonusA[]>([])
 
   // Chat
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([])
@@ -422,10 +426,16 @@ export default function TippgruppeDetailPage() {
       setBonusQuestions(bqs || [])
       if (bqs && bqs.length > 0) {
         const bqIds = bqs.map((b: BonusQ) => b.id)
-        const { data: bas } = await supabase.from('tip_bonus_answers').select('*').eq('user_id', user.id).in('question_id', bqIds)
+        // Eigene Tipps + alle Tipps der Gruppe (für Übersichts-Matrix). Fremde
+        // Antworten zeigen wir erst nach Deadline.
+        const [{ data: myBas }, { data: allBas }] = await Promise.all([
+          supabase.from('tip_bonus_answers').select('*').eq('user_id', user.id).in('question_id', bqIds),
+          supabase.from('tip_bonus_answers').select('*').in('question_id', bqIds),
+        ])
         const map: Record<string, BonusA> = {}
-        ;(bas || []).forEach((a: BonusA) => { map[a.question_id] = a })
+        ;(myBas || []).forEach((a: BonusA) => { map[a.question_id] = a })
         setBonusAnswers(map)
+        setAllBonusAnswers(allBas || [])
       }
     }
     load()
@@ -1223,14 +1233,35 @@ export default function TippgruppeDetailPage() {
               <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>{t('tippen.noBonusQuestions')}</p>
             </div>
           ) : (
-            bonusQuestions.map(bq => (
-              <BonusQuestionCard
-                key={bq.id}
-                question={bq}
-                myAnswer={bonusAnswers[bq.id] || null}
-                onSubmit={submitBonusAnswer}
+            <>
+              {bonusQuestions.map(bq => (
+                <BonusQuestionCard
+                  key={bq.id}
+                  question={bq}
+                  myAnswer={bonusAnswers[bq.id] || null}
+                  onSubmit={submitBonusAnswer}
+                />
+              ))}
+
+              <BonusAnswersOverview
+                questions={bonusQuestions.map(bq => ({
+                  id: bq.id, question: bq.question,
+                  correct_answer: bq.correct_answer, points: bq.points,
+                  deadline: bq.deadline, status: bq.status, sort_order: bq.sort_order,
+                }))}
+                members={members.map(m => ({
+                  user_id: m.user_id,
+                  username: m.profiles?.username || '?',
+                  display_name: m.profiles?.display_name || null,
+                  avatar_url: m.profiles?.avatar_url || null,
+                  total_points: m.total_points || 0,
+                }))}
+                answers={allBonusAnswers.map(a => ({
+                  question_id: a.question_id, user_id: a.user_id,
+                  answer: a.answer, points_earned: a.points_earned,
+                }))}
               />
-            ))
+            </>
           )}
         </div>
       )}
