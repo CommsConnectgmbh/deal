@@ -124,10 +124,38 @@ serve(async (req) => {
       const halftimeAway = m.score?.halfTime?.away ?? null
       const extratimeHome = m.score?.extraTime?.home ?? null
       const extratimeAway = m.score?.extraTime?.away ?? null
-      const penaltyHome = m.score?.penalties?.home ?? null
-      const penaltyAway = m.score?.penalties?.away ?? null
       const matchDuration = m.score?.duration ?? null
-      const matchWinner = m.score?.winner ?? null
+
+      // Sudden-Death-Korrektur: football-data.org liefert in score.penalties manchmal
+      // den 5:5-Stand vor Sudden Death und setzt erst in score.fullTime den echten
+      // Pen-Endstand. Bei PENALTY_SHOOTOUT-Matches ziehen wir die echten Pens aus
+      // (fullTime - regularTime - extraTime), sonst aus score.penalties.
+      let penaltyHome: number | null = m.score?.penalties?.home ?? null
+      let penaltyAway: number | null = m.score?.penalties?.away ?? null
+      if (matchDuration === 'PENALTY_SHOOTOUT'
+          && m.score?.fullTime?.home != null && m.score?.fullTime?.away != null
+          && m.score?.regularTime?.home != null && m.score?.regularTime?.away != null) {
+        const etH = m.score?.extraTime?.home ?? 0
+        const etA = m.score?.extraTime?.away ?? 0
+        const derivedH = m.score.fullTime.home - m.score.regularTime.home - etH
+        const derivedA = m.score.fullTime.away - m.score.regularTime.away - etA
+        if (derivedH >= 0 && derivedA >= 0 && derivedH !== derivedA) {
+          // Nur überschreiben wenn die abgeleiteten Pens einen Sieger liefern,
+          // sonst score.penalties (5:5) als Live-Snapshot stehen lassen.
+          penaltyHome = derivedH
+          penaltyAway = derivedA
+        }
+      }
+
+      // Sieger-Fallback: bei winner=null aber duration!=REGULAR Sieger aus fullTime
+      // ableiten (fullTime = Endstand inkl. ET+E11m). football-data.org lässt winner
+      // nach langen Elfmeterschießen gelegentlich leer.
+      let matchWinner: string | null = m.score?.winner ?? null
+      if (!matchWinner && matchDuration && matchDuration !== 'REGULAR'
+          && m.score?.fullTime?.home != null && m.score?.fullTime?.away != null
+          && m.score.fullTime.home !== m.score.fullTime.away) {
+        matchWinner = m.score.fullTime.home > m.score.fullTime.away ? 'HOME_TEAM' : 'AWAY_TEAM'
+      }
       const matchMinute = m.minute ?? null
 
       // Deadline: Kick-off (fallback: 1 year from now). Einzelne Spiele sind bis

@@ -121,6 +121,13 @@ serve(async (req) => {
     // In der Gruppenphase/Liga bleibt es beim Kicktipp-Standard (90'-Stand, Remis ok).
     const isKo = !!stage
     for (const q of finishedQuestions) {
+      // In der K.o. muss match_winner gesetzt sein — ohne Sieger lässt die Source
+      // (football-data.org) das Match unentschieden, was hier unmöglich ist.
+      // Wir scoren das Match dann NICHT (Status bleibt 'open'), damit der nächste
+      // Sync den Winner nachträgt und der Lauf danach korrekt wertet — niemals auf
+      // Draw zurückfallen (würde Tendenz-Tipps fälschlich verbrennen).
+      if (isKo && !q.match_winner) continue
+
       const actualHome = isKo ? q.home_score! + (q.extratime_home ?? 0) : q.home_score!
       const actualAway = isKo ? q.away_score! + (q.extratime_away ?? 0) : q.away_score!
       const actualDiff = actualHome - actualAway
@@ -148,7 +155,12 @@ serve(async (req) => {
 
         let points = 0
 
-        if (tipHome === actualHome && tipAway === actualAway) {
+        if (isKo && tipHome === tipAway) {
+          // K.o.-Runde: ein Unentschieden-Tipp kann nie aufgehen — es gibt immer
+          // einen Sieger (Verlängerung/Elfmeterschießen). Also 0 Punkte, auch wenn
+          // der 120'-Stand auf dem Platz remis war. (UI sperrt das zusätzlich.)
+          points = 0
+        } else if (tipHome === actualHome && tipAway === actualAway) {
           // Exact match
           points = points_exact
         } else if (tipDiff === actualDiff) {
