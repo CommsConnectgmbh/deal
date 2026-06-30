@@ -86,7 +86,7 @@ serve(async (req) => {
     // happens to carry a matchday is only ever scored once (via the numeric path).
     let questionQuery = supabase
       .from('tip_questions')
-      .select('id, home_score, away_score, extratime_home, extratime_away, match_duration, match_winner, match_status')
+      .select('id, home_score, away_score, extratime_home, extratime_away, penalty_home, penalty_away, match_duration, match_winner, match_status')
       .eq('group_id', group_id)
     questionQuery = stage
       ? questionQuery.eq('competition_stage', stage).is('matchday', null)
@@ -109,27 +109,34 @@ serve(async (req) => {
     let totalResolved = 0
     const userPoints: Record<string, number> = {}
 
-    // In einer K.o.-Runde (stage gesetzt) kann es kein Unentschieden geben — es
-    // wird IMMER ein Sieger ermittelt (Verlängerung / Elfmeterschießen). Darum
-    // gilt hier eine andere Wertung als in der Liga/Gruppenphase:
-    //   • Gewertet wird das ENDERGEBNIS, d.h. der Stand nach Verlängerung (120').
-    //     home_score/away_score = 90'-Stand, extratime_* = Tore der Verlängerung
-    //     → 120'-Endstand = home_score + extratime.
-    //   • Der Sieger steht über match_winner fest (HOME_TEAM | AWAY_TEAM).
-    //   • Ein Unentschieden-Tipp ist in der K.o. nicht erlaubt (UI sperrt das) und
-    //     kann nie „exakt" sein, weil das Endergebnis immer einen Sieger hat.
-    // In der Gruppenphase/Liga bleibt es beim Kicktipp-Standard (90'-Stand, Remis ok).
+    // In einer K.o.-Runde (stage gesetzt) wird das ENDERGEBNIS gewertet —
+    // das Ergebnis der Phase, die das Spiel entschieden hat:
+    //   • Pen-Match    → actualScore = Pen-Stand (z.B. 3:4 für Paraguay)
+    //   • ET ohne Pen  → actualScore = home + ET   (z.B. 3:2 nach Verlängerung)
+    //   • Reguär       → actualScore = 90'-Stand
+    //   Exact/Diff/Tendenz laufen alle auf diesen Endstand.
+    // match_winner ist autoritativ für die Tendenz (überschreibt den Fallback).
+    // Ein Unentschieden-Tipp ist in K.o. nicht erlaubt (UI sperrt das) und gibt
+    // immer 0P, weil das Endergebnis per Definition einen Sieger hat.
+    // In der Gruppenphase/Liga bleibt es beim Kicktipp-Standard (90'-Stand).
     const isKo = !!stage
     for (const q of finishedQuestions) {
-      // In der K.o. muss match_winner gesetzt sein — ohne Sieger lässt die Source
-      // (football-data.org) das Match unentschieden, was hier unmöglich ist.
-      // Wir scoren das Match dann NICHT (Status bleibt 'open'), damit der nächste
-      // Sync den Winner nachträgt und der Lauf danach korrekt wertet — niemals auf
-      // Draw zurückfallen (würde Tendenz-Tipps fälschlich verbrennen).
+      // K.o. ohne match_winner: nicht scoren, sondern offen lassen. Sonst würde
+      // ein gleicher Score auf Draw zurückfallen und Tendenz-Tipps falsch werten.
       if (isKo && !q.match_winner) continue
 
-      const actualHome = isKo ? q.home_score! + (q.extratime_home ?? 0) : q.home_score!
-      const actualAway = isKo ? q.away_score! + (q.extratime_away ?? 0) : q.away_score!
+      let actualHome: number
+      let actualAway: number
+      if (isKo && q.penalty_home != null && q.penalty_away != null) {
+        actualHome = q.penalty_home
+        actualAway = q.penalty_away
+      } else if (isKo) {
+        actualHome = q.home_score! + (q.extratime_home ?? 0)
+        actualAway = q.away_score! + (q.extratime_away ?? 0)
+      } else {
+        actualHome = q.home_score!
+        actualAway = q.away_score!
+      }
       const actualDiff = actualHome - actualAway
       const tendencyFromWinner = q.match_winner === 'HOME_TEAM' ? 'home'
         : q.match_winner === 'AWAY_TEAM' ? 'away'

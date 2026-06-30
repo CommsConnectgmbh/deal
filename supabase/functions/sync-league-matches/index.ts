@@ -126,13 +126,16 @@ serve(async (req) => {
       const extratimeAway = m.score?.extraTime?.away ?? null
       const matchDuration = m.score?.duration ?? null
 
-      // Sudden-Death-Korrektur: football-data.org liefert in score.penalties manchmal
-      // den 5:5-Stand vor Sudden Death und setzt erst in score.fullTime den echten
-      // Pen-Endstand. Bei PENALTY_SHOOTOUT-Matches ziehen wir die echten Pens aus
-      // (fullTime - regularTime - extraTime), sonst aus score.penalties.
+      // Sudden-Death-Fallback: football-data.org lässt score.penalties manchmal
+      // beim 5:5-Stand vor Sudden Death stehen und schreibt nur den echten
+      // Pen-Endstand in score.fullTime. Nur dann aus fullTime ableiten — wenn
+      // score.penalties echte ≠-Werte liefert (z.B. 3:4), die UNVERÄNDERT
+      // übernehmen, sonst würden wir korrekte API-Werte mit (manchmal falscher)
+      // fullTime-Ableitung überschreiben.
       let penaltyHome: number | null = m.score?.penalties?.home ?? null
       let penaltyAway: number | null = m.score?.penalties?.away ?? null
-      if (matchDuration === 'PENALTY_SHOOTOUT'
+      const apiPensInvalid = penaltyHome == null || penaltyAway == null || penaltyHome === penaltyAway
+      if (matchDuration === 'PENALTY_SHOOTOUT' && apiPensInvalid
           && m.score?.fullTime?.home != null && m.score?.fullTime?.away != null
           && m.score?.regularTime?.home != null && m.score?.regularTime?.away != null) {
         const etH = m.score?.extraTime?.home ?? 0
@@ -140,8 +143,6 @@ serve(async (req) => {
         const derivedH = m.score.fullTime.home - m.score.regularTime.home - etH
         const derivedA = m.score.fullTime.away - m.score.regularTime.away - etA
         if (derivedH >= 0 && derivedA >= 0 && derivedH !== derivedA) {
-          // Nur überschreiben wenn die abgeleiteten Pens einen Sieger liefern,
-          // sonst score.penalties (5:5) als Live-Snapshot stehen lassen.
           penaltyHome = derivedH
           penaltyAway = derivedA
         }
@@ -185,10 +186,23 @@ serve(async (req) => {
       // Check if question already exists for this match
       const { data: existing } = await supabase
         .from('tip_questions')
-        .select('id')
+        .select('id, match_status, penalty_home, penalty_away')
         .eq('group_id', group_id)
         .eq('match_api_id', matchApiId)
         .maybeSingle()
+
+      // Freeze für FINISHED Pen-Matches: sobald ein Pen-Match einmal FINISHED ist
+      // und valide ≠-Pens in der DB stehen, NIE wieder mit API-Werten überschreiben.
+      // football-data.org liefert für einzelne Matches dauerhaft falsche Pen-Stände
+      // (z.B. 5:5 statt 3:4) — und auch die fullTime-Ableitung kann danebenliegen.
+      // Manuelle Korrekturen / Admin-Backfills sind dann autoritativ.
+      if (existing && existing.match_status === 'FINISHED'
+          && matchDuration === 'PENALTY_SHOOTOUT'
+          && existing.penalty_home != null && existing.penalty_away != null
+          && existing.penalty_home !== existing.penalty_away) {
+        penaltyHome = existing.penalty_home
+        penaltyAway = existing.penalty_away
+      }
 
       if (existing) {
         // Update existing

@@ -152,13 +152,20 @@ export default function MatchCard({
   // (nach Verlängerung), der Sieger steht via Elfmeterschießen immer fest.
   const isKo = !!q.competition_stage && KO_STAGES.has(q.competition_stage)
 
-  // Headline-Score: in der Liga/Gruppenphase der 90'-Stand (Kicktipp), in der
-  // K.o. der Endstand nach Verlängerung (home_score + extratime). Footer zeigt
-  // zusätzlich n.V. und Elfmeterschießen.
+  // Headline-Score: in Liga/Gruppe der 90'-Stand (Kicktipp). In der K.o. das
+  // ENDERGEBNIS — Pen-Stand wenn Elfmeterschießen, sonst Stand nach Verlängerung.
+  // Footer zeigt 90'-Stand als Kontext.
   const usedExtraTime = q.extratime_home != null && q.extratime_away != null
   const usedPenalties = q.penalty_home != null && q.penalty_away != null
-  const displayHome = isKo && q.home_score != null ? q.home_score + (q.extratime_home ?? 0) : q.home_score
-  const displayAway = isKo && q.away_score != null ? q.away_score + (q.extratime_away ?? 0) : q.away_score
+  let displayHome: number | null = q.home_score
+  let displayAway: number | null = q.away_score
+  if (isKo && usedPenalties) {
+    displayHome = q.penalty_home!
+    displayAway = q.penalty_away!
+  } else if (isKo && q.home_score != null && q.away_score != null) {
+    displayHome = q.home_score + (q.extratime_home ?? 0)
+    displayAway = q.away_score + (q.extratime_away ?? 0)
+  }
 
   // K.o.-Validierung: ein Unentschieden-Tipp ist nicht erlaubt. Wir zeigen einen
   // Hinweis, sobald beide Felder gleich befüllt sind (Speichern blockt der Parent).
@@ -343,21 +350,18 @@ export default function MatchCard({
         </div>
       )}
 
-      {/* K.o.-Endergebnis: 120' (n.V.) und Elfmeterschießen, falls relevant. */}
-      {(usedExtraTime || usedPenalties) && (
+      {/* K.o.-Kontext: Spitzen-Score oben zeigt Endergebnis, hier nur das Label
+          (n.V. oder i.E.) plus 90'-Stand zur Einordnung. */}
+      {isKo && (usedExtraTime || usedPenalties) && q.home_score != null && q.away_score != null && (
         <div style={{
           marginTop: 8, display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap',
           fontSize: 10, fontFamily: 'var(--font-display)', fontWeight: 700,
           color: 'var(--text-muted)', letterSpacing: 0.5,
         }}>
-          {usedExtraTime && (
-            <span>n.V. {q.extratime_home}:{q.extratime_away}</span>
-          )}
-          {usedPenalties && (
-            <span style={{ color: 'var(--gold-primary)' }}>
-              i.E. {q.penalty_home}:{q.penalty_away}
-            </span>
-          )}
+          <span style={{ color: 'var(--gold-primary)' }}>
+            {usedPenalties ? 'i.E.' : 'n.V.'}
+          </span>
+          <span>(90&apos; {q.home_score}:{q.away_score})</span>
         </div>
       )}
 

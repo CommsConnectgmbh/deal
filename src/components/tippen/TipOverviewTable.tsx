@@ -53,19 +53,22 @@ function getCellColor(tip: TipInfo | undefined, q: QuestionInfo): string {
   return 'rgba(255,255,255,0.03)' // miss
 }
 
-// Erg.-Zelle (Kicktipp-Stil): 90'-Score ist die Headline (darauf wird getippt),
-// 120' (n.V.) und Elfmeterschießen als kleiner Annex.
+// Erg.-Zelle: in K.o. ist die Headline das ENDERGEBNIS (Pen-Stand bei
+// Elfmeterschießen, sonst Stand nach Verlängerung). Suffix zeigt 90' als Kontext.
+// In Liga/Gruppenphase bleibt es beim 90'-Stand.
 function renderFinalScore(q: QuestionInfo): { head: string; suffix: string } {
   if (q.home_score === null || q.away_score === null) return { head: '–', suffix: '' }
-  const head = `${q.home_score}:${q.away_score}`
-  const parts: string[] = []
-  if (q.extratime_home != null && q.extratime_away != null) {
-    parts.push(`n.V. ${q.extratime_home}:${q.extratime_away}`)
+  const usedPen = q.penalty_home != null && q.penalty_away != null
+  const usedEt = q.extratime_home != null && q.extratime_away != null
+  if (usedPen) {
+    return { head: `${q.penalty_home}:${q.penalty_away}`, suffix: `i.E. · 90' ${q.home_score}:${q.away_score}` }
   }
-  if (q.penalty_home != null && q.penalty_away != null) {
-    parts.push(`i.E. ${q.penalty_home}:${q.penalty_away}`)
+  if (usedEt) {
+    const eh = q.home_score + (q.extratime_home ?? 0)
+    const ea = q.away_score + (q.extratime_away ?? 0)
+    return { head: `${eh}:${ea}`, suffix: `n.V. · 90' ${q.home_score}:${q.away_score}` }
   }
-  return { head, suffix: parts.join(' · ') }
+  return { head: `${q.home_score}:${q.away_score}`, suffix: '' }
 }
 
 /**
