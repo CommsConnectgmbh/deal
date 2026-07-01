@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
@@ -175,6 +175,26 @@ export default function LeaderboardPage() {
 
     setLoading(false)
   }
+
+  // Neueste Fetch-Funktion in einem Ref halten, damit Focus/Visibility-Listener
+  // ohne Re-Subscribe immer die aktuelle Version (inkl. aktiver Filter) aufruft.
+  const fetchRef = useRef<() => void>(() => {})
+  fetchRef.current = fetchLeaderboard
+
+  // Rangliste ohne manuelles Neuladen aktualisieren: Rückkehr zum Tab bzw.
+  // Fensterfokus erzwingt einen Refresh (Punkte ändern sich, während der Cron im
+  // Hintergrund bepunktet), plus ein leises Polling solange der Tab sichtbar ist.
+  useEffect(() => {
+    const refresh = () => { if (document.visibilityState === 'visible') fetchRef.current() }
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener('focus', refresh)
+    const poll = setInterval(refresh, 60_000)
+    return () => {
+      document.removeEventListener('visibilitychange', refresh)
+      window.removeEventListener('focus', refresh)
+      clearInterval(poll)
+    }
+  }, [])
 
   const getScore = (e: LBEntry) => {
     if (category === 'level')     return `Lv. ${e.level}`

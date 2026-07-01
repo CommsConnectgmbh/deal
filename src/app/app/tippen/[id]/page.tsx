@@ -125,6 +125,31 @@ function isKoQuestion(q: { competition_stage: string | null }): boolean {
   return !!q.competition_stage && !!RAW_TO_KO_KEY[q.competition_stage]
 }
 
+/** Anfangs-Auswahl beim ersten Laden. Bevorzugt den frühesten Spieltag mit noch
+    offenen Partien; ist die komplette Gruppen-/Liga-Phase durch, springt sie in die
+    aktuelle K.o.-Runde (früheste Stage mit offener Partie) statt auf den letzten
+    numerischen Spieltag (WM: Gruppenphase Spieltag 3) zurückzufallen. */
+function findInitialSelection(questions: TipQuestion[]): { matchday: number; koStage: string | null } {
+  const isOpen = (q: TipQuestion) => q.status !== 'resolved' && q.status !== 'cancelled'
+  const matchdays = [...new Set(questions.filter(q => q.matchday).map(q => q.matchday!))].sort((a, b) => a - b)
+  const lastMd = matchdays.length > 0 ? matchdays[matchdays.length - 1] : 1
+
+  // 1) Frühester numerischer Spieltag mit offener Partie.
+  for (const md of matchdays) {
+    if (questions.some(q => q.matchday === md && isOpen(q))) return { matchday: md, koStage: null }
+  }
+
+  // 2) Gruppen-/Liga-Phase durch → aktuelle K.o.-Stage (früheste in Turnier-Reihenfolge mit offener Partie).
+  for (const s of KO_STAGES_ORDERED) {
+    if (questions.some(q => q.competition_stage && RAW_TO_KO_KEY[q.competition_stage] === s.key && isOpen(q))) {
+      return { matchday: lastMd, koStage: s.key }
+    }
+  }
+
+  // 3) Alles aufgelöst → letzter numerischer Spieltag.
+  return { matchday: lastMd, koStage: null }
+}
+
 /* ═══════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════════════════════════════ */
@@ -241,10 +266,13 @@ export default function TippgruppeDetailPage() {
     const allQ = (qs || []) as TipQuestion[]
     setQuestions(allQ)
 
-    // Find current matchday on first load only (use ref to avoid stale closure)
+    // Find current selection on first load only (use ref to avoid stale closure).
+    // KO-aware: nach durchgespielter Gruppenphase in die aktuelle K.o.-Runde springen.
     if (allQ.length > 0 && !initializedRef.current) {
       initializedRef.current = true
-      setActiveMatchday(findCurrentMatchday(allQ))
+      const sel = findInitialSelection(allQ)
+      setActiveMatchday(sel.matchday)
+      setActiveKoStage(sel.koStage)
     }
 
     // Load MY answers

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
@@ -20,37 +20,47 @@ export default function MiniLeaderboard() {
   const [sortBy, setSortBy] = useState<'wins' | 'deals_total'>('wins')
   const [loaded, setLoaded] = useState(false)
 
-  useEffect(() => {
-    const load = async () => {
-      // Load top 20 by wins
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, username, display_name, avatar_url, wins, deals_total, streak, level, is_founder')
-        .gt('wins', 0)
-        .order('wins', { ascending: false })
-        .limit(20)
+  const load = useCallback(async () => {
+    // Load top 20 by wins
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, username, display_name, avatar_url, wins, deals_total, streak, level, is_founder')
+      .gt('wins', 0)
+      .order('wins', { ascending: false })
+      .limit(20)
 
-      const sorted = data || []
-      setLeaders(sorted)
+    const sorted = data || []
+    setLeaders(sorted)
 
-      // Find current user rank
-      if (profile) {
-        const idx = sorted.findIndex((l: any) => l.id === profile.id)
-        if (idx >= 0) {
-          setMyRank(idx + 1)
-        } else {
-          // User not in top 20, get approximate rank
-          const { count } = await supabase
-            .from('profiles')
-            .select('*', { count: 'exact', head: true })
-            .gt('wins', profile.wins || 0)
-          setMyRank((count || 0) + 1)
-        }
+    // Find current user rank
+    if (profile) {
+      const idx = sorted.findIndex((l: any) => l.id === profile.id)
+      if (idx >= 0) {
+        setMyRank(idx + 1)
+      } else {
+        // User not in top 20, get approximate rank
+        const { count } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .gt('wins', profile.wins || 0)
+        setMyRank((count || 0) + 1)
       }
-      setLoaded(true)
     }
-    load()
+    setLoaded(true)
   }, [profile])
+
+  useEffect(() => { load() }, [load])
+
+  // Ohne manuelles Neuladen aktuell halten: Rückkehr zum Tab / Fensterfokus refetcht.
+  useEffect(() => {
+    const refresh = () => { if (document.visibilityState === 'visible') load() }
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener('focus', refresh)
+    return () => {
+      document.removeEventListener('visibilitychange', refresh)
+      window.removeEventListener('focus', refresh)
+    }
+  }, [load])
 
   if (!loaded) return null
 
